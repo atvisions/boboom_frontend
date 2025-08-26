@@ -3,7 +3,7 @@
 import * as React from "react";
 import { type State, WagmiProvider, cookieStorage, createStorage, createConfig, http } from "wagmi";
 import { sepolia } from "wagmi/chains";
-import { injected, walletConnect } from "wagmi/connectors";
+import { injected } from "wagmi/connectors";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nProvider } from "@/context/I18nProvider";
 import { ThemeProvider } from "@/context/ThemeProvider";

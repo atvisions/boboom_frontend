@@ -234,7 +234,7 @@ export function LatestSection() {
         {!isLoading && !error && tokens.length === 0 && <EmptyState filter={activeFilter} />}
         
         {!isLoading && !error && tokens.map((token) => (
-          <TokenRow key={token.id} token={token} />
+          <TokenRow key={token.address} token={token} />
         ))}
       </div>
       

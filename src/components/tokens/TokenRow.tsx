@@ -20,6 +20,7 @@ function SocialIcon({ href, icon, label }: { href?: string; icon: React.ReactNod
       rel="noopener noreferrer"
       className="flex items-center justify-center w-6 h-6 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-gray-400 hover:text-white"
       title={label}
+      onClick={(e) => e.stopPropagation()} // 防止触发父级链接
     >
       {icon}
     </a>
@@ -198,9 +199,10 @@ export function TokenRow({ token }: TokenRowProps) {
   };
 
   return (
-    <div className={`flex items-center p-4 md:p-6 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-2xl hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer group ${
-      isNearGraduation ? 'ring-1 ring-yellow-500/30' : ''
-    }`} style={{backgroundColor: '#17182D'}}>
+    <Link href={`/token/${token.address}`} className="block">
+      <div className={`flex items-center p-4 md:p-6 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-2xl hover:scale-[1.01] hover:-translate-y-0.5 cursor-pointer group ${
+        isNearGraduation ? 'ring-1 ring-yellow-500/30' : ''
+      }`} style={{backgroundColor: '#17182D'}}>
       {/* 移动端：垂直布局 */}
       <div className="flex flex-col md:hidden w-full gap-4">
         {/* 顶部：Logo + 名称 + 收藏 */}
@@ -216,9 +218,7 @@ export function TokenRow({ token }: TokenRowProps) {
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <Link href={`/token/${token.address}`} className="hover:text-blue-400 transition-colors">
-                  <h3 className="text-base font-bold text-white truncate group-hover:text-blue-400 transition-colors">{token.name}</h3>
-                </Link>
+                <h3 className="text-base font-bold text-white truncate group-hover:text-blue-400 transition-colors">{token.name}</h3>
                 <span className="text-xs text-gray-400">${token.symbol}</span>
               </div>
               <div className="text-sm font-semibold text-white">
@@ -323,9 +323,7 @@ export function TokenRow({ token }: TokenRowProps) {
           
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <Link href={`/token/${token.address}`} className="hover:text-blue-400 transition-colors">
-                <h3 className="text-lg font-bold text-white truncate group-hover:text-blue-400 transition-colors">{token.name}</h3>
-              </Link>
+              <h3 className="text-lg font-bold text-white truncate group-hover:text-blue-400 transition-colors">{token.name}</h3>
               <span className="text-sm text-gray-400">${token.symbol}</span>
             </div>
             
@@ -419,6 +417,7 @@ export function TokenRow({ token }: TokenRowProps) {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </Link>
   );
 }

@@ -20,6 +20,7 @@ function SocialIcon({ href, icon, label }: { href?: string; icon: React.ReactNod
       rel="noopener noreferrer"
       className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-gray-300 hover:text-white"
       title={label}
+      onClick={(e) => e.stopPropagation()} // 防止触发父级链接
     >
       {icon}
     </a>
@@ -209,12 +210,13 @@ export function FeaturedCard({ token }: FeaturedCardProps) {
   };
 
   return (
-    <div 
-      className={`relative rounded-2xl p-4 sm:p-5 transition-all duration-300 shadow-lg hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-1 cursor-pointer group overflow-hidden ${
-        isNearGraduation ? 'ring-1 ring-yellow-500/30' : ''
-      }`}
-      style={{backgroundColor: '#17182D'}}
-    >
+    <Link href={`/token/${token.address}`} className="block">
+      <div 
+        className={`relative rounded-2xl p-4 sm:p-5 transition-all duration-300 shadow-lg hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-1 cursor-pointer group overflow-hidden ${
+          isNearGraduation ? 'ring-1 ring-yellow-500/30' : ''
+        }`}
+        style={{backgroundColor: '#17182D'}}
+      >
       {/* 背景装饰 */}
       <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl ${
         isNearGraduation ? 'from-yellow-500/10' : 'from-blue-500/10'
@@ -233,9 +235,7 @@ export function FeaturedCard({ token }: FeaturedCardProps) {
           />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <Link href={`/token/${token.address}`} className="hover:text-blue-400 transition-colors">
-                <h3 className="text-base sm:text-lg font-bold text-white truncate group-hover:text-blue-400 transition-colors">{token.name}</h3>
-              </Link>
+              <h3 className="text-base sm:text-lg font-bold text-white truncate group-hover:text-blue-400 transition-colors">{token.name}</h3>
               <span className="text-xs text-gray-400">${token.symbol}</span>
             </div>
             <div className="text-lg sm:text-xl font-bold text-white">
@@ -321,6 +321,7 @@ export function FeaturedCard({ token }: FeaturedCardProps) {
         <SocialIcon href={token.website} icon={<WebsiteIcon />} label="Website" />
         <SocialIcon href="#" icon={<DiscordIcon />} label="Discord" />
       </div>
-    </div>
+      </div>
+    </Link>
   );
 }

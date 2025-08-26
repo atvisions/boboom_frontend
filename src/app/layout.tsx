@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { ToastProvider } from "@/contexts/ToastContext";
 
 const geistSans = Inter({
   variable: "--font-geist-sans",
@@ -27,13 +28,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen text-white`} style={{backgroundColor: '#090A1A'}}>
         <Providers>
-          <div className="min-h-screen flex flex-col">
-            <Header />
-            <main className="flex-1 container mx-auto px-4 py-6">
-              {children}
-            </main>
-            <Footer />
-          </div>
+          <ToastProvider>
+            <div className="min-h-screen flex flex-col">
+              <Header />
+              <main className="flex-1 container mx-auto px-4 py-6">
+                {children}
+              </main>
+              <Footer />
+            </div>
+          </ToastProvider>
         </Providers>
       </body>
     </html>

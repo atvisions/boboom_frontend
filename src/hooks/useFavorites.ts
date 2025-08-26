@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAccount } from 'wagmi';
-import { notifySuccess, notifyError, notifyInfo } from '@/lib/notify';
+import { useToast } from '@/contexts/ToastContext';
 import {
   toggleFavorite,
   checkFavoriteStatus,
@@ -16,6 +16,7 @@ import {
 export function useToggleFavorite() {
   const { address } = useAccount();
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
 
   return useMutation({
     mutationKey: ['toggleFavorite'], // 添加 mutation key 防止重复
@@ -34,9 +35,9 @@ export function useToggleFavorite() {
         
         // 显示提示 - 收藏用绿色成功提示，取消收藏用蓝色信息提示
         if (is_favorited) {
-          notifySuccess('Favorited', 'Token added to favorites');
+          showToast('Token added to favorites', 'success');
         } else {
-          notifyInfo('Unfavorited', 'Token removed from favorites');
+          showToast('Token removed from favorites', 'info');
         }
 
         // 更新相关查询缓存
@@ -56,7 +57,7 @@ export function useToggleFavorite() {
     onError: (error: Error) => {
       console.error('Toggle favorite error:', error);
       // 使用与钱包连接一致的错误提示样式
-      notifyError('Operation Failed', error.message || 'Unable to toggle favorite status, please try again');
+      showToast(error.message || 'Unable to toggle favorite status, please try again', 'error');
     },
   });
 }

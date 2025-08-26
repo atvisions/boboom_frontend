@@ -78,7 +78,7 @@ export function TokenCard({ token }: TokenCardProps) {
             </div>
             <div>
               <span className="text-gray-400">Volume 24h</span>
-              <div className="font-medium">${formatNumber(token.volume24h)}</div>
+              <div className="font-medium">{formatNumber(token.volume24h)} OKB</div>
             </div>
             {token.phase.toUpperCase() === 'CREATED' && (
               <>

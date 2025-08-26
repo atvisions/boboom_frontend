@@ -125,7 +125,7 @@ export function FeaturedSection() {
           {!isLoading && !error && tokens.length === 0 && <EmptyState />}
           
           {!isLoading && !error && getCurrentTokens().map((token) => (
-            <FeaturedCard key={token.id} token={token} />
+            <FeaturedCard key={token.address} token={token} />
           ))}
         </div>
 

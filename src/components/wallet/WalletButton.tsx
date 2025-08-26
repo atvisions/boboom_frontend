@@ -208,10 +208,6 @@ export function WalletButton() {
               <span className="text-gray-300">ETH (Sepolia)</span>
               <span className="text-white font-medium">{ethBalance ? Number(ethBalance.formatted).toFixed(4) : '0.0000'}</span>
             </div>
-            <a href="/create" onClick={() => setOpen(false)} className="col-span-2 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-white text-black font-semibold hover:bg-white/90">
-              <PlusIcon />
-              <span>Create Token</span>
-            </a>
             <a href="/profile" onClick={() => setOpen(false)} className="col-span-2 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10">
               <ProfileIcon />
               <span>Profile</span>
