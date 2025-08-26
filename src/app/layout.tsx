@@ -1,43 +1,43 @@
-import "@rainbow-me/rainbowkit/styles.css";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Roboto_Mono } from "next/font/google";
 import "./globals.css";
-import { Providers, config } from "./providers";
-import { AuthManager } from "@/components/auth/AuthManager";
-import { headers } from "next/headers";
-import { cookieToInitialState } from 'wagmi'
+import { Providers } from "./providers";
+import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
 
-const geistSans = Geist({
+const geistSans = Inter({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: 'swap',
 });
 
-const geistMono = Geist_Mono({
+const geistMono = Roboto_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
-  title: "BoBoom - The Ultimate Meme Coin Launchpad",
+  title: "BoBoom - Launchpad",
   description: "Create, trade, and graduate the next generation of meme coins.",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  const initialState = cookieToInitialState(config, headers().get('cookie'))
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <Providers initialState={initialState}>
-          <AuthManager />
-          {children}
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen text-white`} style={{backgroundColor: '#090A1A'}}>
+        <Providers>
+          <div className="min-h-screen flex flex-col">
+            <Header />
+            <main className="flex-1 container mx-auto px-4 py-6">
+              {children}
+            </main>
+            <Footer />
+          </div>
         </Providers>
       </body>
     </html>
   );
 }
+
+

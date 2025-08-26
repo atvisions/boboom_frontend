@@ -1,14 +1,10 @@
-import { MainLayout } from "@/components/layout/MainLayout";
-import { CreateTokenForm } from "@/components/create/CreateTokenForm";
-
-export default function CreateTokenPage() {
+export default function CreateTokenPlaceholder() {
   return (
-    <MainLayout>
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold text-center mb-8">Create a New Token</h1>
-        <CreateTokenForm />
-      </div>
-    </MainLayout>
+    <div className="container mx-auto px-4 py-10">
+      <h1 className="text-2xl font-semibold mb-2">Create Token</h1>
+      <p className="text-gray-400">Coming soon.</p>
+    </div>
   );
 }
+
 

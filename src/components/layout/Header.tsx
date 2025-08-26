@@ -1,24 +1,33 @@
 "use client";
-
 import Link from "next/link";
-import { ConnectWallet } from "@/components/wallet/ConnectWallet";
+import Image from "next/image";
+import { WalletButton } from "@/components/wallet/WalletButton";
+
+const nav = [
+  { href: "/", label: "Home" },
+  { href: "/#featured", label: "Featured" },
+  { href: "/#latest", label: "Tokens" },
+];
 
 export function Header() {
+  const logoSrc = '/logo_white.png';
   return (
-    <header className="bg-gray-900 border-b border-gray-700 p-4 relative z-10">
-      <div className="container mx-auto flex justify-between items-center">
-        <Link href="/" className="text-2xl font-bold text-white">
-          BoBoom
+    <header className="sticky top-0 z-50 backdrop-blur border-b border-white/10" style={{backgroundColor: 'rgba(9, 10, 26, 0.8)'}}>
+      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-3">
+          <Image src={logoSrc} alt="BoBoom" width={120} height={28} style={{ width: 'auto', height: 'auto' }} />
         </Link>
-        <nav className="hidden md:flex items-center space-x-6">
-          <Link href="/" className="text-gray-300 hover:text-white transition-colors">Trending</Link>
-          <Link href="/create" className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Create Token</Link>
+        <nav className="hidden md:flex items-center gap-6 text-sm text-gray-300">
+          {nav.map((n) => (
+            <Link key={n.href} href={n.href} className="hover:text-white transition-colors">{n.label}</Link>
+          ))}
         </nav>
-        <div className="flex items-center gap-4">
-          <ConnectWallet />
+        <div className="flex items-center gap-3">
+          <WalletButton />
         </div>
       </div>
     </header>
   );
 }
+
 
