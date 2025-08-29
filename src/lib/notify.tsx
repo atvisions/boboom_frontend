@@ -10,21 +10,40 @@ function CloseIcon() {
   );
 }
 
-function AlertIcon() {
+function SuccessIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" fill="#ffffff"/>
-      <path d="M12 8v5" stroke="#000000" strokeWidth="2" strokeLinecap="round"/>
-      <circle cx="12" cy="16.5" r="1" fill="#000000"/>
+      <path d="M9 12l2 2 4-4" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="12" cy="12" r="10" stroke="#ffffff" strokeWidth="2" fill="none"/>
     </svg>
   );
 }
 
-function BaseToast({ id, title, description, bg }: { id: number; title: string; description?: string; bg: string }) {
+function InfoIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="10" stroke="#ffffff" strokeWidth="2" fill="none"/>
+      <path d="M12 16v-4" stroke="#ffffff" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M12 8h.01" stroke="#ffffff" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function ErrorIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="10" stroke="#ffffff" strokeWidth="2" fill="none"/>
+      <path d="M15 9l-6 6" stroke="#ffffff" strokeWidth="2" strokeLinecap="round"/>
+      <path d="M9 9l6 6" stroke="#ffffff" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function BaseToast({ id, title, description, bg, icon }: { id: number; title: string; description?: string; bg: string; icon: React.ReactNode }) {
   return (
     <div className={`relative flex items-center gap-3 px-4 py-3 rounded-xl text-white shadow-xl ${bg}`}>
       <div className="flex items-center">
-        <AlertIcon />
+        {icon}
       </div>
       <div className="min-w-0">
         <div className="font-semibold">{title}</div>
@@ -39,18 +58,18 @@ function BaseToast({ id, title, description, bg }: { id: number; title: string; 
 
 export function notifyError(title: string, description?: string, duration = 3500) {
   return toast.custom((t) => (
-    <BaseToast id={t.id} title={title} description={description} bg="bg-red-500" />
+    <BaseToast id={t.id} title={title} description={description} bg="bg-red-500" icon={<ErrorIcon />} />
   ), { duration });
 }
 
 export function notifySuccess(title: string, description?: string, duration = 3000) {
   return toast.custom((t) => (
-    <BaseToast id={t.id} title={title} description={description} bg="bg-emerald-500" />
+    <BaseToast id={t.id} title={title} description={description} bg="bg-emerald-500" icon={<SuccessIcon />} />
   ), { duration });
 }
 
 export function notifyInfo(title: string, description?: string, duration = 3000) {
   return toast.custom((t) => (
-    <BaseToast id={t.id} title={title} description={description} bg="bg-blue-500" />
+    <BaseToast id={t.id} title={title} description={description} bg="bg-blue-500" icon={<InfoIcon />} />
   ), { duration });
 }

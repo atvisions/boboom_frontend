@@ -5,6 +5,9 @@ import { useToggleFavorite, useFavoriteStatus } from "@/hooks/useFavorites";
 import { useAccount } from "wagmi";
 import { notifyInfo } from "@/lib/notify";
 import { useCallback, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface FeaturedCardProps {
   token: Token;
@@ -12,15 +15,16 @@ interface FeaturedCardProps {
 
 function SocialIcon({ href, icon, label }: { href?: string; icon: React.ReactNode; label: string }) {
   if (!href) return null;
-  
   return (
-    <a
-      href={href}
-      target="_blank"
+    <a 
+      href={href} 
+      target="_blank" 
       rel="noopener noreferrer"
-      className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-gray-300 hover:text-white"
+      className="h-8 w-8 p-0 hover:bg-white/10 text-gray-300 hover:text-white rounded-md flex items-center justify-center transition-colors"
       title={label}
-      onClick={(e) => e.stopPropagation()} // 防止触发父级链接
+      onClick={(e) => {
+        e.stopPropagation();
+      }}
     >
       {icon}
     </a>
@@ -59,14 +63,6 @@ function DiscordIcon() {
   );
 }
 
-function ChainIcon() {
-  return (
-    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-      <span className="text-xs font-bold text-white">S</span>
-    </div>
-  );
-}
-
 export function FeaturedCard({ token }: FeaturedCardProps) {
   const avatarSrc = token.imageUrl || `https://avatar.vercel.sh/${token.address}.png?size=64`;
   const creatorAvatarSrc = `https://avatar.vercel.sh/${token.creator}.png?size=32`;
@@ -92,18 +88,13 @@ export function FeaturedCard({ token }: FeaturedCardProps) {
     e.preventDefault();
     e.stopPropagation();
     
-    // 防止连续点击
-    if (isDisabled) {
-      return;
-    }
+    if (isDisabled) return;
     
     if (!userAddress) {
-      // 显示钱包连接提示 - 使用与其他功能一致的样式
       notifyInfo('Connect Wallet', 'Please connect your wallet to favorite tokens');
       return;
     }
 
-    // 设置点击状态，防止重复点击
     setIsClicking(true);
     
     try {
@@ -114,17 +105,17 @@ export function FeaturedCard({ token }: FeaturedCardProps) {
     } catch (error) {
       // 错误已在 useFavorites hook 中处理
     } finally {
-      // 延迟重置点击状态，确保用户能看到反馈
       setTimeout(() => setIsClicking(false), 500);
     }
   }, [isDisabled, userAddress, toggleFavoriteMutation, token.address, token.network]);
 
-  // 收藏图标组件
   const FavoriteIcon = () => (
-    <button
+    <Button
       onClick={handleFavoriteClick}
       disabled={isDisabled}
-      className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 transition-all duration-200 group disabled:opacity-50 disabled:cursor-not-allowed"
+      variant="ghost"
+      size="sm"
+      className="h-8 w-8 p-0 hover:bg-white/10 transition-all duration-200 group disabled:opacity-50 disabled:cursor-not-allowed"
       title={
         !userAddress 
           ? "Connect wallet first" 
@@ -134,10 +125,8 @@ export function FeaturedCard({ token }: FeaturedCardProps) {
       }
     >
       {isDisabled ? (
-        // 加载状态
         <div className="w-4 h-4 border-2 border-gray-400 border-t-yellow-400 rounded-full animate-spin" />
       ) : (
-        // 收藏图标
         <svg 
           className={`w-4 h-4 transition-all duration-200 ${
             isFavorited 
@@ -154,15 +143,13 @@ export function FeaturedCard({ token }: FeaturedCardProps) {
           <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
         </svg>
       )}
-    </button>
+    </Button>
   );
-  
-  // 计算创建时间
+
   const getTimeAgo = (createdAt: string) => {
     const now = new Date();
     const created = new Date(createdAt);
     const diffHours = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60));
-    
     if (diffHours < 1) return 'Just now';
     if (diffHours === 1) return '1h ago';
     if (diffHours < 24) return `${diffHours}h ago`;
@@ -171,18 +158,12 @@ export function FeaturedCard({ token }: FeaturedCardProps) {
     return `${diffDays}d ago`;
   };
 
-  // 格式化数字
   const formatNumber = (num: number) => {
-    if (num >= 1000000) {
-      return `${(num / 1000000).toFixed(2)}M`;
-    }
-    if (num >= 1000) {
-      return `${(num / 1000).toFixed(1)}K`;
-    }
+    if (num >= 1000000) return `${(num / 1000000).toFixed(2)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
     return num.toFixed(2);
   };
 
-  // 获取阶段显示文本
   const getPhaseText = (phase: string) => {
     switch (phase) {
       case 'CREATED': return 'On Curve';
@@ -193,135 +174,149 @@ export function FeaturedCard({ token }: FeaturedCardProps) {
     }
   };
 
-  // 模拟24小时涨跌（基于毕业进度）
   const getPriceChange = () => {
-    const change = (token.graduationProgress - 50) * 0.5; // 简单模拟
+    const change = (token.graduationProgress - 50) * 0.5;
     return change;
   };
 
   const priceChange = getPriceChange();
 
-  // 获取进度条样式
   const getProgressBarClass = () => {
     if (isNearGraduation) {
-      return "bg-gradient-to-r from-yellow-400 via-yellow-500 to-orange-500 h-full rounded-full transition-all duration-500 animate-pulse shadow-lg shadow-yellow-500/50";
+      return "bg-gradient-to-r from-yellow-400 via-yellow-500 to-orange-500 h-full rounded-full transition-all duration-500";
     }
-    return "bg-gradient-to-r from-blue-500 to-blue-600 h-full rounded-full transition-all duration-500 shadow-sm";
+    return "bg-gradient-to-r from-blue-500 to-blue-600 h-full rounded-full transition-all duration-500";
   };
 
   return (
     <Link href={`/token/${token.address}`} className="block">
-      <div 
-        className={`relative rounded-2xl p-4 sm:p-5 transition-all duration-300 shadow-lg hover:shadow-2xl hover:scale-[1.02] hover:-translate-y-1 cursor-pointer group overflow-hidden ${
-          isNearGraduation ? 'ring-1 ring-yellow-500/30' : ''
-        }`}
-        style={{backgroundColor: '#17182D'}}
-      >
-      {/* 背景装饰 */}
-      <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl ${
-        isNearGraduation ? 'from-yellow-500/10' : 'from-blue-500/10'
-      } to-transparent rounded-full -translate-y-8 translate-x-8 opacity-50`} />
-      
-      {/* 头部：Logo + 名称 + 价格 + 收藏 */}
-      <div className="relative z-10 flex items-start justify-between mb-3">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <img 
-            src={avatarSrc} 
-            alt={token.name} 
-            className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-white/10 group-hover:scale-105 transition-transform duration-300"
-            onError={(e) => {
-              e.currentTarget.src = `https://avatar.vercel.sh/${token.address}.png?size=48`;
-            }}
-          />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-base sm:text-lg font-bold text-white truncate group-hover:text-blue-400 transition-colors">{token.name}</h3>
-              <span className="text-xs text-gray-400">${token.symbol}</span>
+      <Card className="group relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.02] bg-[#17182D] border-0 shadow-none">
+        <CardContent className="p-6 space-y-5">
+          {/* 项目头部：Logo + 名称 + 区块链 */}
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              <div className="relative">
+                <img 
+                  src={avatarSrc} 
+                  alt={token.name} 
+                  className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/20 to-primary/40 object-cover group-hover:scale-105 transition-transform duration-300"
+                  onError={(e) => {
+                    e.currentTarget.src = `https://avatar.vercel.sh/${token.address}.png?size=56`;
+                  }}
+                />
+                {isNearGraduation && (
+                  <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-yellow-500 rounded-full animate-pulse" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <h3 className="text-lg md:text-xl font-bold text-white truncate group-hover:text-primary transition-colors">
+                    {token.name}
+                  </h3>
+                  <div className="w-4 h-4 bg-primary/20 rounded-full flex items-center justify-center">
+                    <div className="w-2 h-2 bg-primary rounded-full"></div>
+                  </div>
+                </div>
+                <div className="text-sm text-gray-400">
+                  ${token.symbol} • {token.network || 'Ethereum'}
+                </div>
+              </div>
             </div>
-            <div className="text-lg sm:text-xl font-bold text-white">
-              ${Number(token.currentPrice).toFixed(6)}
+            <FavoriteIcon />
+          </div>
+
+          {/* 关键指标：价格和涨跌幅 */}
+          <div className="flex items-end justify-between">
+            <div>
+              <div className="text-2xl font-extrabold text-white tracking-tight">
+                ${Number(token.currentPrice).toFixed(6)}
+              </div>
+              <div className={`text-sm font-medium ${priceChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}% (24h)
+              </div>
             </div>
-            <div className={`text-xs font-medium ${priceChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)}% (24h)
+            <div className="text-right">
+              <div className="text-xs text-gray-400">Market Cap</div>
+              <div className="text-base font-semibold text-white">
+                ${formatNumber(Number(token.marketCap))}
+              </div>
             </div>
           </div>
-        </div>
-        <FavoriteIcon />
-      </div>
 
-      {/* 介绍 */}
-      {token.description && (
-        <div className="relative z-10 mb-3">
-          <p className="text-gray-300 text-xs line-clamp-2 leading-relaxed">{token.description}</p>
-        </div>
-      )}
+          {/* 项目描述：固定两行高度并隐藏 */}
+          {token.description && (
+            <p className="text-gray-300 text-sm leading-relaxed line-clamp-2 overflow-hidden min-h-[40px] max-h-[40px]">
+              {token.description}
+            </p>
+          )}
 
-      {/* 阶段标签 + 进度条 */}
-      <div className="relative z-10 mb-3">
-        <div className="flex items-center justify-between mb-2">
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-            isNearGraduation 
-              ? 'bg-yellow-600/20 text-yellow-400' 
-              : 'bg-blue-600/20 text-blue-400'
-          }`}>
-            {getPhaseText(token.phase)}
-          </span>
-          <span className={`font-bold text-sm ${isNearGraduation ? 'text-yellow-400' : 'text-white'}`}>
-            {Math.floor(token.graduationProgress)}%
-          </span>
-        </div>
-        <div className="w-full bg-gray-700/50 rounded-full h-1.5 overflow-hidden">
-          <div 
-            className={getProgressBarClass()}
-            style={{ width: `${Math.min(token.graduationProgress, 100)}%` }}
-          />
-        </div>
-      </div>
-
-      {/* 统计数据网格 - 移动端2列，桌面端3列 */}
-      <div className="relative z-10 grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
-        <div className="text-center">
-          <div className="text-gray-400 text-xs">Market Cap</div>
-          <div className="text-white font-bold text-xs sm:text-sm">${formatNumber(Number(token.marketCap))}</div>
-        </div>
-        <div className="text-center">
-          <div className="text-gray-400 text-xs">FDV</div>
-          <div className="text-white font-bold text-xs sm:text-sm">${formatNumber(Number(token.fdv || 0))}</div>
-        </div>
-        <div className="text-center col-span-2 sm:col-span-1">
-          <div className="text-gray-400 text-xs">Holders</div>
-          <div className="text-white font-bold text-xs sm:text-sm">{token.holderCount}</div>
-        </div>
-      </div>
-
-      {/* 创建人信息 */}
-      <div className="relative z-10 mb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img 
-              src={creatorAvatarSrc} 
-              alt="Creator" 
-              className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white/10"
-              onError={(e) => {
-                e.currentTarget.src = `https://avatar.vercel.sh/${token.creator}.png?size=20`;
-              }}
-            />
-            <span className="text-gray-300 text-xs font-mono">
-              {token.creator.slice(0, 4)}...{token.creator.slice(-4)}
-            </span>
+          {/* 阶段和进度 */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Badge variant="secondary" className={
+                isNearGraduation 
+                  ? 'bg-yellow-500/10 text-yellow-400 border-0 text-xs' 
+                  : 'bg-primary/10 text-primary border-0 text-xs'
+              }>
+                {getPhaseText(token.phase)}
+              </Badge>
+              <span className={`font-semibold text-sm ${isNearGraduation ? 'text-yellow-400' : 'text-white'}`}>
+                {Math.floor(token.graduationProgress)}%
+              </span>
+            </div>
+            <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+              <div 
+                className={getProgressBarClass()}
+                style={{ width: `${Math.min(token.graduationProgress, 100)}%` }}
+              />
+            </div>
           </div>
-          <span className="text-gray-500 text-xs">{getTimeAgo(token.createdAt)}</span>
-        </div>
-      </div>
 
-      {/* 社交媒体图标 */}
-      <div className="relative z-10 flex items-center justify-center gap-2 pt-3 border-t border-white/10">
-        <SocialIcon href={token.twitter} icon={<TwitterIcon />} label="Twitter" />
-        <SocialIcon href={token.telegram} icon={<TelegramIcon />} label="Telegram" />
-        <SocialIcon href={token.website} icon={<WebsiteIcon />} label="Website" />
-        <SocialIcon href="#" icon={<DiscordIcon />} label="Discord" />
-      </div>
-      </div>
+          {/* 统计数据网格 */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-lg p-3 text-center bg-white/5">
+              <div className="text-gray-400 text-xs mb-1">FDV</div>
+              <div className="text-white font-semibold text-sm">
+                ${formatNumber(Number(token.fdv || 0))}
+              </div>
+            </div>
+            <div className="rounded-lg p-3 text-center bg-white/5">
+              <div className="text-gray-400 text-xs mb-1">Holders</div>
+              <div className="text-white font-semibold text-sm">
+                {token.holderCount}
+              </div>
+            </div>
+            <div className="rounded-lg p-3 text-center bg-white/5">
+              <div className="text-gray-400 text-xs mb-1">Age</div>
+              <div className="text-white font-semibold text-sm">
+                {getTimeAgo(token.createdAt)}
+              </div>
+            </div>
+          </div>
+
+          {/* 底部操作栏（无边框，按需显示社交图标） */}
+          <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center gap-2">
+              <img 
+                src={creatorAvatarSrc} 
+                alt="Creator" 
+                className="w-5 h-5 rounded-full bg-white/10 object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = `https://avatar.vercel.sh/${token.creator}.png?size=20`;
+                }}
+              />
+              <span className="text-gray-400 text-xs font-mono">
+                {token.creator.slice(0, 4)}...{token.creator.slice(-4)}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <SocialIcon href={token.twitter} icon={<TwitterIcon />} label="Twitter" />
+              <SocialIcon href={token.telegram} icon={<TelegramIcon />} label="Telegram" />
+              <SocialIcon href={token.website} icon={<WebsiteIcon />} label="Website" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </Link>
   );
 }

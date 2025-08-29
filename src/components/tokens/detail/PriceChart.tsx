@@ -97,8 +97,8 @@ export function PriceChart({ tokenAddress, network = 'sepolia' }: PriceChartProp
   const getPriceChange = (): { change: number; changePercent: number; isPositive: boolean } => {
     if (priceData.length < 2) return { change: 0, changePercent: 0, isPositive: true };
     
-    const firstPrice = priceData[0].priceNum;
-    const lastPrice = priceData[priceData.length - 1].priceNum;
+    const firstPrice = parseFloat(priceData[0].price);
+    const lastPrice = parseFloat(priceData[priceData.length - 1].price);
     const change = lastPrice - firstPrice;
     const changePercent = firstPrice > 0 ? (change / firstPrice) * 100 : 0;
     
@@ -109,70 +109,31 @@ export function PriceChart({ tokenAddress, network = 'sepolia' }: PriceChartProp
     };
   };
 
-  const { change, changePercent, isPositive } = getPriceChange();
-  const currentPrice = priceData.length > 0 ? priceData[priceData.length - 1].priceNum : 0;
-
-  if (loading) {
-    return (
-      <div className="bg-gray-800/50 rounded-2xl p-6">
-        <div className="animate-pulse">
-          <div className="flex justify-between items-center mb-4">
-            <div className="h-6 bg-gray-700 rounded w-32"></div>
-            <div className="flex gap-2">
-              {timeframes.map((_, i) => (
-                <div key={i} className="h-8 w-12 bg-gray-700 rounded"></div>
-              ))}
-            </div>
-          </div>
-          <div className="h-64 bg-gray-700 rounded-lg"></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-gray-800/50 rounded-2xl p-6">
-        <div className="text-center">
-          <div className="text-red-400 mb-2">📊 Failed to Load</div>
-          <div className="text-gray-400 text-sm mb-4">{error}</div>
-          <button
-            onClick={fetchPriceHistory}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const priceChange = getPriceChange();
 
   return (
-    <div className="bg-gray-800/50 rounded-2xl p-6">
-      {/* Title and timeframe selector */}
-      <div className="flex justify-between items-center mb-6">
+    <div className="bg-white/5 rounded-xl p-6">
+      {/* Header with Price Info */}
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-xl font-bold text-white mb-1">Price Chart</h3>
-          <div className="flex items-center gap-4">
-            <span className="text-2xl font-bold text-white">
-              {TokenDetailService.formatPrice(currentPrice)}
-            </span>
-            <span className={`text-sm font-medium ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-              {isPositive ? '+' : ''}{TokenDetailService.formatPrice(change)} ({isPositive ? '+' : ''}{changePercent.toFixed(2)}%)
-            </span>
+          <div className="text-2xl font-bold text-white mb-1">
+            {TokenDetailService.formatPrice(priceData[priceData.length - 1]?.price || '0')}
+          </div>
+          <div className={`text-sm ${priceChange.isPositive ? 'text-green-400' : 'text-red-400'}`}>
+            {priceChange.isPositive ? '+' : ''}{priceChange.changePercent.toFixed(2)}% ({priceChange.isPositive ? '+' : ''}{priceChange.change.toFixed(6)})
           </div>
         </div>
         
-        {/* Timeframe selector */}
-        <div className="flex gap-2">
+        {/* Timeframe Selector */}
+        <div className="flex bg-gray-800 rounded-lg p-1">
           {timeframes.map((timeframe) => (
             <button
               key={timeframe.key}
               onClick={() => setActiveTimeframe(timeframe.key)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
                 activeTimeframe === timeframe.key
                   ? 'bg-blue-600 text-white'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  : 'text-gray-400 hover:text-white'
               }`}
             >
               {timeframe.label}
@@ -183,40 +144,59 @@ export function PriceChart({ tokenAddress, network = 'sepolia' }: PriceChartProp
 
       {/* Chart */}
       <div className="h-64">
-        {priceData.length > 0 ? (
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center h-full text-gray-400">
+            <div className="text-center">
+              <div className="text-red-400 mb-2">📈 Failed to Load</div>
+              <div className="text-sm mb-4">{error}</div>
+              <button
+                onClick={fetchPriceHistory}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        ) : priceData.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-gray-400">
+            <div className="text-center">
+              <div className="text-gray-400 mb-2">📈 No Data</div>
+              <div className="text-sm">No price data available for this timeframe</div>
+            </div>
+          </div>
+        ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={priceData}>
+            <LineChart data={priceData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
               <XAxis 
-                dataKey="displayTime"
-                axisLine={false}
+                dataKey="displayTime" 
+                stroke="#9CA3AF" 
+                fontSize={12}
                 tickLine={false}
-                tick={{ fill: '#9CA3AF', fontSize: 12 }}
+                axisLine={false}
               />
-              <YAxis
-                axisLine={false}
+              <YAxis 
+                stroke="#9CA3AF" 
+                fontSize={12}
                 tickLine={false}
-                tick={{ fill: '#9CA3AF', fontSize: 12 }}
-                tickFormatter={(value) => TokenDetailService.formatPrice(value)}
+                axisLine={false}
+                tickFormatter={(value) => TokenDetailService.formatPrice(value.toString())}
               />
               <Tooltip content={<CustomTooltip />} />
-              <Line
-                type="monotone"
-                dataKey="priceNum"
-                stroke={isPositive ? '#10B981' : '#EF4444'}
+              <Line 
+                type="monotone" 
+                dataKey="priceNum" 
+                stroke="#3B82F6" 
                 strokeWidth={2}
                 dot={false}
-                activeDot={{ r: 4, fill: isPositive ? '#10B981' : '#EF4444' }}
+                activeDot={{ r: 4, fill: '#3B82F6' }}
               />
             </LineChart>
           </ResponsiveContainer>
-        ) : (
-          <div className="flex items-center justify-center h-full text-gray-400">
-            <div className="text-center">
-              <div className="text-4xl mb-2">📈</div>
-              <div>No price data available</div>
-            </div>
-          </div>
         )}
       </div>
     </div>

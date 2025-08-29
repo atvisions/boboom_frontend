@@ -1,36 +1,20 @@
 "use client";
 
 import * as React from "react";
-import { type State, WagmiProvider, cookieStorage, createStorage, createConfig, http } from "wagmi";
-import { sepolia } from "wagmi/chains";
-import { injected } from "wagmi/connectors";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { I18nProvider } from "@/context/I18nProvider";
+import { WagmiProvider } from "wagmi";
+import { RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import { ThemeProvider } from "@/context/ThemeProvider";
 import { Toaster } from "sonner";
-import { AutoReconnect } from "@/components/wallet/AutoReconnect";
-
-export const config = createConfig({
-  chains: [sepolia],
-  connectors: [
-    injected(),
-    // 可选：如果需要 WalletConnect，取消注释下面这行
-    // walletConnect({ projectId: "045c35f9cac6983287389108398a344c" }),
-  ],
-  transports: {
-    [sepolia.id]: http(),
-  },
-  ssr: true,
-  storage: createStorage({ storage: cookieStorage }),
-});
+import { config } from "@/config/wagmi";
 
 const queryClient = new QueryClient();
 
-export function Providers({ children, initialState }: { children: React.ReactNode; initialState?: State }) {
+export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <WagmiProvider config={config} initialState={initialState} reconnectOnMount={false}>
+    <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
-        <I18nProvider>
+        <RainbowKitProvider>
           <ThemeProvider>
             <Toaster
               position="top-center"
@@ -38,14 +22,13 @@ export function Providers({ children, initialState }: { children: React.ReactNod
               closeButton
               expand={true}
               toastOptions={{
-                unstyled: true, // 使用自定义样式
+                unstyled: true,
                 duration: 3000,
               }}
             />
-            <AutoReconnect />
             {children}
           </ThemeProvider>
-        </I18nProvider>
+        </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
   );

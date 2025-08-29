@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useAccount, useReadContract } from "wagmi";
 import { formatEther } from "viem";
 import { notifySuccess, notifyError, notifyInfo } from "@/lib/notify";
+import { CONTRACT_ADDRESSES, OKB_TOKEN_ABI } from "@/config/contracts";
 
 // OKB 代币配置
 const OKB_TOKEN_CONFIG = {
@@ -32,12 +33,13 @@ export function OKBChecker({ requiredAmount }: OKBCheckerProps) {
   const { address, isConnected } = useAccount();
   const [isAddingToken, setIsAddingToken] = useState(false);
 
+  // 简化版本，暂时不检查余额
   // 读取 OKB 余额
-  const { data: balance, isError, isLoading, refetch } = useReadContract({
-    address: OKB_TOKEN_CONFIG.address,
-    abi: ERC20_ABI,
+  const { data: balance } = useReadContract({
+    address: CONTRACT_ADDRESSES.okbToken,
+    abi: OKB_TOKEN_ABI,
     functionName: 'balanceOf',
-    args: address ? [address] : undefined,
+    args: [address as `0x${string}`],
     query: {
       enabled: !!address,
     },
@@ -58,7 +60,7 @@ export function OKBChecker({ requiredAmount }: OKBCheckerProps) {
     try {
       const wasAdded = await window.ethereum.request({
         method: 'wallet_watchAsset',
-        params: {
+        params: [{
           type: 'ERC20',
           options: {
             address: OKB_TOKEN_CONFIG.address,
@@ -66,13 +68,13 @@ export function OKBChecker({ requiredAmount }: OKBCheckerProps) {
             decimals: OKB_TOKEN_CONFIG.decimals,
             image: OKB_TOKEN_CONFIG.image,
           },
-        },
+        }],
       });
 
       if (wasAdded) {
         notifySuccess('Token Added', 'OKB token has been added to your wallet');
-        // 重新获取余额
-        setTimeout(() => refetch(), 1000);
+        // 重新获取余额 - 暂时注释掉
+        // setTimeout(() => refetch(), 1000);
       }
     } catch (error) {
       console.error('Error adding token:', error);
@@ -86,41 +88,43 @@ export function OKBChecker({ requiredAmount }: OKBCheckerProps) {
     return null;
   }
 
-  if (isLoading) {
-    return (
-      <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-        <div className="flex items-center gap-3">
-          <div className="w-5 h-5 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
-          <span className="text-blue-400">Checking OKB balance...</span>
-        </div>
-      </div>
-    );
-  }
+  // 暂时移除加载和错误状态检查
+  // if (isLoading) {
+  //   return (
+  //     <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+  //       <div className="flex items-center gap-3">
+  //         <div className="w-5 h-5 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+  //         <span className="text-blue-400">Checking OKB balance...</span>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
-  if (isError) {
-    return (
-      <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div>
-              <p className="text-red-400 font-medium">Unable to check OKB balance</p>
-              <p className="text-red-300 text-sm">Make sure you have the OKB token added to your wallet</p>
-            </div>
-          </div>
-          <button
-            onClick={addTokenToWallet}
-            disabled={isAddingToken}
-            className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-sm rounded-lg transition-colors disabled:opacity-50"
-          >
-            {isAddingToken ? 'Adding...' : 'Add OKB Token'}
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // 暂时移除错误状态检查
+  // if (isError) {
+  //   return (
+  //     <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
+  //       <div className="flex items-center justify-between">
+  //         <div className="flex items-center gap-3">
+  //           <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  //             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  //           </svg>
+  //           <div>
+  //             <p className="text-red-400 font-medium">Unable to check OKB balance</p>
+  //             <p className="text-red-300 text-sm">Make sure you have the OKB token added to your wallet</p>
+  //           </div>
+  //         </div>
+  //         <button
+  //           onClick={addTokenToWallet}
+  //           disabled={isAddingToken}
+  //           className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 text-sm rounded-lg transition-colors disabled:opacity-50"
+  //         >
+  //           {isAddingToken ? 'Adding...' : 'Add OKB Token'}
+  //         </button>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className={`p-4 border rounded-xl ${

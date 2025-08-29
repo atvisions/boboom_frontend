@@ -1,28 +1,7 @@
 "use client";
 import { useQuery } from "@tanstack/react-query";
 
-export interface Token {
-  address: string;
-  name: string;
-  symbol: string;
-  description: string;
-  imageUrl?: string;
-  creator: string;
-  totalSupply: string;
-  okbCollected: string;
-  graduationProgress: number;
-  phase: string; // 'CREATED', 'GRADUATING', 'GRADUATED'
-  createdAt: string;
-  graduatedAt?: string;
-  marketCap?: string;
-  currentPrice?: string;
-  volume24h?: string;
-  network: string;
-  transactionCount?: number;
-  holderCount?: number;
-  isVerified?: boolean;
-  isFeatured?: boolean;
-}
+import { Token } from '@/types/token';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || 'http://127.0.0.1:8000';
 

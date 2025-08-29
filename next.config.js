@@ -13,7 +13,11 @@ const nextConfig = {
   // 允许外部 API 调用
   async rewrites() {
     return [
-      // 如果需要代理 API 调用可以在这里配置
+      // 代理 API 调用到后端服务器
+      {
+        source: '/api/:path*',
+        destination: 'http://127.0.0.1:8000/api/:path*',
+      },
     ];
   },
 };
