@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
 import { Inter, Roboto_Mono } from "next/font/google";
+import localFont from 'next/font/local';
 import "./globals.css";
 import '@rainbow-me/rainbowkit/styles.css';
 
 import { Providers } from "./providers";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-
 
 const inter = Inter({
   subsets: ["latin"],
@@ -17,6 +15,28 @@ const inter = Inter({
 const robotoMono = Roboto_Mono({
   subsets: ["latin"],
   variable: "--font-roboto-mono",
+  display: 'swap',
+});
+
+const hubotSans = localFont({
+  src: [
+    {
+      path: '../fonts/HubotSans-Regular.woff2',
+      weight: '400',
+      style: 'normal',
+    },
+    {
+      path: '../fonts/HubotSans-Medium.woff2',
+      weight: '500',
+      style: 'normal',
+    },
+    {
+      path: '../fonts/HubotSans-Bold.woff2',
+      weight: '700',
+      style: 'normal',
+    },
+  ],
+  variable: '--font-hubot-sans',
   display: 'swap',
 });
 
@@ -31,15 +51,9 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
-      <body className={`${inter.variable} ${robotoMono.variable} font-sans antialiased min-h-screen bg-background text-foreground`}>
+      <body className={`${hubotSans.variable} font-hubot-sans antialiased min-h-screen bg-background text-foreground`}>
         <Providers>
-          <div className="min-h-screen flex flex-col">
-            <Header />
-            <main className="flex-1">
-              {children}
-            </main>
-            <Footer />
-          </div>
+          {children}
         </Providers>
       </body>
     </html>
