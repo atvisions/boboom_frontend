@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Flame, Share2, Info, Star, User } from "lucide-react";
 import { FaXTwitter, FaTelegram, FaGlobe } from "react-icons/fa6";
 import Image from "next/image";
+import { toast, toastMessages } from "@/components/ui/toast-notification";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const trendingTokens = [
   {
@@ -74,14 +76,23 @@ const trendingTokens = [
 export function TrendingSection() {
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
 
-  const toggleFavorite = (tokenId: number) => {
-    const newFavorites = new Set(favorites);
-    if (newFavorites.has(tokenId)) {
-      newFavorites.delete(tokenId);
-    } else {
-      newFavorites.add(tokenId);
-    }
-    setFavorites(newFavorites);
+  const [isFavoriteLoading, debouncedToggleFavorite] = useDebounce(
+    (tokenId: number, tokenName: string) => {
+      const newFavorites = new Set(favorites);
+      if (newFavorites.has(tokenId)) {
+        newFavorites.delete(tokenId);
+        toast.success(toastMessages.favorites.removed(tokenName));
+      } else {
+        newFavorites.add(tokenId);
+        toast.success(toastMessages.favorites.added(tokenName));
+      }
+      setFavorites(newFavorites);
+    },
+    1000
+  );
+
+  const toggleFavorite = (tokenId: number, tokenName: string) => {
+    debouncedToggleFavorite(tokenId, tokenName);
   };
 
   return (
@@ -111,18 +122,19 @@ export function TrendingSection() {
             </div>
 
             {/* 收藏按钮 - 右上角 */}
-                            <button
-                  onClick={() => toggleFavorite(token.id)}
-                  className="absolute top-4 right-4 z-10 p-2 rounded-full bg-black/20 backdrop-blur-sm hover:bg-black/40 transition-colors"
-                >
-                  <Star 
-                    className={`h-5 w-5 transition-colors ${
-                      favorites.has(token.id) 
-                        ? 'text-yellow-400 fill-yellow-400' 
-                        : 'text-white hover:text-yellow-300'
-                    }`}
-                  />
-                </button>
+            <button
+              onClick={() => toggleFavorite(token.id, token.name)}
+              disabled={isFavoriteLoading}
+              className={`absolute top-4 right-4 z-10 p-2 rounded-full transition-colors ${
+                favorites.has(token.id)
+                  ? 'bg-[#70E000] text-black'
+                  : 'bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white'
+              } ${isFavoriteLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <Star 
+                className={`h-5 w-5 ${favorites.has(token.id) ? 'fill-current' : ''} ${isFavoriteLoading ? 'animate-pulse' : ''}`}
+              />
+            </button>
 
             {/* 内容 */}
             <div className="relative p-6 flex flex-col items-center text-center h-full justify-center">
