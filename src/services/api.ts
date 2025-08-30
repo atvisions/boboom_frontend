@@ -125,8 +125,32 @@ export const userAPI = {
         name: string;
         createdAt: string;
         phase: string;
+        imageUrl: string;
+        currentPrice: string;
+        marketCap: string;
+        volume24h: string;
+        graduationProgress: number;
+        holderCount: number;
+        transactionCount: number;
+        isVerified: boolean;
+        isFeatured: boolean;
       }>;
-      holding: string[];
+      holding: Array<{
+        address: string;
+        symbol: string;
+        name: string;
+        createdAt: string;
+        phase: string;
+        imageUrl: string;
+        currentPrice: string;
+        marketCap: string;
+        volume24h: string;
+        graduationProgress: number;
+        holderCount: number;
+        transactionCount: number;
+        isVerified: boolean;
+        isFeatured: boolean;
+      }>;
       network: string;
     }>(`/users/${address}/tokens/?network=${network}`),
 };
@@ -420,6 +444,18 @@ export const tokenAPI = {
       success: boolean;
       data: any;
     }>(`/tokens/${address}/?network=${network}`),
+
+  // 获取OKB价格
+  getOKBPrice: () => 
+    apiRequest<{
+      success: boolean;
+      data: {
+        price: string;
+        currency: string;
+        timestamp: string;
+        cached: boolean;
+      };
+    }>('/tokens/okb-price/'),
 
   // 获取代币价格历史
   getTokenPriceHistory: (

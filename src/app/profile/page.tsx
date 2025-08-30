@@ -9,7 +9,7 @@ import { Copy, ExternalLink, Edit, Check, Star, X, Heart, TrendingUp, TrendingDo
 import { toast, toastMessages } from "@/components/ui/toast-notification";
 import { useDebounce } from "@/hooks/useDebounce";
 import { AvatarSelectorInline } from "@/components/ui/avatar-selector-inline";
-import { userAPI, followAPI, favoriteAPI } from "@/services/api";
+import { userAPI, followAPI, favoriteAPI, tokenAPI } from "@/services/api";
 import { useWalletAuth } from "@/hooks/useWalletAuth";
 import { useRouter } from "next/navigation";
 
@@ -17,6 +17,10 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
   const router = useRouter();
   const { user, isAuthenticated, address, isLoading: authLoading } = useWalletAuth();
   const [copied, setCopied] = useState(false);
+  // 客户端状态，避免hydration错误
+  const [isClient, setIsClient] = useState(false);
+  
+  // 从URL参数获取tab状态，如果没有则默认为overview
   const [activeTab, setActiveTab] = useState("overview");
   const [showEditModal, setShowEditModal] = useState(false);
   const [showAvatarSelector, setShowAvatarSelector] = useState(false);
@@ -32,6 +36,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
   const [userTokens, setUserTokens] = useState<any>(null);
   const [userFavorites, setUserFavorites] = useState<any>(null);
   const [suggestedUsers, setSuggestedUsers] = useState<any[]>([]);
+  const [okbPrice, setOkbPrice] = useState<number>(177.6); // 默认OKB价格
   
   // 关注状态
   const [isFollowing, setIsFollowing] = useState(false);
@@ -47,7 +52,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
   });
 
   const [isCopyLoading, debouncedHandleCopy] = useDebounce(() => {
-    if (address) {
+    if (address && isClient) {
       navigator.clipboard.writeText(address);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -85,12 +90,63 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
     debouncedHandleEditSubmit(e);
   };
 
+  // 处理tab切换，更新URL参数
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    
+    // 更新URL参数
+    if (isClient) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', tabId);
+      window.history.replaceState({}, '', url.toString());
+    }
+  };
+
   // 检查是否为本人主页
   useEffect(() => {
     if (address && targetAddress) {
       setIsOwnProfile(address.toLowerCase() === targetAddress.toLowerCase());
     }
   }, [address, targetAddress]);
+
+  // 客户端初始化
+  useEffect(() => {
+    setIsClient(true);
+    
+    // 从URL参数获取tab状态
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+  }, []);
+
+  // 监听URL参数变化，更新tab状态
+  useEffect(() => {
+    if (isClient) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get('tab');
+      if (tabParam && tabParam !== activeTab) {
+        setActiveTab(tabParam);
+      }
+    }
+  }, [isClient, activeTab]);
+
+  // 监听浏览器历史变化
+  useEffect(() => {
+    if (!isClient) return;
+
+    const handlePopState = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get('tab');
+      if (tabParam && tabParam !== activeTab) {
+        setActiveTab(tabParam);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [isClient, activeTab]);
 
   // 加载关注状态
   const loadFollowStatus = async () => {
@@ -122,13 +178,14 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
     
     try {
       // 并行加载所有用户数据
-      const [userResponse, statsResponse, portfolioResponse, tokensResponse, favoritesResponse, suggestedResponse] = await Promise.all([
+      const [userResponse, statsResponse, portfolioResponse, tokensResponse, favoritesResponse, suggestedResponse, okbPriceResponse] = await Promise.all([
         userAPI.getUser(targetAddress),
         userAPI.getUserStats(targetAddress),
         userAPI.getUserPortfolio(targetAddress),
         userAPI.getUserTokens(targetAddress),
         favoriteAPI.getUserFavorites(targetAddress),
-        followAPI.getSuggestedUsers(address || targetAddress)
+        followAPI.getSuggestedUsers(address || targetAddress),
+        tokenAPI.getOKBPrice()
       ]);
 
       setUserData(userResponse);
@@ -137,6 +194,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
       setUserTokens(tokensResponse);
       setUserFavorites(favoritesResponse.data);
       setSuggestedUsers(suggestedResponse.data.suggested_users);
+      setOkbPrice(parseFloat(okbPriceResponse.data.price));
 
       // 更新编辑表单
       setEditForm({
@@ -273,9 +331,13 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
     );
   }
 
+  // 获取真实价格
+  const ethPrice = 2000; // 这里应该从API获取实时ETH价格
+  const okbPriceReal = okbPrice; // 使用从API获取的OKB价格
+  
   const balances = userPortfolio ? [
-    { coin: "ETH", name: "Ethereum", amount: userPortfolio.eth, value: `$${(parseFloat(userPortfolio.eth) * 2000).toFixed(2)}`, change: "+2.34%", logo: "🔵", isPositive: true },
-    { coin: "OKB", name: "OKB", amount: userPortfolio.okb, value: `$${(parseFloat(userPortfolio.okb) * 100).toFixed(2)}`, change: "+5.67%", logo: "🟢", isPositive: true },
+    { coin: "ETH", name: "Ethereum", amount: parseFloat(userPortfolio.eth).toFixed(4), value: `$${(parseFloat(userPortfolio.eth) * ethPrice).toFixed(2)}`, change: "0.00%", logo: "🔵", isPositive: true },
+    { coin: "OKB", name: "OKB", amount: parseFloat(userPortfolio.okb).toFixed(4), value: `$${(parseFloat(userPortfolio.okb) * okbPriceReal).toFixed(2)}`, change: "0.00%", logo: "🟢", isPositive: true },
   ] : [];
 
   const portfolioStats = userStats ? {
@@ -286,28 +348,69 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
     transactions: 12
   } : null;
 
-  const createdTokens = userTokens?.created?.map((token: any, index: number) => ({
-    id: index + 1,
-    name: token.name,
-    symbol: token.symbol,
-    logo: "/tokens/bnb.png",
-    marketCap: "$45M",
-    volume: "$5,234",
-    price: "$0.045",
-    priceChange: "+12.5%",
-    isPositive: true,
-    progress: 45,
-    address: token.address,
-    createdAgo: "3d ago",
-    holders: 1250
-  })) || [];
+
+  
+  const createdTokens = userTokens?.created?.map((token: any, index: number) => {
+    // 前端转换OKB数量为USD
+    const okbVolume = parseFloat(token.volume24h);
+    const volumeUSD = okbVolume * okbPrice;
+    
+
+    
+    return {
+      id: index + 1,
+      name: token.name,
+      symbol: token.symbol,
+      logo: token.imageUrl || "/tokens/default.png",
+      marketCap: parseFloat(token.marketCap).toFixed(4),
+      volume: `$${volumeUSD.toFixed(2)}`,
+      price: token.currentPrice,
+      priceChange: "0%", // 暂时设为0%，后续可以从priceChange24h获取
+      isPositive: true,
+      progress: token.graduationProgress,
+      address: token.address,
+      createdAgo: isClient ? new Date(token.createdAt).toLocaleDateString() : token.createdAt,
+      holders: token.holderCount,
+      phase: token.phase,
+      isVerified: token.isVerified,
+      isFeatured: token.isFeatured
+    };
+  }) || [];
+  
+
+
+  // 处理持有代币数据
+  const holdingTokens = userTokens?.holding?.map((token: any, index: number) => {
+    // 前端转换OKB数量为USD
+    const okbVolume = parseFloat(token.volume24h);
+    const volumeUSD = okbVolume * okbPrice;
+    
+    return {
+      id: index + 1,
+      name: token.name,
+      symbol: token.symbol,
+      logo: token.imageUrl || "/tokens/default.png",
+      marketCap: parseFloat(token.marketCap).toFixed(4),
+      volume: `$${volumeUSD.toFixed(2)}`,
+      price: token.currentPrice,
+      priceChange: "0%", // 暂时设为0%，后续可以从priceChange24h获取
+      isPositive: true,
+      progress: token.graduationProgress,
+      address: token.address,
+      createdAgo: isClient ? new Date(token.createdAt).toLocaleDateString() : token.createdAt,
+      holders: token.holderCount,
+      phase: token.phase,
+      isVerified: token.isVerified,
+      isFeatured: token.isFeatured
+    };
+  }) || [];
 
   const favoriteTokens = userFavorites?.favorites?.map((favorite: any, index: number) => ({
     id: index + 1,
     name: favorite.token.name,
     symbol: favorite.token.symbol,
     logo: favorite.token.imageUrl || "/tokens/btc.png",
-    marketCap: favorite.token.marketCap,
+    marketCap: parseFloat(favorite.token.marketCap).toFixed(4),
     volume: "$5,234",
     price: favorite.token.currentPrice,
     priceChange: "+12.5%",
@@ -384,13 +487,13 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                     </p>
                     
                     <div className="flex items-center space-x-4 text-sm text-gray-400">
-                      <span>{userStats?.tokens_created || 0} tokens created</span>
+                      <span><span className="text-[#70E000] font-bold">{userStats?.tokens_created || 0}</span> tokens created</span>
                       <span>•</span>
-                      <span>{userStats?.reputation_score || 0} reputation</span>
+                      <span><span className="text-[#70E000] font-bold">{userStats?.reputation_score || 0}</span> reputation</span>
                       <span>•</span>
-                      <span>{followerCount} followers</span>
+                      <span><span className="text-[#70E000] font-bold">{followerCount}</span> followers</span>
                       <span>•</span>
-                      <span>{followingCount} following</span>
+                      <span><span className="text-[#70E000] font-bold">{followingCount}</span> following</span>
                       <span>•</span>
                       <div className="flex items-center space-x-1">
                         <span>{targetAddress?.slice(0, 6)}...{targetAddress?.slice(-4)}</span>
@@ -455,7 +558,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => handleTabChange(tab.id)}
                     className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
                       activeTab === tab.id
                         ? 'bg-[#70E000] text-black'
@@ -525,6 +628,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
 
                 {activeTab === "balances" && (
                   <div className="space-y-4">
+                    {/* 原生代币余额 */}
                     {balances.map((balance, index) => (
                       <div key={index} className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6">
                         <div className="flex items-center justify-between">
@@ -547,11 +651,47 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                         </div>
                       </div>
                     ))}
+                    
+                    {/* 持有代币 */}
+                    {holdingTokens.length > 0 && (
+                      <div className="mt-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">Holding Tokens</h3>
+                        <div className="space-y-4">
+                          {holdingTokens.map((token) => (
+                            <div key={token.id} className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-4">
+                                  <img src={token.logo} alt={token.name} className="w-12 h-12 rounded-full" />
+                                  <div>
+                                    <h3 className="text-white font-semibold">{token.name}</h3>
+                                    <p className="text-gray-400 text-sm">{token.symbol}</p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-white font-semibold">{token.marketCap}</p>
+                                  <p className="text-gray-400 text-sm">Market Cap</p>
+                                  <div className="flex items-center justify-end space-x-2 mt-1">
+                                    <div className="w-20 h-2 bg-gray-700 rounded-full overflow-hidden">
+                                      <div 
+                                        className="h-full bg-gradient-to-r from-[#70E000] to-[#5BC000] rounded-full"
+                                        style={{ width: `${token.progress}%` }}
+                                      ></div>
+                                    </div>
+                                    <span className="text-[#70E000] text-sm font-bold">{token.progress}%</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {activeTab === "create" && (
                   <div className="space-y-4">
+
                     {createdTokens.map((token) => (
                       <div key={token.id} className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6">
                         <div className="flex items-center justify-between">
@@ -565,7 +705,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                           <div className="text-right">
                             <p className="text-white font-semibold">{token.marketCap}</p>
                             <p className="text-gray-400 text-sm">Market Cap</p>
-                            <div className="flex items-center space-x-2 mt-1">
+                            <div className="flex items-center justify-end space-x-2 mt-1">
                               <div className="w-20 h-2 bg-gray-700 rounded-full overflow-hidden">
                                 <div 
                                   className="h-full bg-gradient-to-r from-[#70E000] to-[#5BC000] rounded-full"
@@ -596,7 +736,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                           <div className="text-right">
                             <p className="text-white font-semibold">{token.marketCap}</p>
                             <p className="text-gray-400 text-sm">Market Cap</p>
-                            <div className="flex items-center space-x-2 mt-1">
+                            <div className="flex items-center justify-end space-x-2 mt-1">
                               <div className="w-20 h-2 bg-gray-700 rounded-full overflow-hidden">
                                 <div 
                                   className="h-full bg-gradient-to-r from-[#70E000] to-[#5BC000] rounded-full"
@@ -649,12 +789,12 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                                     )}
                                   </div>
                                   <p className="text-gray-400 text-sm">{follow.user.bio || "No bio"}</p>
-                                  <p className="text-gray-500 text-xs">{follow.user.tokens_created} tokens created</p>
+                                  <p className="text-gray-500 text-xs"><span className="text-[#70E000] font-bold">{follow.user.tokens_created}</span> tokens created</p>
                                 </div>
                               </div>
                               <div className="flex items-center space-x-2">
                                 <span className="text-gray-400 text-sm">
-                                  {new Date(follow.followed_at).toLocaleDateString()}
+                                  {isClient ? new Date(follow.followed_at).toLocaleDateString() : follow.followed_at}
                                 </span>
                                 {isOwnProfile && (
                                   <button
@@ -708,7 +848,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-white text-sm font-medium truncate">{user.username}</p>
-                            <p className="text-gray-400 text-xs truncate">{user.follower_count} followers</p>
+                            <p className="text-gray-400 text-xs truncate"><span className="text-[#70E000] font-bold">{user.follower_count}</span> followers</p>
                           </div>
                         </div>
                         <button

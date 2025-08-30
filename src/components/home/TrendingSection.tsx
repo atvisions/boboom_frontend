@@ -14,6 +14,25 @@ export function TrendingSection() {
   const [tokens, setTokens] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [okbPrice, setOkbPrice] = useState<number>(177.6); // 默认OKB价格
+
+  // 加载OKB价格
+  useEffect(() => {
+    if (!isClient) return;
+    
+    const loadOKBPrice = async () => {
+      try {
+        const response = await tokenAPI.getOKBPrice();
+        if (response.success) {
+          setOkbPrice(parseFloat(response.data.price));
+        }
+      } catch (error) {
+        console.error('Failed to load OKB price:', error);
+      }
+    };
+    
+    loadOKBPrice();
+  }, [isClient]);
 
   // 加载热门代币数据
   useEffect(() => {
@@ -198,10 +217,10 @@ export function TrendingSection() {
                   {/* 市值和交易量 - 进度条上方，一行显示 */}
                   <div className="flex justify-between items-center">
                     <div className="text-[#70E000] font-bold">
-                      {token.graduationProgress.toFixed(1)}% MC: ${parseFloat(token.marketCap).toLocaleString()}
+                      {token.graduationProgress.toFixed(1)}% MC: ${parseFloat(token.marketCap).toFixed(4)}
                     </div>
                     <div className="text-gray-300 text-sm text-right">
-                      ${parseFloat(token.volume24h).toLocaleString()} 24h VOL
+                      ${(parseFloat(token.volume24h) * okbPrice).toFixed(2)} 24h VOL
                     </div>
                   </div>
 

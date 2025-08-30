@@ -24,6 +24,25 @@ export function TokenGrid() {
   const [tokens, setTokens] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [okbPrice, setOkbPrice] = useState<number>(177.6); // 默认OKB价格
+
+  // 加载OKB价格
+  useEffect(() => {
+    if (!isClient) return;
+    
+    const loadOKBPrice = async () => {
+      try {
+        const response = await tokenAPI.getOKBPrice();
+        if (response.success) {
+          setOkbPrice(parseFloat(response.data.price));
+        }
+      } catch (error) {
+        console.error('Failed to load OKB price:', error);
+      }
+    };
+    
+    loadOKBPrice();
+  }, [isClient]);
 
   // 加载代币数据
   useEffect(() => {
@@ -340,7 +359,7 @@ export function TokenGrid() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <div className="text-[#70E000] font-bold text-lg mb-1">
-                      ${parseFloat(token.marketCap).toLocaleString()}
+                      ${parseFloat(token.marketCap).toFixed(4)}
                     </div>
                     <div className="text-gray-400 text-xs">
                       Market Cap
@@ -348,7 +367,7 @@ export function TokenGrid() {
                   </div>
                   <div className="text-right">
                     <div className="text-white font-semibold text-lg mb-1">
-                      ${parseFloat(token.volume24h).toLocaleString()}
+                      ${(parseFloat(token.volume24h) * okbPrice).toFixed(2)}
                     </div>
                     <div className="text-gray-400 text-xs">
                       24h VOL
