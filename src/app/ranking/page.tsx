@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { toast, toastMessages } from "@/components/ui/toast-notification";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useRouter } from "next/navigation";
 
 // 排行榜数据
 const rankingData = {
@@ -19,6 +20,7 @@ const rankingData = {
       logoSrc: "/tokens/btc.png",
       creatorName: "crypto_dev",
       creatorAvatar: "👨‍💻",
+      creatorAddress: "0x1234567890123456789012345678901234567890",
       marketCap: "$125M",
       volume: "$11,312",
       price: "$45,678",
@@ -36,6 +38,7 @@ const rankingData = {
       logoSrc: "/tokens/eth.png",
       creatorName: "defi_master",
       creatorAvatar: "🧑‍🚀",
+      creatorAddress: "0x2345678901234567890123456789012345678901",
       marketCap: "$89M",
       volume: "$8,456",
       price: "$2,345",
@@ -53,6 +56,7 @@ const rankingData = {
       logoSrc: "/tokens/usdt.png",
       creatorName: "nft_artist",
       creatorAvatar: "🧑‍🎨",
+      creatorAddress: "0x3456789012345678901234567890123456789012",
       marketCap: "$67M",
       volume: "$5,234",
       price: "$1.00",
@@ -70,6 +74,7 @@ const rankingData = {
       logoSrc: "/tokens/bnb.png",
       creatorName: "ai_trader",
       creatorAvatar: "🤖",
+      creatorAddress: "0x4567890123456789012345678901234567890123",
       marketCap: "$56M",
       volume: "$4,567",
       price: "$234",
@@ -87,6 +92,7 @@ const rankingData = {
       logoSrc: "/tokens/doge.png",
       creatorName: "meme_king",
       creatorAvatar: "🐶",
+      creatorAddress: "0x5678901234567890123456789012345678901234",
       marketCap: "$45M",
       volume: "$3,890",
       price: "$0.089",
@@ -188,6 +194,7 @@ const rankingData = {
       rank: 1,
       name: "crypto_dev",
       avatar: "👨‍💻",
+      address: "0x1234567890123456789012345678901234567890",
       totalTokens: 5,
       totalMarketCap: "$156M",
       followers: 12500,
@@ -198,6 +205,7 @@ const rankingData = {
       rank: 2,
       name: "defi_master",
       avatar: "🧑‍🚀",
+      address: "0x2345678901234567890123456789012345678901",
       totalTokens: 3,
       totalMarketCap: "$98M",
       followers: 8900,
@@ -208,6 +216,7 @@ const rankingData = {
       rank: 3,
       name: "nft_artist",
       avatar: "🧑‍🎨",
+      address: "0x3456789012345678901234567890123456789012",
       totalTokens: 4,
       totalMarketCap: "$78M",
       followers: 6700,
@@ -218,6 +227,7 @@ const rankingData = {
       rank: 4,
       name: "ai_trader",
       avatar: "🤖",
+      address: "0x4567890123456789012345678901234567890123",
       totalTokens: 2,
       totalMarketCap: "$67M",
       followers: 5600,
@@ -228,6 +238,7 @@ const rankingData = {
       rank: 5,
       name: "meme_king",
       avatar: "🐶",
+      address: "0x5678901234567890123456789012345678901234",
       totalTokens: 6,
       totalMarketCap: "$45M",
       followers: 4500,
@@ -250,6 +261,7 @@ const sortOptions = [
 ];
 
 export default function RankingPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("tokens");
   const [selectedSort, setSelectedSort] = useState("market-cap");
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
@@ -403,7 +415,7 @@ export default function RankingPage() {
                             className="flex items-center space-x-2 hover:bg-[#232323] rounded-lg px-2 py-1 transition-colors"
                             onClick={(e) => {
                               e.stopPropagation();
-                              console.log('Navigate to creator profile:', token.creatorName);
+                              router.push(`/profile/${token.creatorAddress}`);
                             }}
                           >
                             <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#70E000]/20 to-[#5BC000]/20 flex items-center justify-center">
@@ -450,7 +462,7 @@ export default function RankingPage() {
                     key={creator.id}
                     className="group relative bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#70E000]/50 hover:shadow-xl hover:shadow-[#70E000]/10 transition-all duration-300 cursor-pointer"
                     onClick={() => {
-                      console.log('Navigate to creator profile:', creator.name);
+                      router.push(`/profile/${creator.address}`);
                     }}
                   >
                     <div className="flex items-center space-x-6">

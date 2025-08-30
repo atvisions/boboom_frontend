@@ -10,10 +10,10 @@ import {
 } from "lucide-react";
 import { FaXTwitter, FaInstagram, FaTelegram, FaDiscord } from "react-icons/fa6";
 import { cn } from "@/lib/utils";
+import { useWalletAuth } from "@/hooks/useWalletAuth";
 
 const navigation = [
   { name: "Home", href: "/", icon: Home },
-  { name: "Profile", href: "/profile", icon: User },
   { name: "Ranking", href: "/ranking", icon: Trophy },
   { name: "Rewards", href: "/rewards", icon: Gift },
   { name: "How it works", href: "/how-it-works", icon: Info },
@@ -28,6 +28,7 @@ const socialLinks = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { address, isAuthenticated, isClient } = useWalletAuth();
 
   return (
     <div className="w-64 fixed left-0 top-0 h-screen bg-[#151515] flex flex-col z-10">
@@ -63,6 +64,22 @@ export function Sidebar() {
               </li>
             );
           })}
+          
+          {/* Profile 链接 - 需要用户地址 */}
+          <li>
+            <Link
+              href={isClient && address ? `/profile/${address}` : "/profile"}
+              className={cn(
+                "flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors font-medium",
+                pathname.startsWith("/profile")
+                  ? "bg-[#70E000] text-black"
+                  : "text-gray-300 hover:text-white hover:bg-gray-800/50"
+              )}
+            >
+              <User className="h-5 w-5" />
+              <span>Profile</span>
+            </Link>
+          </li>
         </ul>
       </nav>
 

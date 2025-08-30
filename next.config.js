@@ -18,6 +18,11 @@ const nextConfig = {
         source: '/api/:path*',
         destination: 'http://127.0.0.1:8000/api/:path*',
       },
+      // 代理媒体文件到后端服务器
+      {
+        source: '/media/:path*',
+        destination: 'http://127.0.0.1:8000/media/:path*',
+      },
     ];
   },
 };

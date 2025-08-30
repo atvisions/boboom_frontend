@@ -6,8 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Rocket, Upload, Image, X } from "lucide-react";
+import { useTokenFactory } from "@/hooks/useTokenFactory";
+import { useWalletAuth } from "@/hooks/useWalletAuth";
+import { toast } from "sonner";
 
 export default function CreateTokenPage() {
+  const { address, isConnected, isClient } = useWalletAuth();
+  const { createToken, createTokenWithPurchase, isPending, isConfirming, isSuccess, okbBalance } = useTokenFactory();
+  
   const [formData, setFormData] = useState({
     tokenName: "",
     tokenSymbol: "",
@@ -21,6 +27,7 @@ export default function CreateTokenPage() {
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
+  const [initialPurchase, setInitialPurchase] = useState<number>(0);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -89,6 +96,27 @@ export default function CreateTokenPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!isConnected || !address) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    // 验证OKB余额（如果有初始购买）
+    if (initialPurchase > 0) {
+      if (initialPurchase < 0.1) {
+        toast.error('Minimum initial purchase amount is 0.1 OKB.');
+        return;
+      }
+      if (okbBalance === 0) {
+        toast.error('You have no OKB tokens. Cannot make initial purchase.');
+        return;
+      }
+      if (initialPurchase > okbBalance) {
+        toast.error(`Insufficient OKB balance. You need ${initialPurchase.toFixed(4)} OKB but have ${okbBalance.toFixed(4)} OKB.`);
+        return;
+      }
+    }
+    
     try {
       let finalImageUrl = formData.imageUrl;
       
@@ -104,17 +132,33 @@ export default function CreateTokenPage() {
 
       console.log("Token creation data:", tokenData);
       
-      // TODO: Call smart contract to create token
-      // This would typically involve:
-      // 1. Connecting to wallet
-      // 2. Calling the createToken function on TokenFactoryV3
-      // 3. Handling the transaction
-      
-      alert('Token creation initiated! Check your wallet for transaction confirmation.');
+      // Call smart contract to create token
+      if (initialPurchase > 0) {
+        await createTokenWithPurchase({
+          name: tokenData.tokenName,
+          symbol: tokenData.tokenSymbol,
+          description: tokenData.description,
+          imageUrl: tokenData.imageUrl,
+          website: tokenData.website,
+          twitter: tokenData.twitter,
+          telegram: tokenData.telegram,
+          initialPurchase
+        });
+      } else {
+        await createToken({
+          name: tokenData.tokenName,
+          symbol: tokenData.tokenSymbol,
+          description: tokenData.description,
+          imageUrl: tokenData.imageUrl,
+          website: tokenData.website,
+          twitter: tokenData.twitter,
+          telegram: tokenData.telegram,
+        });
+      }
       
     } catch (error) {
       console.error('Token creation error:', error);
-      alert('Failed to create token. Please try again.');
+      toast.error('Failed to create token. Please try again.');
     }
   };
 
@@ -136,9 +180,28 @@ export default function CreateTokenPage() {
               <p className="text-gray-400">Launch your next viral token project</p>
             </div>
 
-            <form onSubmit={handleSubmit} className="max-w-2xl">
-              {/* Basic Information */}
-              <div className="bg-[#151515] rounded-lg p-6 mb-6">
+            {/* Wallet Connection Check */}
+            {!isConnected && (
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-6">
+                <p className="text-yellow-400 text-center">
+                  Please connect your wallet to create a token
+                </p>
+              </div>
+            )}
+
+            {/* Success Message */}
+            {isSuccess && (
+              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 mb-6">
+                <p className="text-green-400 text-center">
+                  Token created successfully! Check your wallet for transaction details.
+                </p>
+              </div>
+            )}
+
+            {isClient && (
+              <form onSubmit={handleSubmit} className="max-w-2xl">
+                {/* Basic Information */}
+                <div className="bg-[#151515] rounded-lg p-6 mb-6">
                 <h2 className="text-xl font-semibold text-white mb-4 flex items-center">
                   <Rocket className="mr-2 h-5 w-5 text-[#70E000]" />
                   Basic Information
@@ -294,17 +357,78 @@ export default function CreateTokenPage() {
                 </div>
               </div>
 
+              {/* Initial Purchase */}
+              <div className="bg-[#151515] rounded-lg p-6 mb-6">
+                <h2 className="text-xl font-semibold text-white mb-4 flex items-center">
+                  <Rocket className="mr-2 h-5 w-5 text-[#70E000]" />
+                  Initial Purchase (Optional)
+                </h2>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      OKB Amount for Initial Purchase
+                    </label>
+                    <Input
+                      type="number"
+                      placeholder="0"
+                      value={initialPurchase}
+                      onChange={(e) => setInitialPurchase(Number(e.target.value) || 0)}
+                      className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#70E000] focus:ring-[#70E000]"
+                      min="0.1"
+                      step="0.1"
+                    />
+                    <div className="mt-2 space-y-1">
+                      <p className="text-sm text-gray-400">
+                        Leave empty to create token without initial purchase. Minimum purchase is 0.1 OKB.
+                      </p>
+                      {isClient && isConnected && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-400">Your OKB Balance:</span>
+                          <span className={`text-sm font-medium ${okbBalance > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {okbBalance.toFixed(4)} OKB
+                          </span>
+                        </div>
+                      )}
+                      {isClient && isConnected && okbBalance === 0 && (
+                        <p className="text-sm text-red-400 flex items-center">
+                          <span className="mr-1">⚠️</span>
+                          You have no OKB tokens. You cannot make an initial purchase.
+                        </p>
+                      )}
+                      {isClient && isConnected && initialPurchase > 0 && initialPurchase < 0.1 && (
+                        <p className="text-sm text-red-400 flex items-center">
+                          <span className="mr-1">⚠️</span>
+                          Minimum initial purchase amount is 0.1 OKB.
+                        </p>
+                      )}
+                      {isClient && isConnected && initialPurchase > 0 && initialPurchase > okbBalance && (
+                        <p className="text-sm text-red-400 flex items-center">
+                          <span className="mr-1">⚠️</span>
+                          Insufficient OKB balance. You need {initialPurchase.toFixed(4)} OKB but have {okbBalance.toFixed(4)} OKB.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Submit Button */}
               <div className="flex justify-end">
                 <Button
                   type="submit"
-                  disabled={isUploading}
+                  disabled={isUploading || isPending || isConfirming}
                   className="bg-[#70E000] hover:bg-[#5BC000] text-black font-semibold px-8 py-3 rounded-lg flex items-center disabled:opacity-50"
                 >
                   {isUploading ? (
                     <>
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>
                       Uploading...
+                    </>
+                  ) : isPending || isConfirming ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>
+                      {isPending ? 'Creating Token...' : 'Confirming...'}
                     </>
                   ) : (
                     <>
@@ -315,6 +439,7 @@ export default function CreateTokenPage() {
                 </Button>
               </div>
             </form>
+            )}
           </div>
         </div>
       </div>

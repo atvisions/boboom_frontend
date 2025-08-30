@@ -1,162 +1,329 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/common/Sidebar";
 import { SearchHeader } from "@/components/home/SearchHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Copy, ExternalLink, Edit, Check, Star, X, Heart, TrendingUp, TrendingDown, Eye, MoreHorizontal, Rocket } from "lucide-react";
+import { Copy, ExternalLink, Edit, Check, Star, X, Heart, TrendingUp, TrendingDown, Eye, MoreHorizontal, Rocket, UserPlus, UserMinus } from "lucide-react";
 import { toast, toastMessages } from "@/components/ui/toast-notification";
 import { useDebounce } from "@/hooks/useDebounce";
+import { AvatarSelectorInline } from "@/components/ui/avatar-selector-inline";
+import { userAPI, followAPI, favoriteAPI } from "@/services/api";
+import { useWalletAuth } from "@/hooks/useWalletAuth";
+import { useRouter } from "next/navigation";
 
-export default function ProfilePage() {
+export default function ProfilePage({ params }: { params?: { address?: string } }) {
+  const router = useRouter();
+  const { user, isAuthenticated, address, isLoading: authLoading } = useWalletAuth();
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
   const [showEditModal, setShowEditModal] = useState(false);
-  const [isOwnProfile, setIsOwnProfile] = useState(true);
+  const [showAvatarSelector, setShowAvatarSelector] = useState(false);
+  
+  // 获取要查看的用户地址（从URL参数或当前登录用户）
+  const targetAddress = params?.address || address;
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
+  
+  // 用户数据
+  const [userData, setUserData] = useState<any>(null);
+  const [userStats, setUserStats] = useState<any>(null);
+  const [userPortfolio, setUserPortfolio] = useState<any>(null);
+  const [userTokens, setUserTokens] = useState<any>(null);
+  const [userFavorites, setUserFavorites] = useState<any>(null);
+  const [suggestedUsers, setSuggestedUsers] = useState<any[]>([]);
+  
+  // 关注状态
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followerCount, setFollowerCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [followingList, setFollowingList] = useState<any[]>([]);
   
   // 编辑表单数据
   const [editForm, setEditForm] = useState({
-    avatar: "🐸",
-    nickname: "hctd2j2",
-    bio: "Lucas - Crypto enthusiast and token creator"
+    avatar: "",
+    nickname: "",
+    bio: ""
   });
 
   const [isCopyLoading, debouncedHandleCopy] = useDebounce(() => {
-    navigator.clipboard.writeText("HCtD2...270P");
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-    toast.success(toastMessages.common.copied);
+    if (address) {
+      navigator.clipboard.writeText(address);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast.success(toastMessages.common.copied);
+    }
   }, 1000);
 
   const handleCopy = () => {
     debouncedHandleCopy();
   };
 
-  const [isEditLoading, debouncedHandleEditSubmit] = useDebounce((e: React.FormEvent) => {
+  const [isEditLoading, debouncedHandleEditSubmit] = useDebounce(async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: 保存编辑数据
-    setShowEditModal(false);
-    toast.success(toastMessages.user.profileUpdated);
+    if (!address) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+    
+    try {
+      await userAPI.updateUser(address, {
+        username: editForm.nickname,
+        bio: editForm.bio,
+        avatar_url: editForm.avatar
+      });
+      setShowEditModal(false);
+      toast.success(toastMessages.user.profileUpdated);
+      // 重新加载用户数据
+      loadUserData();
+    } catch (error) {
+      toast.error(toastMessages.user.profileUpdateError);
+    }
   }, 1000);
 
   const handleEditSubmit = (e: React.FormEvent) => {
     debouncedHandleEditSubmit(e);
   };
 
-  const suggestedUsers = [
-    { id: 1, username: "9x9hwuqq", avatar: "🐸", followers: 1658, verified: false, isFollowing: false },
-    { id: 2, username: "idosol99", avatar: "🪙", followers: 1655, verified: false, isFollowing: true },
-    { id: 3, username: "regbtc", avatar: "🐸", followers: 1652, verified: false, isFollowing: false },
-    { id: 4, username: "4bot", avatar: "🐸", followers: 1645, verified: true, isFollowing: false },
-    { id: 5, username: "crypto_dev", avatar: "🐸", followers: 1634, verified: false, isFollowing: true },
-  ];
+  // 检查是否为本人主页
+  useEffect(() => {
+    if (address && targetAddress) {
+      setIsOwnProfile(address.toLowerCase() === targetAddress.toLowerCase());
+    }
+  }, [address, targetAddress]);
 
-  const balances = [
-    { coin: "SOL", name: "Solana", amount: "4.1928", value: "$878", change: "+2.34%", logo: "🟣", isPositive: true },
-    { coin: "ETH", name: "Ethereum", amount: "0.2456", value: "$456", change: "-1.23%", logo: "🔵", isPositive: false },
-    { coin: "OKB", name: "OKB", amount: "12.5678", value: "$1,234", change: "+5.67%", logo: "🟢", isPositive: true },
-  ];
-
-  const portfolioStats = {
-    totalValue: "$2,568",
-    totalChange: "+3.45%",
-    isPositive: true,
-    tokens: 3,
-    transactions: 12
+  // 加载关注状态
+  const loadFollowStatus = async () => {
+    if (!targetAddress) return;
+    
+    try {
+      const [followersResponse, followingResponse] = await Promise.all([
+        followAPI.getFollowers(targetAddress),
+        followAPI.getFollowing(targetAddress)
+      ]);
+      
+      setFollowerCount(followersResponse.data.count);
+      setFollowingCount(followingResponse.data.count);
+      setFollowingList(followingResponse.data.following);
+      
+      // 如果是查看其他用户的主页，检查当前用户是否关注了目标用户
+      if (address && !isOwnProfile) {
+        const followStatus = await followAPI.checkFollowStatus(address, targetAddress);
+        setIsFollowing(followStatus.data.is_following);
+      }
+    } catch (error) {
+      console.error('Failed to load follow status:', error);
+    }
   };
 
-  const createdTokens = [
-    { 
-      id: 1, 
-      name: "MyToken", 
-      symbol: "MTK", 
-      logo: "/tokens/bnb.png", 
-      marketCap: "$45M", 
-      volume: "$5,234", 
-      price: "$0.045",
-      priceChange: "+12.5%",
-      isPositive: true,
-      progress: 45,
-      address: "0xMyT...1234",
-      createdAgo: "3d ago",
-      holders: 1250
-    },
-    { 
-      id: 2, 
-      name: "TestCoin", 
-      symbol: "TEST", 
-      logo: "/tokens/doge.png", 
-      marketCap: "$12M", 
-      volume: "$1,890", 
-      price: "$0.012",
-      priceChange: "-3.2%",
-      isPositive: false,
-      progress: 23,
-      address: "0xTes...5678",
-      createdAgo: "1w ago",
-      holders: 890
-    },
-  ];
+  // 加载用户数据
+  const loadUserData = async () => {
+    if (!targetAddress) return;
+    
+    try {
+      // 并行加载所有用户数据
+      const [userResponse, statsResponse, portfolioResponse, tokensResponse, favoritesResponse, suggestedResponse] = await Promise.all([
+        userAPI.getUser(targetAddress),
+        userAPI.getUserStats(targetAddress),
+        userAPI.getUserPortfolio(targetAddress),
+        userAPI.getUserTokens(targetAddress),
+        favoriteAPI.getUserFavorites(targetAddress),
+        followAPI.getSuggestedUsers(address || targetAddress)
+      ]);
 
-  const favoriteTokens = [
-    { 
-      id: 1, 
-      name: "ShibaBNB", 
-      symbol: "SHIB", 
-      logo: "/tokens/btc.png", 
-      marketCap: "$125M", 
-      volume: "$11,312", 
-      price: "$0.00001234",
-      priceChange: "+8.9%",
-      isPositive: true,
-      progress: 35,
-      address: "0xC02a...6Cc2",
-      createdAgo: "2h ago",
-      holders: 45600
-    },
-    { 
-      id: 2, 
-      name: "RocketInu", 
-      symbol: "ROCKET", 
-      logo: "/tokens/eth.png", 
-      marketCap: "$89M", 
-      volume: "$8,456", 
-      price: "$0.000089",
-      priceChange: "+15.7%",
-      isPositive: true,
-      progress: 67,
-      address: "0xBtc0...0001",
-      createdAgo: "5h ago",
-      holders: 23400
-    },
-    { 
-      id: 3, 
-      name: "GeoToken", 
-      symbol: "GEO", 
-      logo: "/tokens/usdt.png", 
-      marketCap: "$156M", 
-      volume: "$23,789", 
-      price: "$0.156",
-      priceChange: "-2.1%",
-      isPositive: false,
-      progress: 78,
-      address: "0xKaW...9876",
-      createdAgo: "1d ago",
-      holders: 67800
-    },
-  ];
+      setUserData(userResponse);
+      setUserStats(statsResponse);
+      setUserPortfolio(portfolioResponse);
+      setUserTokens(tokensResponse);
+      setUserFavorites(favoritesResponse.data);
+      setSuggestedUsers(suggestedResponse.data.suggested_users);
 
-  const recentTransactions = [
-    { id: 1, type: "buy", token: "MTK", amount: "1000", value: "$45", time: "2h ago", status: "completed" },
-    { id: 2, type: "sell", token: "SHIB", amount: "50000", value: "$0.62", time: "5h ago", status: "completed" },
-    { id: 3, type: "buy", token: "ROCKET", amount: "2000", value: "$0.18", time: "1d ago", status: "pending" },
-  ];
+      // 更新编辑表单
+      setEditForm({
+        avatar: userResponse.avatar_url || "",
+        nickname: userResponse.username || "",
+        bio: userResponse.bio || ""
+      });
+    } catch (error) {
+      console.error('Failed to load user data:', error);
+    }
+  };
 
-  const following = [
-    { id: 1, username: "crypto_whale", avatar: "🐋", followers: 12500, verified: true, lastActive: "2h ago" },
-    { id: 2, username: "defi_master", avatar: "⚡", followers: 8900, verified: false, lastActive: "5h ago" },
-    { id: 3, username: "nft_collector", avatar: "🎨", followers: 6700, verified: true, lastActive: "1d ago" },
+  // 关注/取消关注用户
+  const [followLoading, setFollowLoading] = useState<Set<string>>(new Set());
+
+  const handleFollowToggle = async (userAddress: string) => {
+    if (!address) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+    
+    if (followLoading.has(userAddress)) return;
+    
+    setFollowLoading(prev => new Set(prev).add(userAddress));
+    try {
+      const response = await followAPI.followUser(address, {
+        following_address: userAddress
+      });
+      
+      if (response.success) {
+        // 更新推荐用户列表中的关注状态
+        setSuggestedUsers(prev => prev.map(user => 
+          user.address === userAddress 
+            ? { ...user, is_following: response.data.is_following }
+            : user
+        ));
+        
+        toast.success(response.data.is_following 
+          ? toastMessages.user.followSuccess(userData?.username || 'User')
+          : toastMessages.user.unfollowSuccess(userData?.username || 'User')
+        );
+      }
+    } catch (error) {
+      toast.error(toastMessages.user.followError);
+    } finally {
+      setFollowLoading(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(userAddress);
+        return newSet;
+      });
+    }
+  };
+
+  // 关注/取消关注目标用户
+  const handleTargetUserFollowToggle = async () => {
+    if (!address || !targetAddress || isOwnProfile) return;
+    
+    if (followLoading.has(targetAddress)) return;
+    
+    setFollowLoading(prev => new Set(prev).add(targetAddress));
+    try {
+      const response = await followAPI.followUser(address, {
+        following_address: targetAddress
+      });
+      
+      if (response.success) {
+        setIsFollowing(response.data.is_following);
+        setFollowerCount(response.data.follower_count);
+        
+        toast.success(response.data.is_following 
+          ? toastMessages.user.followSuccess(userData?.username || 'User')
+          : toastMessages.user.unfollowSuccess(userData?.username || 'User')
+        );
+      }
+    } catch (error) {
+      toast.error(toastMessages.user.followError);
+    } finally {
+      setFollowLoading(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(targetAddress);
+        return newSet;
+      });
+    }
+  };
+
+  // 头像选择
+  const handleAvatarSelect = (avatar: any) => {
+    setEditForm(prev => ({ ...prev, avatar: avatar.url }));
+  };
+
+  // 初始化加载
+  useEffect(() => {
+    if (targetAddress) {
+      loadUserData();
+      if (address && isAuthenticated) {
+        loadFollowStatus();
+      }
+    }
+  }, [targetAddress, address, isAuthenticated]);
+
+  // 如果钱包未连接，显示连接提示
+  if (!address && !targetAddress) {
+    return (
+      <div className="flex h-screen bg-[#0E0E0E]">
+        <Sidebar />
+        <div className="flex-1 ml-64 flex flex-col">
+          <SearchHeader />
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-white mb-4">Connect Your Wallet</h2>
+              <p className="text-gray-400 mb-6">Please connect your wallet to view your profile</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 如果正在加载认证状态
+  if (authLoading) {
+    return (
+      <div className="flex h-screen bg-[#0E0E0E]">
+        <Sidebar />
+        <div className="flex-1 ml-64 flex flex-col">
+          <SearchHeader />
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#70E000] mx-auto mb-4"></div>
+              <p className="text-gray-400">Loading profile...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const balances = userPortfolio ? [
+    { coin: "ETH", name: "Ethereum", amount: userPortfolio.eth, value: `$${(parseFloat(userPortfolio.eth) * 2000).toFixed(2)}`, change: "+2.34%", logo: "🔵", isPositive: true },
+    { coin: "OKB", name: "OKB", amount: userPortfolio.okb, value: `$${(parseFloat(userPortfolio.okb) * 100).toFixed(2)}`, change: "+5.67%", logo: "🟢", isPositive: true },
+  ] : [];
+
+  const portfolioStats = userStats ? {
+    totalValue: `$${(parseFloat(userPortfolio?.eth || '0') * 2000 + parseFloat(userPortfolio?.okb || '0') * 100).toFixed(2)}`,
+    totalChange: "+3.45%",
+    isPositive: true,
+    tokens: userStats.tokens_created,
+    transactions: 12
+  } : null;
+
+  const createdTokens = userTokens?.created?.map((token: any, index: number) => ({
+    id: index + 1,
+    name: token.name,
+    symbol: token.symbol,
+    logo: "/tokens/bnb.png",
+    marketCap: "$45M",
+    volume: "$5,234",
+    price: "$0.045",
+    priceChange: "+12.5%",
+    isPositive: true,
+    progress: 45,
+    address: token.address,
+    createdAgo: "3d ago",
+    holders: 1250
+  })) || [];
+
+  const favoriteTokens = userFavorites?.favorites?.map((favorite: any, index: number) => ({
+    id: index + 1,
+    name: favorite.token.name,
+    symbol: favorite.token.symbol,
+    logo: favorite.token.imageUrl || "/tokens/btc.png",
+    marketCap: favorite.token.marketCap,
+    volume: "$5,234",
+    price: favorite.token.currentPrice,
+    priceChange: "+12.5%",
+    isPositive: true,
+    progress: favorite.token.graduationProgress,
+    address: favorite.token.address,
+    createdAgo: "3d ago",
+    holders: favorite.token.holderCount
+  })) || [];
+
+  const tabs = [
+    { id: "overview", label: "Overview", icon: Eye },
+    { id: "balances", label: "Balances", icon: TrendingUp },
+    { id: "create", label: "Created", icon: Rocket },
+    { id: "favorites", label: "Favorites", icon: Star },
+    { id: "following", label: "Following", icon: UserPlus }
   ];
 
   return (
@@ -167,34 +334,66 @@ export default function ProfilePage() {
         <SearchHeader />
         
         <div className="flex-1 overflow-y-auto bg-[#0E0E0E]">
-          <div className="flex">
-            {/* Main Content */}
-            <div className="flex-1 px-6 py-6 max-w-5xl">
-              {/* Enhanced Profile Header */}
-              <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] rounded-2xl p-8 mb-8 border border-[#232323]">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-6">
-                    {/* Enhanced Profile Picture */}
-                    <div className="relative">
-                      <div className="w-24 h-24 bg-gradient-to-br from-[#70E000] to-[#5BC000] rounded-2xl flex items-center justify-center text-3xl shadow-lg">
-                        {editForm.avatar}
-                      </div>
-                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#70E000] rounded-full flex items-center justify-center">
-                        <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                      </div>
+          <div className="px-6 py-6">
+            {/* Profile Header */}
+            <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 mb-6">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center space-x-6">
+                  {/* Avatar */}
+                  <div className="relative">
+                                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#70E000]/20 to-[#5BC000]/20 flex items-center justify-center text-2xl">
+                    {userData?.avatar_url ? (
+                      userData.avatar_url.startsWith('/media/') ? (
+                        <img 
+                          src={userData.avatar_url} 
+                          alt="Avatar" 
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-3xl">{userData.avatar_url}</span>
+                      )
+                    ) : (
+                      "👤"
+                    )}
+                  </div>
+                    {isOwnProfile && (
+                      <button
+                        onClick={() => setShowAvatarSelector(true)}
+                        className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#70E000] rounded-full flex items-center justify-center text-black text-xs hover:bg-[#5BC000] transition-colors"
+                      >
+                        <Edit className="h-3 w-3" />
+                      </button>
+                    )}
+                  </div>
+                  
+                  {/* User Info */}
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <h1 className="text-2xl font-bold text-white">
+                        {userData?.username || "User"}
+                      </h1>
+                      {userData?.is_verified && (
+                        <div className="w-5 h-5 bg-[#70E000] rounded-full flex items-center justify-center">
+                          <Check className="h-3 w-3 text-black" />
+                        </div>
+                      )}
                     </div>
                     
-                    {/* Enhanced Profile Info */}
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3 mb-3">
-                        <h1 className="text-3xl font-bold text-white">{editForm.nickname}</h1>
-                        <div className="px-2 py-1 bg-[#70E000]/20 text-[#70E000] text-xs font-medium rounded-full">
-                          Creator
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-3 mb-4">
-                        <span className="text-gray-400 font-mono">HCtD2...270P</span>
+                    <p className="text-gray-400 mb-3">
+                      {userData?.bio || "No bio yet"}
+                    </p>
+                    
+                    <div className="flex items-center space-x-4 text-sm text-gray-400">
+                      <span>{userStats?.tokens_created || 0} tokens created</span>
+                      <span>•</span>
+                      <span>{userStats?.reputation_score || 0} reputation</span>
+                      <span>•</span>
+                      <span>{followerCount} followers</span>
+                      <span>•</span>
+                      <span>{followingCount} following</span>
+                      <span>•</span>
+                      <div className="flex items-center space-x-1">
+                        <span>{targetAddress?.slice(0, 6)}...{targetAddress?.slice(-4)}</span>
                         <button
                           onClick={handleCopy}
                           disabled={isCopyLoading}
@@ -202,446 +401,448 @@ export default function ProfilePage() {
                         >
                           {copied ? <Check className="h-4 w-4" /> : <Copy className={`h-4 w-4 ${isCopyLoading ? 'animate-pulse' : ''}`} />}
                         </button>
-                        <a
-                          href="#"
-                          className="text-[#70E000] hover:text-[#5BC000] flex items-center space-x-1 transition-colors text-sm"
-                        >
-                          <span>View on solscan</span>
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
                       </div>
-                      
-                      {/* Enhanced Stats */}
-                      <div className="grid grid-cols-4 gap-6 mb-4">
-                        <div className="text-center">
-                          <div className="text-white font-bold text-xl">0</div>
-                          <div className="text-gray-400 text-sm">Followers</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-white font-bold text-xl">0</div>
-                          <div className="text-gray-400 text-sm">Following</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-white font-bold text-xl">2</div>
-                          <div className="text-gray-400 text-sm">Created</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-white font-bold text-xl">3</div>
-                          <div className="text-gray-400 text-sm">Favorites</div>
-                        </div>
-                      </div>
-                      
-                      <div className="text-white/80 text-lg leading-relaxed">{editForm.bio}</div>
                     </div>
                   </div>
-                  
-                  {isOwnProfile && (
-                    <Button 
+                </div>
+                
+                {/* Action Buttons */}
+                <div className="flex items-center space-x-3">
+                  {isOwnProfile ? (
+                    <Button
                       onClick={() => setShowEditModal(true)}
-                      className="bg-gradient-to-r from-[#70E000] to-[#5BC000] hover:from-[#5BC000] hover:to-[#4AA000] text-black font-semibold px-6 py-3 rounded-xl shadow-lg"
+                      className="bg-[#70E000] text-black hover:bg-[#5BC000]"
                     >
                       <Edit className="h-4 w-4 mr-2" />
                       Edit Profile
                     </Button>
+                  ) : address && isAuthenticated ? (
+                    <Button
+                      onClick={handleTargetUserFollowToggle}
+                      disabled={followLoading.has(targetAddress || '')}
+                      className={`${
+                        isFollowing 
+                          ? 'bg-gray-600 hover:bg-gray-700 text-white' 
+                          : 'bg-[#70E000] hover:bg-[#5BC000] text-black'
+                      } transition-colors`}
+                    >
+                      {followLoading.has(targetAddress || '') ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                      ) : isFollowing ? (
+                        <UserMinus className="h-4 w-4 mr-2" />
+                      ) : (
+                        <UserPlus className="h-4 w-4 mr-2" />
+                      )}
+                      {isFollowing ? 'Unfollow' : 'Follow'}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => toast.info('Please connect your wallet to follow users')}
+                      className="bg-gray-600 hover:bg-gray-700 text-white"
+                    >
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Follow
+                    </Button>
                   )}
                 </div>
               </div>
+            </div>
 
-              {/* Enhanced Navigation Tabs */}
-              <div className="flex space-x-1 mb-8 bg-[#151515] rounded-xl p-1 border border-[#232323]">
-                {[
-                  { id: "overview", label: "Overview", icon: Eye },
-                  { id: "balances", label: "Balances", icon: TrendingUp },
-                  { id: "create", label: "Created", icon: Rocket },
-                  { id: "favorites", label: "Favorites", icon: Star },
-                  ...(isOwnProfile ? [{ id: "following", label: "Following", icon: TrendingUp }] : [])
-                ].map((tab) => (
+            {/* Tabs */}
+            <div className="flex space-x-1 mb-6">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
                       activeTab === tab.id
-                        ? "bg-[#70E000] text-black shadow-lg"
-                        : "text-gray-400 hover:text-white hover:bg-[#232323]"
+                        ? 'bg-[#70E000] text-black'
+                        : 'text-gray-400 hover:text-white hover:bg-[#232323]'
                     }`}
                   >
-                    <tab.icon className="h-4 w-4" />
+                    <Icon className="h-4 w-4" />
                     <span>{tab.label}</span>
                   </button>
-                ))}
-              </div>
+                );
+              })}
+            </div>
 
-              {/* Enhanced Tab Content */}
-              {activeTab === "overview" && (
-                <div className="space-y-6">
-                  {/* Portfolio Summary */}
-                  <div className="bg-[#151515] rounded-2xl p-6 border border-[#232323]">
-                    <h3 className="text-xl font-bold text-white mb-4">Portfolio Summary</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-white">{portfolioStats.totalValue}</div>
-                        <div className={`text-sm ${portfolioStats.isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                          {portfolioStats.totalChange}
+            {/* Tab Content */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Main Content */}
+              <div className="lg:col-span-2">
+                {activeTab === "overview" && (
+                  <div className="space-y-6">
+                    {/* Portfolio Stats */}
+                    {portfolioStats && (
+                      <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6">
+                        <h3 className="text-lg font-semibold text-white mb-4">Portfolio Overview</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          <div>
+                            <p className="text-gray-400 text-sm">Total Value</p>
+                            <p className="text-white font-semibold">{portfolioStats.totalValue}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-400 text-sm">24h Change</p>
+                            <p className={`font-semibold ${portfolioStats.isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                              {portfolioStats.totalChange}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-gray-400 text-sm">Tokens</p>
+                            <p className="text-white font-semibold">{portfolioStats.tokens}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-400 text-sm">Transactions</p>
+                            <p className="text-white font-semibold">{portfolioStats.transactions}</p>
+                          </div>
                         </div>
-                        <div className="text-gray-400 text-xs">Total Value</div>
                       </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-white">{portfolioStats.tokens}</div>
-                        <div className="text-gray-400 text-xs">Tokens</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-white">{portfolioStats.transactions}</div>
-                        <div className="text-gray-400 text-xs">Transactions</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-white">2</div>
-                        <div className="text-gray-400 text-xs">Created</div>
+                    )}
+
+                    {/* Recent Activity */}
+                    <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6">
+                      <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded-lg">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-[#70E000]/20 rounded-full flex items-center justify-center">
+                              <Rocket className="h-4 w-4 text-[#70E000]" />
+                            </div>
+                            <div>
+                              <p className="text-white text-sm">Created new token</p>
+                              <p className="text-gray-400 text-xs">2 hours ago</p>
+                            </div>
+                          </div>
+                          <span className="text-[#70E000] text-sm">+1</span>
+                        </div>
                       </div>
                     </div>
                   </div>
+                )}
 
-                  {/* Recent Activity */}
-                  <div className="bg-[#151515] rounded-2xl p-6 border border-[#232323]">
-                    <h3 className="text-xl font-bold text-white mb-4">Recent Activity</h3>
-                    <div className="space-y-3">
-                      {recentTransactions.map((tx) => (
-                        <div key={tx.id} className="flex items-center justify-between p-3 bg-[#0E0E0E] rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                              tx.type === 'buy' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                            }`}>
-                              {tx.type === 'buy' ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+                {activeTab === "balances" && (
+                  <div className="space-y-4">
+                    {balances.map((balance, index) => (
+                      <div key={index} className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#70E000]/20 to-[#5BC000]/20 flex items-center justify-center text-2xl">
+                              {balance.logo}
                             </div>
                             <div>
-                              <div className="text-white font-medium">
-                                {tx.type === 'buy' ? 'Bought' : 'Sold'} {tx.amount} {tx.token}
-                              </div>
-                              <div className="text-gray-400 text-sm">{tx.time}</div>
+                              <h3 className="text-white font-semibold">{balance.name}</h3>
+                              <p className="text-gray-400 text-sm">{balance.coin}</p>
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="text-white font-medium">{tx.value}</div>
-                            <div className={`text-xs ${tx.status === 'completed' ? 'text-green-400' : 'text-yellow-400'}`}>
-                              {tx.status}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === "balances" && (
-                <div className="bg-[#151515] rounded-2xl p-6 border border-[#232323]">
-                  <h3 className="text-xl font-bold text-white mb-6">Token Balances</h3>
-                  <div className="space-y-4">
-                    {balances.map((balance, index) => (
-                      <div key={index} className="flex items-center justify-between p-4 bg-[#0E0E0E] rounded-xl border border-[#232323] hover:border-[#70E000]/50 transition-colors">
-                        <div className="flex items-center space-x-4">
-                          <div className="w-12 h-12 bg-gradient-to-br from-[#70E000]/20 to-[#5BC000]/20 rounded-xl flex items-center justify-center text-2xl">
-                            {balance.logo}
-                          </div>
-                          <div>
-                            <div className="text-white font-semibold">{balance.name}</div>
-                            <div className="text-gray-400 text-sm">{balance.amount} {balance.coin}</div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-white font-bold text-lg">{balance.value}</div>
-                          <div className={`text-sm font-medium ${balance.isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                            {balance.change}
+                            <p className="text-white font-semibold">{balance.amount}</p>
+                            <p className="text-gray-400 text-sm">{balance.value}</p>
+                            <p className={`text-sm ${balance.isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                              {balance.change}
+                            </p>
                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                )}
 
-              {activeTab === "create" && (
-                <div className="bg-[#151515] rounded-2xl p-6 border border-[#232323]">
-                  <div className="mb-6">
-                    <h3 className="text-xl font-bold text-white">Created Tokens</h3>
-                  </div>
-                  
-                  {createdTokens.length > 0 ? (
-                    <div className="space-y-4">
-                      {createdTokens.map((token) => (
-                        <div 
-                          key={token.id} 
-                          className="bg-[#0E0E0E] rounded-xl p-6 border border-[#232323] hover:border-[#70E000]/50 transition-all duration-200 cursor-pointer group"
-                          onClick={() => console.log('Navigate to token:', token.address)}
-                        >
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center space-x-4">
-                              <img src={token.logo} alt={token.name} className="w-12 h-12 rounded-xl" />
-                              <div>
-                                <div className="text-white font-bold text-lg">{token.name} ({token.symbol})</div>
-                                <div className="text-gray-400 text-sm">{token.address} • {token.createdAgo}</div>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-3">
-                              <div className="text-right">
-                                <div className="text-white font-bold">{token.marketCap}</div>
-                                <div className={`text-sm font-medium ${token.isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                                  {token.priceChange}
-                                </div>
-                              </div>
-                              <button className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                <MoreHorizontal className="h-5 w-5 text-gray-400" />
-                              </button>
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-3 gap-4 mb-4">
-                            <div>
-                              <div className="text-gray-400 text-sm">Price</div>
-                              <div className="text-white font-semibold">{token.price}</div>
-                            </div>
-                            <div>
-                              <div className="text-gray-400 text-sm">24h Volume</div>
-                              <div className="text-white font-semibold">{token.volume}</div>
-                            </div>
-                            <div>
-                              <div className="text-gray-400 text-sm">Holders</div>
-                              <div className="text-white font-semibold">{token.holders.toLocaleString()}</div>
-                            </div>
-                          </div>
-                          
-                          <div className="w-full bg-black/50 rounded-full h-2">
-                            <div 
-                              className="bg-gradient-to-r from-[#70E000] to-[#5BC000] h-2 rounded-full transition-all duration-300"
-                              style={{ width: `${token.progress}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-12">
-                      <div className="text-gray-400 mb-4 text-lg">No tokens created yet</div>
-                      <Button className="bg-[#70E000] hover:bg-[#5BC000] text-black font-semibold px-8 py-3">
-                        Create Your First Token
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === "favorites" && (
-                <div className="bg-[#151515] rounded-2xl p-6 border border-[#232323]">
-                  <h3 className="text-xl font-bold text-white mb-6">Favorite Tokens</h3>
-                  {favoriteTokens.length > 0 ? (
-                    <div className="space-y-4">
-                      {favoriteTokens.map((token) => (
-                        <div 
-                          key={token.id} 
-                          className="bg-[#0E0E0E] rounded-xl p-6 border border-[#232323] hover:border-[#70E000]/50 transition-all duration-200 cursor-pointer group"
-                          onClick={() => console.log('Navigate to token:', token.address)}
-                        >
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center space-x-4">
-                              <img src={token.logo} alt={token.name} className="w-12 h-12 rounded-xl" />
-                              <div>
-                                <div className="text-white font-bold text-lg">{token.name} ({token.symbol})</div>
-                                <div className="text-gray-400 text-sm">{token.address} • {token.createdAgo}</div>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-3">
-                              <div className="text-right">
-                                <div className="text-white font-bold">{token.marketCap}</div>
-                                <div className={`text-sm font-medium ${token.isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                                  {token.priceChange}
-                                </div>
-                              </div>
-                              <button 
-                                className="text-[#70E000] hover:text-[#5BC000] transition-colors"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  console.log('Unfavorite token:', token.id);
-                                }}
-                              >
-                                <Heart className="h-5 w-5 fill-current" />
-                              </button>
-                            </div>
-                          </div>
-                          
-                          <div className="grid grid-cols-3 gap-4 mb-4">
-                            <div>
-                              <div className="text-gray-400 text-sm">Price</div>
-                              <div className="text-white font-semibold">{token.price}</div>
-                            </div>
-                            <div>
-                              <div className="text-gray-400 text-sm">24h Volume</div>
-                              <div className="text-white font-semibold">{token.volume}</div>
-                            </div>
-                            <div>
-                              <div className="text-gray-400 text-sm">Holders</div>
-                              <div className="text-white font-semibold">{token.holders.toLocaleString()}</div>
-                            </div>
-                          </div>
-                          
-                          <div className="w-full bg-black/50 rounded-full h-2">
-                            <div 
-                              className="bg-gradient-to-r from-[#70E000] to-[#5BC000] h-2 rounded-full transition-all duration-300"
-                              style={{ width: `${token.progress}%` }}
-                            ></div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-gray-400 text-center py-12 text-lg">No favorite tokens yet</div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === "following" && isOwnProfile && (
-                <div className="bg-[#151515] rounded-2xl p-6 border border-[#232323]">
-                  <h3 className="text-xl font-bold text-white mb-6">Following</h3>
+                {activeTab === "create" && (
                   <div className="space-y-4">
-                    {following.map((user) => (
-                      <div key={user.id} className="flex items-center justify-between p-4 bg-[#0E0E0E] rounded-xl border border-[#232323] hover:border-[#70E000]/50 transition-colors">
-                        <div className="flex items-center space-x-4">
-                          <div className="w-12 h-12 bg-gradient-to-br from-[#70E000] to-[#5BC000] rounded-xl flex items-center justify-center text-lg">
-                            {user.avatar}
-                          </div>
-                          <div className="flex items-center space-x-2">
+                    {createdTokens.map((token) => (
+                      <div key={token.id} className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            <img src={token.logo} alt={token.name} className="w-12 h-12 rounded-full" />
                             <div>
-                              <div className="text-white font-semibold">{user.username}</div>
-                              <div className="text-gray-400 text-sm">{user.followers.toLocaleString()} followers • {user.lastActive}</div>
+                              <h3 className="text-white font-semibold">{token.name}</h3>
+                              <p className="text-gray-400 text-sm">{token.symbol}</p>
                             </div>
-                            {user.verified && (
-                              <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                          </div>
+                          <div className="text-right">
+                            <p className="text-white font-semibold">{token.marketCap}</p>
+                            <p className="text-gray-400 text-sm">Market Cap</p>
+                            <div className="flex items-center space-x-2 mt-1">
+                              <div className="w-20 h-2 bg-gray-700 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-gradient-to-r from-[#70E000] to-[#5BC000] rounded-full"
+                                  style={{ width: `${token.progress}%` }}
+                                ></div>
+                              </div>
+                              <span className="text-[#70E000] text-sm font-bold">{token.progress}%</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {activeTab === "favorites" && (
+                  <div className="space-y-4">
+                    {favoriteTokens.map((token) => (
+                      <div key={token.id} className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            <img src={token.logo} alt={token.name} className="w-12 h-12 rounded-full" />
+                            <div>
+                              <h3 className="text-white font-semibold">{token.name}</h3>
+                              <p className="text-gray-400 text-sm">{token.symbol}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-white font-semibold">{token.marketCap}</p>
+                            <p className="text-gray-400 text-sm">Market Cap</p>
+                            <div className="flex items-center space-x-2 mt-1">
+                              <div className="w-20 h-2 bg-gray-700 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full bg-gradient-to-r from-[#70E000] to-[#5BC000] rounded-full"
+                                  style={{ width: `${token.progress}%` }}
+                                ></div>
+                              </div>
+                              <span className="text-[#70E000] text-sm font-bold">{token.progress}%</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {activeTab === "following" && (
+                  <div className="space-y-4">
+                    <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6">
+                      <h3 className="text-lg font-semibold text-white mb-4">Following ({followingCount})</h3>
+                      {followingList.length > 0 ? (
+                        <div className="space-y-4">
+                          {followingList.map((follow) => (
+                            <div key={follow.following_id} className="flex items-center justify-between p-4 bg-[#1a1a1a] rounded-lg border border-[#232323]">
+                              <div 
+                                className="flex items-center space-x-3 flex-1 cursor-pointer hover:bg-[#232323] rounded-lg p-2 transition-colors"
+                                onClick={() => router.push(`/profile/${follow.user.address}`)}
+                              >
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#70E000]/20 to-[#5BC000]/20 flex items-center justify-center">
+                                  {follow.user.avatar_url ? (
+                                    follow.user.avatar_url.startsWith('/media/') ? (
+                                      <img 
+                                        src={follow.user.avatar_url} 
+                                        alt="Avatar" 
+                                        className="w-full h-full rounded-full object-cover"
+                                      />
+                                    ) : (
+                                      <span className="text-xl">{follow.user.avatar_url}</span>
+                                    )
+                                  ) : (
+                                    "👤"
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center space-x-2">
+                                    <h4 className="text-white font-medium">{follow.user.username}</h4>
+                                    {follow.user.is_verified && (
+                                      <div className="w-4 h-4 bg-[#70E000] rounded-full flex items-center justify-center">
+                                        <Check className="h-2.5 w-2.5 text-black" />
+                                      </div>
+                                    )}
+                                  </div>
+                                  <p className="text-gray-400 text-sm">{follow.user.bio || "No bio"}</p>
+                                  <p className="text-gray-500 text-xs">{follow.user.tokens_created} tokens created</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-gray-400 text-sm">
+                                  {new Date(follow.followed_at).toLocaleDateString()}
+                                </span>
+                                {isOwnProfile && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleFollowToggle(follow.user.address);
+                                    }}
+                                    disabled={followLoading.has(follow.user.address)}
+                                    className="text-red-400 hover:text-red-300 transition-colors p-1"
+                                  >
+                                    <UserMinus className="h-4 w-4" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-gray-400">No following yet</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Right Sidebar */}
+              <div className="lg:col-span-1">
+                <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 max-w-sm">
+                  <h3 className="text-lg font-semibold text-white mb-4">Who to follow</h3>
+                  <div className="space-y-4">
+                    {suggestedUsers.map((user) => (
+                      <div key={user.address} className="flex items-center justify-between">
+                        <div 
+                          className="flex items-center space-x-2 flex-1 cursor-pointer hover:bg-[#232323] rounded-lg p-2 transition-colors"
+                          onClick={() => router.push(`/profile/${user.address}`)}
+                        >
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#70E000]/20 to-[#5BC000]/20 flex items-center justify-center flex-shrink-0">
+                            {user.avatar_url ? (
+                              user.avatar_url.startsWith('/media/') ? (
+                                <img 
+                                  src={user.avatar_url} 
+                                  alt="Avatar" 
+                                  className="w-full h-full rounded-full object-cover"
+                                />
+                              ) : (
+                                <span className="text-sm">{user.avatar_url}</span>
+                              )
+                            ) : (
+                              "👤"
                             )}
                           </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white text-sm font-medium truncate">{user.username}</p>
+                            <p className="text-gray-400 text-xs truncate">{user.follower_count} followers</p>
+                          </div>
                         </div>
-                        
-                        <Button className="bg-red-500 hover:bg-red-600 text-white text-sm font-semibold px-4 py-2 rounded-lg">
-                          Unfollow
-                        </Button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleFollowToggle(user.address);
+                          }}
+                          disabled={followLoading.has(user.address)}
+                          className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors flex-shrink-0 ${
+                            user.is_following
+                              ? 'bg-gray-700 text-gray-300 hover:bg-red-600 hover:text-white'
+                              : 'bg-[#70E000] text-black hover:bg-[#5BC000]'
+                          } ${followLoading.has(user.address) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          {followLoading.has(user.address) ? (
+                            <div className="animate-spin rounded-full h-3 w-3 border-b border-current"></div>
+                          ) : user.is_following ? (
+                            <>
+                              <UserMinus className="h-3 w-3" />
+                              <span className="hidden sm:inline">Unfollow</span>
+                            </>
+                          ) : (
+                            <>
+                              <UserPlus className="h-3 w-3" />
+                              <span className="hidden sm:inline">Follow</span>
+                            </>
+                          )}
+                        </button>
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
-            </div>
-
-            {/* Enhanced Right Sidebar */}
-            <div className="w-96 px-6 py-6">
-              <div className="bg-[#151515] rounded-2xl p-6 border border-[#232323] sticky top-6">
-                <h3 className="text-xl font-bold text-white mb-6">Who to follow</h3>
-                
-                <div className="space-y-4">
-                  {suggestedUsers.map((user) => (
-                    <div key={user.id} className="flex items-center justify-between p-4 bg-[#0E0E0E] rounded-xl border border-[#232323] hover:border-[#70E000]/50 transition-colors">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-[#70E000] to-[#5BC000] rounded-xl flex items-center justify-center text-base">
-                          {user.avatar}
-                        </div>
-                        <div className="flex items-center space-x-2 min-w-0 flex-1">
-                          <div className="min-w-0 flex-1">
-                            <div className="text-white font-medium truncate">{user.username}</div>
-                            <div className="text-gray-400 text-sm">{user.followers.toLocaleString()} followers</div>
-                          </div>
-                          {user.verified && (
-                            <Star className="h-4 w-4 text-yellow-400 fill-current flex-shrink-0" />
-                          )}
-                        </div>
-                      </div>
-                      
-                      <Button 
-                        className={`text-sm font-semibold px-5 py-2 rounded-lg flex-shrink-0 ${
-                          user.isFollowing 
-                            ? 'bg-gray-600 hover:bg-gray-700 text-white' 
-                            : 'bg-[#70E000] hover:bg-[#5BC000] text-black'
-                        }`}
-                      >
-                        {user.isFollowing ? 'Following' : 'Follow'}
-                      </Button>
-                    </div>
-                  ))}
                 </div>
               </div>
             </div>
           </div>
-          
-          <div className="pb-8"></div>
         </div>
       </div>
 
-      {/* Enhanced Edit Modal */}
+      {/* Edit Modal */}
       {showEditModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-[#151515] rounded-2xl p-8 w-96 max-w-md border border-[#232323] shadow-2xl">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[#151515] border border-[#232323] rounded-2xl p-8 w-full max-w-lg">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-white">Edit Profile</h2>
+              <h2 className="text-xl font-bold text-white">Edit Profile</h2>
               <button
                 onClick={() => setShowEditModal(false)}
-                className="text-gray-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-[#232323]"
+                className="text-gray-400 hover:text-white transition-colors"
               >
-                <X className="h-5 w-5" />
+                <X className="h-6 w-6" />
               </button>
             </div>
-            
-            <form onSubmit={handleEditSubmit} className="space-y-6">
+
+            <form onSubmit={handleEditSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-3">
-                  Avatar Emoji
-                </label>
-                <Input
-                  type="text"
-                  value={editForm.avatar}
-                  onChange={(e) => setEditForm({...editForm, avatar: e.target.value})}
-                  className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#70E000] focus:ring-[#70E000] rounded-xl"
-                  placeholder="🐸"
-                />
+                <label className="block text-sm font-medium text-gray-300 mb-2">Avatar</label>
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#70E000]/20 to-[#5BC000]/20 flex items-center justify-center">
+                    {editForm.avatar ? (
+                      editForm.avatar.startsWith('/media/') ? (
+                        <img 
+                          src={editForm.avatar} 
+                          alt="Avatar" 
+                          className="w-full h-full rounded-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-xl">{editForm.avatar}</span>
+                      )
+                    ) : (
+                      "👤"
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={() => setShowAvatarSelector(true)}
+                    variant="outline"
+                    className="border-[#232323] text-gray-400 hover:text-white"
+                  >
+                    Choose Avatar
+                  </Button>
+                </div>
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-3">
-                  Nickname
-                </label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Nickname</label>
                 <Input
                   type="text"
                   value={editForm.nickname}
-                  onChange={(e) => setEditForm({...editForm, nickname: e.target.value})}
-                  className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#70E000] focus:ring-[#70E000] rounded-xl"
-                  placeholder="Enter nickname"
+                  onChange={(e) => setEditForm(prev => ({ ...prev, nickname: e.target.value }))}
+                  className="bg-[#1a1a1a] border-[#232323] text-white"
+                  placeholder="Enter your nickname"
                 />
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-3">
-                  Bio
-                </label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Bio</label>
                 <Textarea
                   value={editForm.bio}
-                  onChange={(e) => setEditForm({...editForm, bio: e.target.value})}
-                  className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#70E000] focus:ring-[#70E000] rounded-xl min-h-[100px]"
-                  placeholder="Tell us about yourself..."
+                  onChange={(e) => setEditForm(prev => ({ ...prev, bio: e.target.value }))}
+                  className="bg-[#1a1a1a] border-[#232323] text-white"
+                  placeholder="Tell us about yourself"
+                  rows={3}
                 />
               </div>
-              
-              <div className="flex space-x-4 pt-4">
+
+              <div className="flex items-center justify-end space-x-3 pt-4">
                 <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setShowEditModal(false)}
-                  className="flex-1 bg-[#232323] hover:bg-[#2A2A2A] text-white rounded-xl"
+                  className="border-[#232323] text-gray-400 hover:text-white"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   disabled={isEditLoading}
-                  className={`flex-1 bg-gradient-to-r from-[#70E000] to-[#5BC000] hover:from-[#5BC000] hover:to-[#4AA000] text-black font-semibold rounded-xl ${isEditLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className="bg-[#70E000] text-black hover:bg-[#5BC000] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isEditLoading ? 'Saving...' : 'Save Changes'}
                 </Button>
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Avatar Selector */}
+      {showAvatarSelector && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <AvatarSelectorInline
+            currentAvatar={editForm.avatar}
+            onSelect={handleAvatarSelect}
+            onClose={() => setShowAvatarSelector(false)}
+          />
         </div>
       )}
     </div>
