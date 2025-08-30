@@ -1,8 +1,9 @@
 "use client";
 import { useState } from "react";
-import { ChevronDown, ToggleLeft, TrendingUp, Clock, Zap } from "lucide-react";
+import { ChevronDown, ToggleLeft, TrendingUp, Clock, Zap, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { toast } from "sonner";
 
 const tokens = [
   {
@@ -133,18 +134,38 @@ const sortOptions = [
 export function TokenGrid() {
   const [selectedSort, setSelectedSort] = useState("top-mc");
   const [animationEnabled, setAnimationEnabled] = useState(true);
+  const [favorites, setFavorites] = useState<Set<number>>(new Set());
+
+  const toggleFavorite = (tokenId: number, tokenName: string) => {
+    const newFavorites = new Set(favorites);
+    if (newFavorites.has(tokenId)) {
+      newFavorites.delete(tokenId);
+      toast.success(`${tokenName} removed from favorites`);
+    } else {
+      newFavorites.add(tokenId);
+      toast.success(`${tokenName} added to favorites`);
+    }
+    setFavorites(newFavorites);
+  };
 
   return (
-    <div>
-      {/* 筛选和排序控件 */}
+    <div className="px-6">
+      {/* 标题和筛选器 */}
       <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-2">
+          <TrendingUp className="h-6 w-6 text-blue-500" />
+          <h2 className="text-2xl font-bold text-white font-hubot-sans">Live</h2>
+        </div>
+
+        {/* 筛选和排序控件 */}
         <div className="flex items-center space-x-4">
           {/* Animation 开关 */}
           <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-400">Animation</span>
             <button
               onClick={() => setAnimationEnabled(!animationEnabled)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#70E000] focus:ring-offset-2 ${
-                animationEnabled ? 'bg-[#70E000]' : 'bg-gray-600'
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#70E000] focus:ring-offset-2 focus:ring-offset-[#0E0E0E] ${
+                animationEnabled ? 'bg-[#70E000]' : 'bg-[#232323]'
               }`}
             >
               <span
@@ -153,30 +174,29 @@ export function TokenGrid() {
                 }`}
               />
             </button>
-            <span className="text-gray-300">Animation</span>
           </div>
-        </div>
 
-        {/* 排序按钮 */}
-        <div className="flex space-x-2">
-          {sortOptions.map((option) => {
-            const IconComponent = option.icon;
-            return (
-              <Button
-                key={option.value}
-                variant={selectedSort === option.value ? "default" : "outline"}
-                className={
-                  selectedSort === option.value
-                    ? "bg-[#70E000] text-black hover:bg-[#70E000]/90 border-0"
-                    : "bg-[#1B1B1B] text-white hover:bg-gray-700 border-0"
-                }
-                onClick={() => setSelectedSort(option.value)}
-              >
-                <IconComponent className="h-4 w-4 mr-2" />
-                {option.name}
-              </Button>
-            );
-          })}
+          {/* 排序按钮 */}
+          <div className="flex space-x-2">
+            {sortOptions.map((option) => {
+              const IconComponent = option.icon;
+              return (
+                <Button
+                  key={option.value}
+                  variant={selectedSort === option.value ? "default" : "outline"}
+                  className={
+                    selectedSort === option.value
+                      ? "bg-[#70E000] text-black hover:bg-[#70E000]/90 border-0"
+                      : "bg-[#1B1B1B] text-white hover:bg-gray-700 border-0"
+                  }
+                  onClick={() => setSelectedSort(option.value)}
+                >
+                  <IconComponent className="h-4 w-4 mr-2" />
+                  {option.name}
+                </Button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -185,7 +205,9 @@ export function TokenGrid() {
         {tokens.map((token, index) => (
           <div
             key={token.id}
-            className="bg-[#151515] border border-[#232323] rounded-lg p-6 hover:bg-[#1a1a1a] hover:border-[#70E000] transition-colors cursor-pointer"
+            className={`bg-[#151515] border border-[#232323] rounded-lg p-6 hover:bg-[#1a1a1a] hover:border-[#70E000] transition-colors cursor-pointer ${
+              favorites.has(token.id) ? 'border-[#70E000]' : ''
+            }`}
           >
             {/* 代币信息区域 */}
             <div className="flex items-start space-x-3 mb-4">
@@ -208,6 +230,23 @@ export function TokenGrid() {
                     </div>
                     <span className="text-white/60 text-xs whitespace-nowrap">{token.createdAgo}</span>
                   </div>
+                </div>
+                
+                {/* 收藏按钮 */}
+                <div className="flex justify-end mb-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFavorite(token.id, token.name);
+                    }}
+                    className={`p-2 rounded-full transition-all duration-200 ${
+                      favorites.has(token.id)
+                        ? 'bg-[#70E000] text-black'
+                        : 'bg-[#1B1B1B] text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    <Star className={`h-4 w-4 ${favorites.has(token.id) ? 'fill-current' : ''}`} />
+                  </button>
                 </div>
                 
                 {/* 描述 */}

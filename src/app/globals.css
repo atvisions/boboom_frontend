@@ -31,3 +31,106 @@
   font-family: 'Hubot Sans', sans-serif;
 }
 
+/* Custom Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0E0E0E;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #70E000;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #5BC000;
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #70E000 #0E0E0E;
+}
+
+/* Shake animation for live-updating cards */
+@keyframes shakeOnce {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-2px); }
+  40% { transform: translateX(2px); }
+  60% { transform: translateX(-1px); }
+  80% { transform: translateX(1px); }
+  100% { transform: translateX(0); }
+}
+
+.animate-shake {
+  animation: shakeOnce 0.4s ease;
+}
+
+/* Glow + bump pulse for card attention (备用) */
+@keyframes glowPulse {
+  0% { transform: translateY(0) scale(1); box-shadow: 0 0 0 0 rgba(0,0,0,0); }
+  30% { transform: translateY(-3px) scale(1.02); box-shadow: 0 0 18px 2px var(--glow-color); }
+  100% { transform: translateY(0) scale(1); box-shadow: 0 0 0 0 rgba(0,0,0,0); }
+}
+
+.glow-green { --glow-color: rgba(112, 224, 0, 0.6); animation: glowPulse 0.6s ease; }
+.glow-red { --glow-color: rgba(239, 68, 68, 0.6); animation: glowPulse 0.6s ease; }
+.glow-blue { --glow-color: rgba(59, 130, 246, 0.6); animation: glowPulse 0.6s ease; }
+.glow-purple { --glow-color: rgba(139, 92, 246, 0.6); animation: glowPulse 0.6s ease; }
+
+/* 超级动感动画 - 弹性抖动 + 缩放 + 发光 + 微旋转 */
+@keyframes superJitter {
+  0% { 
+    transform: translateX(0) scale(1) rotate(0deg); 
+    box-shadow: 0 0 0 0 rgba(112, 224, 0, 0);
+  }
+  10% { 
+    transform: translateX(var(--jx, 15px)) scale(1.05) rotate(1deg); 
+    box-shadow: 0 0 20px 8px rgba(112, 224, 0, 0.4);
+  }
+  20% { 
+    transform: translateX(calc(var(--jx, 15px) * -0.8)) scale(1.08) rotate(-0.8deg); 
+    box-shadow: 0 0 25px 12px rgba(112, 224, 0, 0.6);
+  }
+  30% { 
+    transform: translateX(calc(var(--jx, 15px) * 0.6)) scale(1.06) rotate(0.6deg); 
+    box-shadow: 0 0 30px 15px rgba(112, 224, 0, 0.8);
+  }
+  40% { 
+    transform: translateX(calc(var(--jx, 15px) * -0.4)) scale(1.04) rotate(-0.4deg); 
+    box-shadow: 0 0 25px 12px rgba(112, 224, 0, 0.6);
+  }
+  50% { 
+    transform: translateX(calc(var(--jx, 15px) * 0.2)) scale(1.02) rotate(0.2deg); 
+    box-shadow: 0 0 20px 8px rgba(112, 224, 0, 0.4);
+  }
+  60% { 
+    transform: translateX(calc(var(--jx, 15px) * -0.1)) scale(1.01) rotate(-0.1deg); 
+    box-shadow: 0 0 15px 6px rgba(112, 224, 0, 0.3);
+  }
+  70% { 
+    transform: translateX(calc(var(--jx, 15px) * 0.05)) scale(1.005) rotate(0.05deg); 
+    box-shadow: 0 0 10px 4px rgba(112, 224, 0, 0.2);
+  }
+  100% { 
+    transform: translateX(0) scale(1) rotate(0deg); 
+    box-shadow: 0 0 0 0 rgba(112, 224, 0, 0);
+  }
+}
+
+.jitter-on { animation: superJitter 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+
+/* Fade in when swapping types */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in { animation: fadeInUp 0.35s ease; }
+
+/* Ensure jitter and fade run together if both classes exist */
+.jitter-on.fade-in { animation: superJitter 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55), fadeInUp 0.35s ease; }
+

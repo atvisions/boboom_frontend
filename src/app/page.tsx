@@ -1,27 +1,31 @@
+import { Sidebar } from "@/components/common/Sidebar";
+import { SearchHeader } from "@/components/home/SearchHeader";
+import { LiveUpdatesCard } from "@/components/home/LiveUpdatesCard";
 import { TrendingSection } from "@/components/home/TrendingSection";
 import { TokenGrid } from "@/components/home/TokenGrid";
-import { SearchHeader } from "@/components/home/SearchHeader";
-import { Sidebar } from "@/components/common/Sidebar";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-[#0E0E0E] text-white">
-      {/* 侧边栏 */}
+    <div className="flex h-screen bg-[#0E0E0E]">
       <Sidebar />
       
-      {/* 主内容区域 */}
-      <div className="ml-64 flex flex-col">
-        {/* 顶部搜索栏 */}
+      <div className="flex-1 ml-64 flex flex-col">
+        {/* Top Search Header */}
         <SearchHeader />
         
-        {/* 主要内容 */}
-        <main className="flex-1 p-6">
-          {/* 热门趋势区域 */}
-          <TrendingSection />
+        {/* Main Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto bg-[#0E0E0E]">
+          {/* Live Updates Card */}
+          <div className="px-6 pb-4">
+            <LiveUpdatesCard />
+          </div>
           
-          {/* 代币列表 */}
+          <TrendingSection />
           <TokenGrid />
-        </main>
+          
+          {/* Bottom padding to prevent content from being too close to screen edge */}
+          <div className="pb-8"></div>
+        </div>
       </div>
     </div>
   );

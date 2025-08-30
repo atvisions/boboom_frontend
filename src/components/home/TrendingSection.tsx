@@ -85,7 +85,7 @@ export function TrendingSection() {
   };
 
   return (
-    <div className="mb-8">
+    <div className="mb-8 px-6">
       {/* 标题 */}
       <div className="flex items-center space-x-2 mb-6">
         <Flame className="h-6 w-6 text-orange-500" />
