@@ -25,7 +25,7 @@ export function useTokenFactory(network: 'sepolia' | 'xlayer' = 'sepolia') {
   const { writeContract, data: hash, isPending, error } = useWriteContract();
 
   // 等待交易确认
-  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({
+  const { isLoading: isConfirming, isSuccess, isError, error: receiptError } = useWaitForTransactionReceipt({
     hash,
   });
 
@@ -37,8 +37,17 @@ export function useTokenFactory(network: 'sepolia' | 'xlayer' = 'sepolia') {
     args: address ? [address] : undefined,
   });
 
-  // 格式化OKB余额
+  // 读取OKB授权额度
+  const { data: okbAllowanceRaw, refetch: refetchOkbAllowance } = useReadContract({
+    address: addresses.OKB_TOKEN as `0x${string}`,
+    abi: OKBTokenABI,
+    functionName: 'allowance',
+    args: address ? [address, addresses.TOKEN_FACTORY_V3] : undefined,
+  });
+
+  // 格式化OKB余额和授权额度
   const okbBalance = okbBalanceRaw ? parseFloat(formatEther(okbBalanceRaw as bigint)) : 0;
+  const okbAllowance = okbAllowanceRaw ? parseFloat(formatEther(okbAllowanceRaw as bigint)) : 0;
 
   // 创建代币（无初始购买）
   const createToken = async (tokenData: TokenCreationData) => {
@@ -48,6 +57,8 @@ export function useTokenFactory(network: 'sepolia' | 'xlayer' = 'sepolia') {
     }
 
     try {
+      console.log("=== CREATE TOKEN WITHOUT PURCHASE ===");
+      console.log("Creating token without purchase:", tokenData);
       // 使用类型断言来避免复杂的类型检查
       const contractConfig = {
         address: addresses.TOKEN_FACTORY_V3 as `0x${string}`,
@@ -64,6 +75,7 @@ export function useTokenFactory(network: 'sepolia' | 'xlayer' = 'sepolia') {
         ] as const,
       };
 
+      console.log("Contract config for createToken:", contractConfig);
       writeContract(contractConfig as any);
     } catch (err) {
       console.error('Error creating token:', err);
@@ -86,6 +98,23 @@ export function useTokenFactory(network: 'sepolia' | 'xlayer' = 'sepolia') {
     try {
       const okbAmount = parseEther(tokenData.initialPurchase.toString());
       
+      // 检查授权额度是否足够
+      if (okbAllowance < tokenData.initialPurchase) {
+        toast.info('Approving OKB tokens for token creation...');
+        
+        // 授权OKB
+        const approveConfig = {
+          address: addresses.OKB_TOKEN as `0x${string}`,
+          abi: OKBTokenABI,
+          functionName: 'approve' as const,
+          args: [addresses.TOKEN_FACTORY_V3, okbAmount] as const,
+        };
+
+        writeContract(approveConfig as any);
+        return; // 等待授权完成后再创建代币
+      }
+      
+      // 如果授权足够，直接创建代币
       const contractConfig = {
         address: addresses.TOKEN_FACTORY_V3 as `0x${string}`,
         abi: TokenFactoryV3ABI,
@@ -102,6 +131,8 @@ export function useTokenFactory(network: 'sepolia' | 'xlayer' = 'sepolia') {
         ] as const,
       };
 
+      console.log("=== CREATE TOKEN WITH PURCHASE ===");
+      console.log("Contract config for createTokenWithPurchase:", contractConfig);
       writeContract(contractConfig as any);
     } catch (err) {
       console.error('Error creating token with purchase:', err);
@@ -138,12 +169,16 @@ export function useTokenFactory(network: 'sepolia' | 'xlayer' = 'sepolia') {
     isPending,
     isConfirming,
     isSuccess,
+    isError,
     error,
+    receiptError,
     hash,
     
     // 数据
     okbBalance,
+    okbAllowance,
     refetchOkbBalance,
+    refetchOkbAllowance,
     
     // 方法
     createToken,
