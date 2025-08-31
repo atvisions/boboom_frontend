@@ -18,7 +18,7 @@ export function HoldersList({ tokenAddress }: HoldersListProps) {
         setLoading(true);
         const response = await tokenAPI.getTokenHolders(tokenAddress, 'sepolia');
         if (response.success) {
-          setHolders(response.data.holders);
+          setHolders(response.data || []);
         } else {
           setError('Failed to load holders');
         }

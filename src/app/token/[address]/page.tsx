@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import { Sidebar } from '@/components/common/Sidebar';
 import { SearchHeader } from '@/components/common/SearchHeader';
 import { TokenDetails } from '@/components/token/TokenDetails';
+import { TokenMetrics } from '@/components/token/TokenMetrics';
 import { TradingPanel } from '@/components/token/TradingPanel';
 import { TradesAndHolders } from '@/components/token/Trades';
 import { BondingCurveProgress } from '@/components/token/BondingCurveProgress';
@@ -16,10 +17,28 @@ export default function TokenDetailPage() {
   const params = useParams();
   const { address, isAuthenticated, isClient } = useWalletAuth();
   const [token, setToken] = useState<any>(null);
+  const [okbPrice, setOkbPrice] = useState<number>(177.6);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const tokenAddress = params?.address as string;
+
+  // 加载OKB价格
+  useEffect(() => {
+    const loadOKBPrice = async () => {
+      try {
+        const response = await fetch('/api/tokens/okb-price');
+        const data = await response.json();
+        if (data.success) {
+          setOkbPrice(parseFloat(data.data.price));
+        }
+      } catch (error) {
+        console.error('Failed to load OKB price:', error);
+      }
+    };
+
+    loadOKBPrice();
+  }, []);
 
   // 加载代币详情
   useEffect(() => {
@@ -99,6 +118,9 @@ export default function TokenDetailPage() {
               <div className="lg:col-span-4 space-y-6">
                 {/* 代币基本信息 */}
                 <TokenDetails token={token} />
+                
+                {/* 代币指标 */}
+                <TokenMetrics token={token} okbPrice={okbPrice} showCurrentPrice={true} />
                 
                 {/* 图表区域 */}
                 <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl">

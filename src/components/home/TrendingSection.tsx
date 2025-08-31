@@ -1,20 +1,37 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Flame, Share2, Info, Star, User } from "lucide-react";
+import { Flame, Share2, Info, Star, User, BadgeCheck } from "lucide-react";
 import { FaXTwitter, FaTelegram, FaGlobe } from "react-icons/fa6";
 import Image from "next/image";
 import { toast, toastMessages } from "@/components/ui/toast-notification";
 import { useDebounce } from "@/hooks/useDebounce";
 import { tokenAPI, favoriteAPI } from "@/services/api";
 import { useWalletAuth } from "@/hooks/useWalletAuth";
+import { useRouter } from "next/navigation";
+
+// 时间格式化函数
+const getTimeAgo = (dateString: string) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+  
+  if (diffInHours < 24) {
+    return `${diffInHours}h ago`;
+  } else {
+    const diffInDays = Math.floor(diffInHours / 24);
+    return `${diffInDays}d ago`;
+  }
+};
 
 export function TrendingSection() {
+  const router = useRouter();
   const { address, isConnected, isClient } = useWalletAuth();
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [tokens, setTokens] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [okbPrice, setOkbPrice] = useState<number>(177.6); // 默认OKB价格
+  const [creators, setCreators] = useState<{[key: string]: any}>({}); // 存储创作者信息
 
   // 加载OKB价格
   useEffect(() => {
@@ -49,6 +66,32 @@ export function TrendingSection() {
         
         if (response.success) {
           setTokens(response.data.tokens);
+          
+          // 加载创作者信息
+          const creatorAddresses = response.data.tokens
+            .map((token: any) => token.creator)
+            .filter((creator: any) => creator && typeof creator === 'string');
+          
+          const loadCreators = async () => {
+            const newCreators: {[key: string]: any} = {};
+            
+            for (const creatorAddress of creatorAddresses) {
+              try {
+                const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+                const creatorResponse = await fetch(`${backendUrl}/api/users/${creatorAddress.toLowerCase()}/`);
+                if (creatorResponse.ok) {
+                  const creatorData = await creatorResponse.json();
+                  newCreators[creatorAddress] = creatorData;
+                }
+              } catch (error) {
+                console.error('Failed to load creator info for:', creatorAddress, error);
+              }
+            }
+            
+            setCreators(newCreators);
+          };
+          
+          loadCreators();
         } else {
           setError('Failed to load trending tokens');
         }
@@ -144,16 +187,64 @@ export function TrendingSection() {
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
           {[...Array(4)].map((_, index) => (
             <div key={index} className="relative rounded-lg overflow-hidden w-full max-w-[350px] h-[343px] mx-auto bg-transparent animate-pulse">
-              <div className="absolute inset-0 bg-gray-700"></div>
+              {/* 背景骨架 */}
+              <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900"></div>
+              
+              {/* 收藏按钮骨架 - 右上角 */}
+              <div className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-gray-600"></div>
+              
+              {/* 内容骨架 */}
               <div className="relative p-6 flex flex-col items-center text-center h-full justify-center">
-                <div className="w-[140px] h-[140px] rounded-2xl bg-gray-600 mb-4"></div>
-                <div className="h-8 bg-gray-600 rounded mb-4 w-32"></div>
+                {/* Logo骨架 - 圆形 */}
+                <div className="w-20 h-20 rounded-full bg-gray-600 mb-4"></div>
+                
+                {/* 代币名称和验证标识骨架 */}
+                <div className="flex items-center justify-center space-x-2 mb-3">
+                  <div className="h-8 bg-gray-600 rounded w-24"></div>
+                  <div className="w-5 h-5 rounded-full bg-gray-600"></div>
+                </div>
+                
+                {/* 代币简介骨架 */}
+                <div className="mb-4 px-2 w-full">
+                  <div className="h-4 bg-gray-600 rounded w-3/4 mx-auto"></div>
+                </div>
+                
+                {/* 市场数据骨架 */}
                 <div className="space-y-3 mb-4 w-full">
+                  {/* Progress显示在进度条上方 */}
                   <div className="flex justify-between items-center">
-                    <div className="h-4 bg-gray-600 rounded w-24"></div>
-                    <div className="h-4 bg-gray-600 rounded w-20"></div>
+                    <div className="h-4 bg-gray-600 rounded w-16"></div>
+                    <div className="h-4 bg-gray-600 rounded w-12"></div>
                   </div>
-                  <div className="w-[300px] h-[18px] bg-gray-600 rounded-full mx-auto"></div>
+                  
+                  {/* 进度条骨架 */}
+                  <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden">
+                    <div className="w-1/3 h-3 bg-gray-600 rounded-full"></div>
+                  </div>
+                  
+                  {/* 24h Volume骨架 */}
+                  <div className="flex justify-between items-center">
+                    <div className="h-4 bg-gray-600 rounded w-20"></div>
+                    <div className="h-4 bg-gray-600 rounded w-24"></div>
+                  </div>
+                </div>
+                
+                {/* 创建者信息和社交媒体骨架 */}
+                <div className="flex items-center justify-between w-full">
+                  {/* 创建者信息骨架 - 靠左 */}
+                  <div className="flex items-center space-x-2">
+                    <div className="w-6 h-6 rounded-full bg-gray-600"></div>
+                    <div className="h-4 bg-gray-600 rounded w-16"></div>
+                    <div className="w-1 h-1 rounded-full bg-gray-600"></div>
+                    <div className="h-4 bg-gray-600 rounded w-12"></div>
+                  </div>
+                  
+                  {/* 社交媒体图标骨架 - 靠右 */}
+                  <div className="flex space-x-2">
+                    <div className="w-6 h-6 rounded-full bg-gray-600"></div>
+                    <div className="w-6 h-6 rounded-full bg-gray-600"></div>
+                    <div className="w-6 h-6 rounded-full bg-gray-600"></div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -174,7 +265,8 @@ export function TrendingSection() {
           {tokens.map((token) => (
             <div
               key={token.address}
-              className="relative rounded-lg overflow-hidden group w-full max-w-[350px] h-[343px] mx-auto bg-transparent"
+              className="relative rounded-lg overflow-hidden group w-full max-w-[350px] h-[343px] mx-auto bg-transparent cursor-pointer"
+              onClick={() => router.push(`/token/${token.address}`)}
             >
               {/* 背景图 */}
               <div className="absolute inset-0">
@@ -189,7 +281,10 @@ export function TrendingSection() {
 
               {/* 收藏按钮 - 右上角 */}
               <button
-                onClick={() => toggleFavorite(token.address, token.name)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFavorite(token.address, token.name);
+                }}
                 disabled={isFavoriteLoading}
                 className={`absolute top-4 right-4 z-10 p-2 rounded-full transition-colors ${
                   favorites.has(token.address)
@@ -204,67 +299,177 @@ export function TrendingSection() {
 
               {/* 内容 */}
               <div className="relative p-6 flex flex-col items-center text-center h-full justify-center">
-                              {/* 代币Logo - 正方形圆角，无背景色 */}
-              <div className="w-[140px] h-[140px] rounded-2xl flex items-center justify-center mb-4">
-                <div className="text-6xl font-bold text-white">{token.symbol.slice(0, 2)}</div>
-              </div>
+                {/* 代币Logo - 圆形设计 */}
+                <div className="w-20 h-20 rounded-full mb-4 flex items-center justify-center overflow-hidden">
+                  {token.imageUrl ? (
+                    <img
+                      src={token.imageUrl}
+                      alt={`${token.name} logo`}
+                      className="w-16 h-16 object-contain rounded-full"
+                    />
+                  ) : (
+                    <div className="text-3xl font-bold text-white">{token.symbol.slice(0, 2)}</div>
+                  )}
+                </div>
 
-                {/* 代币名称 */}
-                <h3 className="text-2xl font-bold text-white mb-4">{token.name}</h3>
+                {/* 代币名称和验证标识 */}
+                <div className="flex items-center justify-center space-x-2 mb-3">
+                  <h3 className="text-2xl font-bold text-white">{token.name}</h3>
+                  {token.isVerified && (
+                    <div className="relative group/icon">
+                      <div className="flex items-center justify-center cursor-help">
+                        <BadgeCheck className="w-5 h-5 text-blue-400" />
+                      </div>
+                      {/* 悬停提示 */}
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/90 text-white text-xs rounded-lg opacity-0 group-hover/icon:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                        Verified Token
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black/90"></div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 代币简介 */}
+                {token.description && (
+                  <div className="mb-4 px-2">
+                    <p className="text-gray-300 text-sm leading-relaxed line-clamp-1">
+                      {token.description}
+                    </p>
+                  </div>
+                )}
 
                 {/* 市场数据 */}
                 <div className="space-y-3 mb-4 w-full">
-                  {/* 市值和交易量 - 进度条上方，一行显示 */}
+                  {/* Progress显示在进度条上方 */}
                   <div className="flex justify-between items-center">
-                    <div className="text-[#70E000] font-bold">
-                      {token.graduationProgress.toFixed(1)}% MC: ${parseFloat(token.marketCap).toFixed(4)}
-                    </div>
-                    <div className="text-gray-300 text-sm text-right">
-                      ${(parseFloat(token.volume24h) * okbPrice).toFixed(2)} 24h VOL
-                    </div>
-                  </div>
-
-                  {/* 进度条 */}
-                  <div className="w-[300px] h-[18px] bg-black/90 rounded-full mx-auto">
-                    <div 
-                      className="bg-[#70E000] h-[18px] rounded-full transition-all duration-300"
-                      style={{ width: `${token.graduationProgress}%` }}
-                    ></div>
-                  </div>
-                </div>
-
-                {/* 创建者信息和社交媒体图标 - 左右分布 */}
-                <div className="flex items-center justify-between w-full">
-                  {/* 创建者信息 - 靠左 */}
-                  <div className="flex items-center space-x-2">
-                    <div className="w-6 h-6 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
-                      <span className="text-sm">👤</span>
-                    </div>
-                    <span className="text-gray-300 text-sm font-mono">
-                      {token.creator.slice(0, 6)}...{token.creator.slice(-4)}
+                    <span className="text-gray-300 text-sm">Progress</span>
+                    <span className="text-[#70E000] font-bold text-sm">
+                      {token.graduationProgress.toFixed(1)}%
                     </span>
                   </div>
 
+                  {/* 进度条 */}
+                  <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-gradient-to-r from-yellow-400 to-orange-500 h-3 rounded-full transition-all duration-500"
+                      style={{ width: `${token.graduationProgress}%` }}
+                    ></div>
+                  </div>
+
+                  {/* 24h Volume */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-300 text-sm">24h Volume</span>
+                    <span className="text-white font-bold text-sm">
+                      ${(parseFloat(token.volume24h) * okbPrice).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+
+                                  {/* 创建者信息和社交媒体图标 - 左右分布 */}
+                  <div className="flex items-center justify-between w-full">
+                    {/* 创建者信息 - 靠左 */}
+                    <div className="flex items-center space-x-2">
+                      <button 
+                        className="flex items-center space-x-2 hover:bg-white/10 rounded-lg px-2 py-1 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const creatorAddress = typeof token.creator === 'string' 
+                            ? token.creator 
+                            : token.creator?.address;
+                          if (creatorAddress) {
+                            router.push(`/profile/${creatorAddress}`);
+                          }
+                        }}
+                      >
+                        <div className="w-6 h-6 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center overflow-hidden">
+                          {(() => {
+                            const creatorInfo = creators[token.creator];
+                            if (creatorInfo?.avatar_url) {
+                              if (creatorInfo.avatar_url.startsWith('/media/')) {
+                                return (
+                                  <Image 
+                                    src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'}${creatorInfo.avatar_url}?t=${creatorInfo.updated_at || Date.now()}`}
+                                    alt="Creator avatar" 
+                                    width={24} 
+                                    height={24} 
+                                    className="w-6 h-6 rounded-full object-cover"
+                                    unoptimized={true}
+                                  />
+                                );
+                              } else {
+                                try {
+                                  if (creatorInfo.avatar_url.includes('\\u')) {
+                                    return <span className="text-sm">{JSON.parse(`"${creatorInfo.avatar_url}"`)}</span>;
+                                  }
+                                  if (creatorInfo.avatar_url.startsWith('\\u')) {
+                                    return <span className="text-sm">{String.fromCodePoint(parseInt(creatorInfo.avatar_url.slice(2), 16))}</span>;
+                                  }
+                                  return <span className="text-sm">{creatorInfo.avatar_url}</span>;
+                                } catch (e) {
+                                  return <span className="text-sm">{creatorInfo.avatar_url}</span>;
+                                }
+                              }
+                            }
+                            return <span className="text-sm">👤</span>;
+                          })()}
+                        </div>
+                        <span className="text-gray-300 text-sm font-mono">
+                          {(() => {
+                            const creatorInfo = creators[token.creator];
+                            if (creatorInfo?.username) {
+                              return creatorInfo.username;
+                            }
+                            if (creatorInfo?.display_name) {
+                              return creatorInfo.display_name;
+                            }
+                            if (typeof token.creator === 'string') {
+                              return `${token.creator.slice(0, 6)}...${token.creator.slice(-4)}`;
+                            }
+                            return 'Unknown';
+                          })()}
+                        </span>
+                      </button>
+                      <span className="text-gray-300 text-xs">•</span>
+                      <span className="text-gray-300 text-xs">
+                        {getTimeAgo(token.createdAt)}
+                      </span>
+                    </div>
+
                   {/* 社交媒体图标 - 靠右 */}
                   <div className="flex space-x-2">
-                    <a 
-                      href="#"
-                      className="p-1.5 rounded-full hover:bg-[#70E000] transition-colors"
-                    >
-                      <FaXTwitter className="h-4 w-4 text-white" />
-                    </a>
-                    <a 
-                      href="#"
-                      className="p-1.5 rounded-full hover:bg-[#70E000] transition-colors"
-                    >
-                      <FaTelegram className="h-4 w-4 text-white" />
-                    </a>
-                    <a 
-                      href="#"
-                      className="p-1.5 rounded-full hover:bg-[#70E000] transition-colors"
-                    >
-                      <FaGlobe className="h-4 w-4 text-white" />
-                    </a>
+                    {token.twitter && (
+                      <a 
+                        href={token.twitter}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1.5 rounded-full hover:bg-[#70E000] transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <FaXTwitter className="h-4 w-4 text-white" />
+                      </a>
+                    )}
+                    {token.telegram && (
+                      <a 
+                        href={token.telegram}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1.5 rounded-full hover:bg-[#70E000] transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <FaTelegram className="h-4 w-4 text-white" />
+                      </a>
+                    )}
+                    {token.website && (
+                      <a 
+                        href={token.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1.5 rounded-full hover:bg-[#70E000] transition-colors"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <FaGlobe className="h-4 w-4 text-white" />
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>

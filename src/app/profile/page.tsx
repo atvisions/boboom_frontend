@@ -5,7 +5,7 @@ import { SearchHeader } from "@/components/common/SearchHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Copy, ExternalLink, Edit, Check, Star, X, Heart, TrendingUp, TrendingDown, Eye, MoreHorizontal, Rocket, UserPlus, UserMinus } from "lucide-react";
+import { Copy, ExternalLink, Edit, Check, Star, X, Heart, TrendingUp, TrendingDown, Eye, MoreHorizontal, Rocket, UserPlus, UserMinus, BadgeCheck, ArrowLeft } from "lucide-react";
 import { toast, toastMessages } from "@/components/ui/toast-notification";
 import { useDebounce } from "@/hooks/useDebounce";
 import { AvatarSelectorInline } from "@/components/ui/avatar-selector-inline";
@@ -88,6 +88,46 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
 
   const handleEditSubmit = (e: React.FormEvent) => {
     debouncedHandleEditSubmit(e);
+  };
+
+  // 收藏/取消收藏功能
+  const [favoriteLoading, setFavoriteLoading] = useState<Set<string>>(new Set());
+
+  const handleFavoriteToggle = async (tokenAddress: string, tokenName: string) => {
+    if (!isAuthenticated || !address) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    setFavoriteLoading(prev => new Set(prev).add(tokenAddress));
+
+    try {
+      const response = await favoriteAPI.toggleFavorite(address, {
+        token_address: tokenAddress,
+        network: 'sepolia'
+      });
+
+      if (response.success) {
+        if (response.data.is_favorited) {
+          toast.success(toastMessages.favorites.added(tokenName));
+        } else {
+          toast.success(toastMessages.favorites.removed(tokenName));
+        }
+        // 重新加载收藏数据
+        loadUserData();
+      } else {
+        toast.error('Failed to update favorite status');
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      toast.error('Failed to update favorite status');
+    } finally {
+      setFavoriteLoading(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(tokenAddress);
+        return newSet;
+      });
+    }
   };
 
   // 处理tab切换，更新URL参数
@@ -341,11 +381,11 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
   ] : [];
 
   const portfolioStats = userStats ? {
-    totalValue: `$${(parseFloat(userPortfolio?.eth || '0') * 2000 + parseFloat(userPortfolio?.okb || '0') * 100).toFixed(2)}`,
-    totalChange: "+3.45%",
+    totalValue: `$${(parseFloat(userPortfolio?.eth || '0') * 2000 + parseFloat(userPortfolio?.okb || '0') * okbPriceReal).toFixed(2)}`,
+    totalChange: "+3.45%", // 这里可以后续从价格变化API获取
     isPositive: true,
     tokens: userStats.tokens_created,
-    transactions: 12
+    transactions: userStats.total_transactions || 0 // 使用真实的交易数量
   } : null;
 
 
@@ -438,13 +478,23 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
         
         <div className="flex-1 overflow-y-auto bg-[#0E0E0E]">
           <div className="px-6 py-6">
+            {/* 返回按钮 */}
+            <div className="flex items-center mb-4">
+              <button
+                onClick={() => router.back()}
+                className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors group"
+              >
+                <ArrowLeft className="h-5 w-5 group-hover:-translate-x-1 transition-transform" />
+                <span className="text-sm font-medium">Back</span>
+              </button>
+            </div>
+
             {/* Profile Header */}
             <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 mb-6">
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-6">
                   {/* Avatar */}
-                  <div className="relative">
-                                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#70E000]/20 to-[#5BC000]/20 flex items-center justify-center text-2xl">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#70E000]/20 to-[#5BC000]/20 flex items-center justify-center text-2xl">
                     {userData?.avatar_url ? (
                       userData.avatar_url.startsWith('/media/') ? (
                         <img 
@@ -459,15 +509,6 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                       "👤"
                     )}
                   </div>
-                    {isOwnProfile && (
-                      <button
-                        onClick={() => setShowAvatarSelector(true)}
-                        className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#70E000] rounded-full flex items-center justify-center text-black text-xs hover:bg-[#5BC000] transition-colors"
-                      >
-                        <Edit className="h-3 w-3" />
-                      </button>
-                    )}
-                  </div>
                   
                   {/* User Info */}
                   <div className="flex-1">
@@ -476,8 +517,15 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                         {userData?.username || "User"}
                       </h1>
                       {userData?.is_verified && (
-                        <div className="w-5 h-5 bg-[#70E000] rounded-full flex items-center justify-center">
-                          <Check className="h-3 w-3 text-black" />
+                        <div className="relative group/icon">
+                          <div className="flex items-center justify-center cursor-help">
+                            <BadgeCheck className="w-5 h-5 text-[#70E000]" />
+                          </div>
+                          {/* 悬停提示 */}
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/90 text-white text-xs rounded-lg opacity-0 group-hover/icon:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                            Verified Creator
+                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black/90"></div>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -609,18 +657,37 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                     <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6">
                       <h3 className="text-lg font-semibold text-white mb-4">Recent Activity</h3>
                       <div className="space-y-3">
-                        <div className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded-lg">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-[#70E000]/20 rounded-full flex items-center justify-center">
-                              <Rocket className="h-4 w-4 text-[#70E000]" />
+                        {createdTokens.length > 0 ? (
+                          createdTokens.slice(0, 6).map((token, index) => (
+                            <div key={index} className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded-lg">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-8 h-8 bg-[#70E000]/20 rounded-full flex items-center justify-center">
+                                  <Rocket className="h-4 w-4 text-[#70E000]" />
+                                </div>
+                                <div>
+                                  <p className="text-white text-sm">Created {token.name} ({token.symbol})</p>
+                                  <p className="text-gray-400 text-xs">{token.createdAgo}</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-[#70E000] text-sm">+{token.progress}%</span>
+                                <p className="text-gray-400 text-xs">{token.holders} holders</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="text-white text-sm">Created new token</p>
-                              <p className="text-gray-400 text-xs">2 hours ago</p>
+                          ))
+                        ) : (
+                          <div className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded-lg">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
+                                <Rocket className="h-4 w-4 text-gray-400" />
+                              </div>
+                              <div>
+                                <p className="text-gray-400 text-sm">No tokens created yet</p>
+                                <p className="text-gray-500 text-xs">Start creating your first token</p>
+                              </div>
                             </div>
                           </div>
-                          <span className="text-[#70E000] text-sm">+1</span>
-                        </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -724,13 +791,42 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                 {activeTab === "favorites" && (
                   <div className="space-y-4">
                     {favoriteTokens.map((token) => (
-                      <div key={token.id} className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6">
+                      <div 
+                        key={token.id} 
+                        className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#70E000]/50 hover:shadow-xl hover:shadow-[#70E000]/10 transition-all duration-300 cursor-pointer"
+                        onClick={() => router.push(`/token/${token.address}`)}
+                      >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">
                             <img src={token.logo} alt={token.name} className="w-12 h-12 rounded-full" />
-                            <div>
-                              <h3 className="text-white font-semibold">{token.name}</h3>
-                              <p className="text-gray-400 text-sm">{token.symbol}</p>
+                            <div className="flex items-center space-x-2">
+                              <div>
+                                <h3 className="text-white font-semibold">{token.name}</h3>
+                                <p className="text-gray-400 text-sm">{token.symbol}</p>
+                              </div>
+                              {/* 收藏图标 - 只在查看自己的收藏列表时显示 */}
+                              {isOwnProfile && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleFavoriteToggle(token.address, token.name);
+                                  }}
+                                  disabled={favoriteLoading.has(token.address)}
+                                  className={`p-1.5 rounded-full transition-all duration-200 ${
+                                    favoriteLoading.has(token.address) 
+                                      ? 'opacity-50 cursor-not-allowed' 
+                                      : 'hover:bg-[#70E000]/20'
+                                  }`}
+                                >
+                                  <Star 
+                                    className={`h-4 w-4 ${
+                                      favoriteLoading.has(token.address) 
+                                        ? 'animate-pulse text-gray-400' 
+                                        : 'text-[#70E000] fill-current'
+                                    }`}
+                                  />
+                                </button>
+                              )}
                             </div>
                           </div>
                           <div className="text-right">
@@ -739,7 +835,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                             <div className="flex items-center justify-end space-x-2 mt-1">
                               <div className="w-20 h-2 bg-gray-700 rounded-full overflow-hidden">
                                 <div 
-                                  className="h-full bg-gradient-to-r from-[#70E000] to-[#5BC000] rounded-full"
+                                  className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full"
                                   style={{ width: `${token.progress}%` }}
                                 ></div>
                               </div>
@@ -783,8 +879,15 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                                   <div className="flex items-center space-x-2">
                                     <h4 className="text-white font-medium">{follow.user.username}</h4>
                                     {follow.user.is_verified && (
-                                      <div className="w-4 h-4 bg-[#70E000] rounded-full flex items-center justify-center">
-                                        <Check className="h-2.5 w-2.5 text-black" />
+                                      <div className="relative group/icon">
+                                        <div className="flex items-center justify-center cursor-help">
+                                          <BadgeCheck className="w-4 h-4 text-[#70E000]" />
+                                        </div>
+                                        {/* 悬停提示 */}
+                                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/90 text-white text-xs rounded-lg opacity-0 group-hover/icon:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                                          Verified Creator
+                                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black/90"></div>
+                                        </div>
                                       </div>
                                     )}
                                   </div>

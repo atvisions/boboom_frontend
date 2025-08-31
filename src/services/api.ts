@@ -3,12 +3,48 @@ import { API_CONFIG } from '@/config/api';
 
 const API_BASE_URL = `${API_CONFIG.BASE_URL}/api`;
 
-// 通用API请求函数
+// 简单的内存缓存
+const cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
+
+// 缓存管理
+function getCachedData(key: string): any | null {
+  const cached = cache.get(key);
+  if (!cached) return null;
+  
+  const now = Date.now();
+  if (now - cached.timestamp > cached.ttl) {
+    cache.delete(key);
+    return null;
+  }
+  
+  return cached.data;
+}
+
+function setCachedData(key: string, data: any, ttl: number = 60000): void {
+  cache.set(key, { data, timestamp: Date.now(), ttl });
+}
+
+// 生成缓存键
+function generateCacheKey(prefix: string, ...params: any[]): string {
+  return `${prefix}_${params.join('_')}`;
+}
+
+// 通用API请求函数（带缓存和重试）
 async function apiRequest<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  cacheKey?: string,
+  cacheTTL: number = 60000
 ): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
+  
+  // 尝试从缓存获取数据
+  if (cacheKey) {
+    const cachedData = getCachedData(cacheKey);
+    if (cachedData) {
+      return cachedData;
+    }
+  }
   
   const config: RequestInit = {
     headers: {
@@ -18,26 +54,59 @@ async function apiRequest<T>(
     ...options,
   };
 
-  try {
-    const response = await fetch(url, config);
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+  // 重试机制
+  const maxRetries = 2;
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+      
+      const response = await fetch(url, {
+        ...config,
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // 缓存成功的数据
+      if (cacheKey) {
+        setCachedData(cacheKey, data, cacheTTL);
+      }
+      
+      return data;
+    } catch (error) {
+      lastError = error as Error;
+      
+      // 如果是超时错误且还有重试机会，则重试
+      if (error instanceof Error && error.name === 'AbortError' && attempt < maxRetries) {
+        console.warn(`API request timeout, retrying... (attempt ${attempt + 1}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1))); // 递增延迟
+        continue;
+      }
+      
+      // 其他错误或重试次数用完
+      break;
     }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('API request failed:', error);
-    throw error;
   }
+  
+  console.error('API request failed:', lastError);
+  throw lastError;
 }
 
 // 用户认证相关接口
 export const authAPI = {
   // 获取登录nonce
   getNonce: (address: string) => 
-    apiRequest<{ nonce: string }>(`/users/get-nonce/${address}/`),
+    apiRequest<{ nonce: string }>(`/users/get-nonce/${address}/`, {}, generateCacheKey('nonce', address), 300000),
 
   // 用户登录（签名验证）
   login: (data: {
@@ -50,7 +119,7 @@ export const authAPI = {
   }>('/users/login/', {
     method: 'POST',
     body: JSON.stringify(data),
-  }),
+  }, generateCacheKey('login', data.address), 300000),
 
   // 自动登录/注册（开发调试用）
   autoLogin: (address: string) => 
@@ -61,25 +130,14 @@ export const authAPI = {
     }>('/users/auto-login/', {
       method: 'POST',
       body: JSON.stringify({ address }),
-    }),
-
-  // 创建新用户（需要签名验证）
-  createUser: (data: {
-    address: string;
-    signature: string;
-    message: string;
-    timestamp: number;
-  }) => apiRequest<any>('/users/', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }),
+    }, generateCacheKey('auto_login', address), 300000),
 };
 
 // 用户资料相关接口
 export const userAPI = {
   // 获取用户详情
   getUser: (address: string) => 
-    apiRequest<any>(`/users/${address}/`),
+    apiRequest<any>(`/users/${address}/`, {}, generateCacheKey('user', address), 300000),
 
   // 更新用户资料
   updateUser: (address: string, data: {
@@ -93,7 +151,7 @@ export const userAPI = {
   }) => apiRequest<any>(`/users/${address}/`, {
     method: 'PATCH',
     body: JSON.stringify(data),
-  }),
+  }, generateCacheKey('update_user', address), 300000),
 
   // 获取用户统计信息
   getUserStats: (address: string) => 
@@ -105,7 +163,7 @@ export const userAPI = {
       reputation_score: number;
       is_verified: boolean;
       created_at: string;
-    }>(`/users/${address}/stats/`),
+    }>(`/users/${address}/stats/`, {}, generateCacheKey('user_stats', address), 300000),
 
   // 获取用户资产组合
   getUserPortfolio: (address: string) => 
@@ -114,45 +172,33 @@ export const userAPI = {
       eth: string;
       okb: string;
       network: string;
-    }>(`/users/${address}/portfolio/`),
+    }>(`/users/${address}/portfolio/`, {}, generateCacheKey('user_portfolio', address), 300000),
 
   // 获取用户代币
   getUserTokens: (address: string, network: string = 'sepolia') => 
     apiRequest<{
-      created: Array<{
-        address: string;
-        symbol: string;
-        name: string;
-        createdAt: string;
-        phase: string;
-        imageUrl: string;
-        currentPrice: string;
-        marketCap: string;
-        volume24h: string;
-        graduationProgress: number;
-        holderCount: number;
-        transactionCount: number;
-        isVerified: boolean;
-        isFeatured: boolean;
-      }>;
-      holding: Array<{
-        address: string;
-        symbol: string;
-        name: string;
-        createdAt: string;
-        phase: string;
-        imageUrl: string;
-        currentPrice: string;
-        marketCap: string;
-        volume24h: string;
-        graduationProgress: number;
-        holderCount: number;
-        transactionCount: number;
-        isVerified: boolean;
-        isFeatured: boolean;
-      }>;
+      created: Array<any>;
+      holding: Array<any>;
       network: string;
-    }>(`/users/${address}/tokens/?network=${network}`),
+    }>(`/users/${address}/tokens/?network=${network}`, {}, generateCacheKey('user_tokens', address, network), 300000),
+
+  // 获取创作者排行榜
+  getCreatorsRanking: (params: {
+    sort_by?: string;
+    limit?: number;
+    network?: string;
+  } = {}) => {
+    const { sort_by = 'tokens_created', limit = 50, network = 'sepolia' } = params;
+    return apiRequest<{
+      success: boolean;
+      data: {
+        users: Array<any>;
+        count: number;
+        sort_by: string;
+        network: string;
+      };
+    }>(`/users/?sort_by=${sort_by}&limit=${limit}&network=${network}`, {}, generateCacheKey('creators_ranking', sort_by, limit, network), 300000);
+  },
 };
 
 // 收藏功能相关接口
@@ -172,39 +218,19 @@ export const favoriteAPI = {
   }>(`/users/${userAddress}/favorites/toggle/`, {
     method: 'POST',
     body: JSON.stringify(data),
-  }),
+  }, generateCacheKey('toggle_favorite', userAddress, data.token_address), 300000),
 
   // 获取用户收藏列表
   getUserFavorites: (userAddress: string, network: string = 'sepolia', limit?: number) => 
     apiRequest<{
       success: boolean;
       data: {
-        favorites: Array<{
-          favorite_id: number;
-          token_address: string;
-          favorited_at: string;
-          token: {
-            address: string;
-            name: string;
-            symbol: string;
-            description: string;
-            imageUrl: string;
-            currentPrice: string;
-            marketCap: string;
-            phase: string;
-            graduationProgress: number;
-            holderCount: number;
-            transactionCount: number;
-            isVerified: boolean;
-            isFeatured: boolean;
-            createdAt: string;
-          };
-        }>;
+        favorites: Array<any>;
         count: number;
         user_address: string;
         network: string;
       };
-    }>(`/users/${userAddress}/favorites/?network=${network}${limit ? `&limit=${limit}` : ''}`),
+    }>(`/users/${userAddress}/favorites/?network=${network}${limit ? `&limit=${limit}` : ''}`, {}, generateCacheKey('user_favorites', userAddress, network, limit || ''), 300000),
 
   // 检查收藏状态
   checkFavoriteStatus: (userAddress: string, tokenAddress: string, network: string = 'sepolia') => 
@@ -217,22 +243,10 @@ export const favoriteAPI = {
         user_address: string;
         network: string;
       };
-    }>(`/users/${userAddress}/favorites/${tokenAddress}/?network=${network}`),
-
-  // 获取代币收藏统计
-  getTokenFavorites: (tokenAddress: string, network: string = 'sepolia') => 
-    apiRequest<{
-      success: boolean;
-      data: {
-        token_address: string;
-        favorite_count: number;
-        recent_favorites: string[];
-        network: string;
-      };
-    }>(`/users/tokens/${tokenAddress}/favorites/?network=${network}`),
+    }>(`/users/${userAddress}/favorites/${tokenAddress}/?network=${network}`, {}, generateCacheKey('check_favorite_status', userAddress, tokenAddress, network), 300000),
 };
 
-// 关注功能相关接口（需要新增）
+// 关注功能相关接口
 export const followAPI = {
   // 关注用户
   followUser: (followerAddress: string, data: {
@@ -249,102 +263,18 @@ export const followAPI = {
   }>(`/users/${followerAddress}/follow/`, {
     method: 'POST',
     body: JSON.stringify(data),
-  }),
-
-  // 取消关注用户
-  unfollowUser: (followerAddress: string, followingAddress: string, network: string = 'sepolia') => 
-    apiRequest<{
-      success: boolean;
-      data: {
-        is_following: boolean;
-        follower_count: number;
-        following_address: string;
-        follower_address: string;
-      };
-    }>(`/users/${followerAddress}/follow/${followingAddress}/?network=${network}`, {
-      method: 'DELETE',
-    }),
-
-  // 获取用户关注列表
-  getFollowing: (userAddress: string, network: string = 'sepolia', limit?: number) => 
-    apiRequest<{
-      success: boolean;
-      data: {
-        following: Array<{
-          following_id: number;
-          following_address: string;
-          followed_at: string;
-          user: {
-            address: string;
-            username: string;
-            bio: string;
-            avatar_url: string;
-            is_verified: boolean;
-            tokens_created: number;
-          };
-        }>;
-        count: number;
-        user_address: string;
-        network: string;
-      };
-    }>(`/users/${userAddress}/following/?network=${network}${limit ? `&limit=${limit}` : ''}`),
-
-  // 获取用户粉丝列表
-  getFollowers: (userAddress: string, network: string = 'sepolia', limit?: number) => 
-    apiRequest<{
-      success: boolean;
-      data: {
-        followers: Array<{
-          follower_id: number;
-          follower_address: string;
-          followed_at: string;
-          user: {
-            address: string;
-            username: string;
-            bio: string;
-            avatar_url: string;
-            is_verified: boolean;
-            tokens_created: number;
-          };
-        }>;
-        count: number;
-        user_address: string;
-        network: string;
-      };
-    }>(`/users/${userAddress}/followers/?network=${network}${limit ? `&limit=${limit}` : ''}`),
-
-  // 检查关注状态
-  checkFollowStatus: (followerAddress: string, followingAddress: string, network: string = 'sepolia') => 
-    apiRequest<{
-      success: boolean;
-      data: {
-        is_following: boolean;
-        follower_count: number;
-        following_address: string;
-        follower_address: string;
-        network: string;
-      };
-    }>(`/users/${followerAddress}/follow/${followingAddress}/?network=${network}`),
+  }, generateCacheKey('follow_user', followerAddress, data.following_address), 300000),
 
   // 获取推荐关注用户
   getSuggestedUsers: (userAddress: string, network: string = 'sepolia', limit: number = 10) => 
     apiRequest<{
       success: boolean;
       data: {
-        suggested_users: Array<{
-          address: string;
-          username: string;
-          bio: string;
-          avatar_url: string;
-          is_verified: boolean;
-          tokens_created: number;
-          follower_count: number;
-          is_following: boolean;
-        }>;
+        suggested_users: Array<any>;
         count: number;
         network: string;
       };
-    }>(`/users/${userAddress}/suggested/?network=${network}&limit=${limit}`),
+    }>(`/users/${userAddress}/suggested/?network=${network}&limit=${limit}`, {}, generateCacheKey('suggested_users', userAddress, network, limit), 300000),
 };
 
 // 头像相关接口
@@ -361,7 +291,7 @@ export const avatarAPI = {
         }>;
         count: number;
       };
-    }>('/users/avatars/default/'),
+    }>('/users/avatars/default/', {}, 'default_avatars', 300000),
 
   // 随机获取默认头像
   getRandomAvatar: () => 
@@ -374,7 +304,7 @@ export const avatarAPI = {
           name: string;
         };
       };
-    }>('/users/avatars/random/'),
+    }>('/users/avatars/random/', {}, 'random_avatar', 300000),
 };
 
 // 代币相关接口
@@ -402,32 +332,7 @@ export const tokenAPI = {
     return apiRequest<{
       success: boolean;
       data: {
-        tokens: Array<{
-          address: string;
-          name: string;
-          symbol: string;
-          description: string;
-          imageUrl: string;
-          phase: string;
-          okbCollected: string;
-          tokensTraded: string;
-          graduationProgress: number;
-          currentPrice: string;
-          marketCap: string;
-          volume24h: string;
-          priceChange24h: number;
-          curveTradingActive: boolean;
-          graduatedAt: string | null;
-          izumiPoolAddress: string | null;
-          holderCount: number;
-          transactionCount: number;
-          isVerified: boolean;
-          isFeatured: boolean;
-          createdAt: string;
-          updatedAt: string;
-          network: string;
-          isActive: boolean;
-        }>;
+        tokens: Array<any>;
         pagination: {
           page: number;
           limit: number;
@@ -435,7 +340,7 @@ export const tokenAPI = {
           pages: number;
         };
       };
-    }>(`/tokens/?${searchParams.toString()}`);
+    }>(`/tokens/?${searchParams.toString()}`, {}, generateCacheKey('tokens', encodeURIComponent(searchParams.toString())), 300000);
   },
 
   // 获取代币详情
@@ -443,66 +348,36 @@ export const tokenAPI = {
     apiRequest<{
       success: boolean;
       data: any;
-    }>(`/tokens/${address}/?network=${network}`),
+    }>(`/tokens/${address}/?network=${network}`, {}, generateCacheKey('token_detail', address, network), 300000),
 
   // 获取代币详情（新接口）
   getTokenDetails: (address: string, network: string = 'sepolia') => 
     apiRequest<{
       success: boolean;
-      data: {
-        address: string;
-        symbol: string;
-        name: string;
-        description: string;
-        creator: string;
-        createdAt: string;
-        currentPrice: string;
-        marketCap: string;
-        volume24h: string;
-        graduationProgress: number;
-        holderCount: number;
-        transactionCount: number;
-        isVerified: boolean;
-        isFeatured: boolean;
-        imageUrl: string;
-        phase: string;
-        priceChange24h: number;
-      };
-    }>(`/tokens/${address}/?network=${network}`),
+      data: any;
+    }>(`/tokens/${address}/?network=${network}`, {}, generateCacheKey('token_details', address, network), 300000),
 
   // 获取代币交易记录
   getTokenTransactions: (address: string, network: string = 'sepolia') =>
     apiRequest<{
       success: boolean;
-      data: {
-        transactions: Array<{
-          id: number;
-          transaction_hash: string;
-          user_address: string;
-          transaction_type: string;
-          okb_amount: string;
-          token_amount: string;
-          price: string;
-          fee: string;
-          block_number: number;
-          block_timestamp: string;
-        }>;
-      };
-    }>(`/tokens/${address}/transactions/?network=${network}`),
+      data: Array<any>;
+      page: number;
+      pageSize: number;
+      total: number;
+      hasMore: boolean;
+    }>(`/tokens/${address}/transactions?network=${network}`, {}, generateCacheKey('token_transactions', address, network), 300000),
 
   // 获取代币持有人
   getTokenHolders: (address: string, network: string = 'sepolia') =>
     apiRequest<{
       success: boolean;
-      data: {
-        holders: Array<{
-          address: string;
-          balance: string;
-          percentage: string;
-          is_creator: boolean;
-        }>;
-      };
-    }>(`/tokens/${address}/holders/?network=${network}`),
+      data: Array<any>;
+      page: number;
+      pageSize: number;
+      total: number;
+      hasMore: boolean;
+    }>(`/tokens/${address}/holders?network=${network}`, {}, generateCacheKey('token_holders', address, network), 300000),
 
   // 获取代币图表数据
   getTokenChartData: (address: string, timeframe: string, network: string = 'sepolia') =>
@@ -517,7 +392,7 @@ export const tokenAPI = {
           backgroundColor: string;
         }>;
       };
-    }>(`/tokens/${address}/chart/?timeframe=${timeframe}&network=${network}`),
+    }>(`/tokens/${address}/chart/?timeframe=${timeframe}&network=${network}`, {}, generateCacheKey('token_chart_data', address, timeframe, network), 300000),
 
   // 获取OKB价格
   getOKBPrice: () => 
@@ -529,7 +404,7 @@ export const tokenAPI = {
         timestamp: string;
         cached: boolean;
       };
-    }>('/tokens/okb-price/'),
+    }>('/tokens/okb-price/', {}, 'okb_price', 300000),
 
   // 获取代币价格历史
   getTokenPriceHistory: (
@@ -552,17 +427,7 @@ export const tokenAPI = {
     return apiRequest<{
       success: boolean;
       data: {
-        candles: Array<{
-          timestamp: string;
-          open: number;
-          high: number;
-          low: number;
-          close: number;
-          volume: number;
-          trade_count: number;
-          total_okb_volume: number;
-          total_token_volume: number;
-        }>;
+        candles: Array<any>;
         token: {
           address: string;
           name: string;
@@ -571,7 +436,7 @@ export const tokenAPI = {
         interval: string;
         count: number;
       };
-    }>(`/tokens/${address}/price-history?${searchParams.toString()}`);
+    }>(`/tokens/${address}/price-history?${searchParams.toString()}`, {}, generateCacheKey('token_price_history', address, encodeURIComponent(searchParams.toString())), 300000);
   },
 };
 

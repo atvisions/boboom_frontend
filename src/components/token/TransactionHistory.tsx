@@ -18,7 +18,7 @@ export function TransactionHistory({ tokenAddress }: TransactionHistoryProps) {
         setLoading(true);
         const response = await tokenAPI.getTokenTransactions(tokenAddress, 'sepolia');
         if (response.success) {
-          setTransactions(response.data.transactions);
+          setTransactions(response.data || []);
         } else {
           setError('Failed to load transactions');
         }
