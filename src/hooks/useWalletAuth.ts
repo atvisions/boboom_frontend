@@ -9,6 +9,7 @@ export function useWalletAuth() {
   const [isLoading, setIsLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  const [hasAttemptedAutoLogin, setHasAttemptedAutoLogin] = useState(false);
 
   const { signMessageAsync } = useSignMessage();
 
@@ -26,11 +27,13 @@ export function useWalletAuth() {
         setUser(response.user);
         setIsAuthenticated(true);
         console.log('User auto login successful:', response.message);
+        return; // 成功登录，直接返回
       }
     } catch (error) {
       console.error('Auto login failed:', error);
-      // 如果自动登录失败，尝试创建新用户
-      await createNewUser(userAddress);
+      // 只有在明确需要创建新用户时才调用createNewUser
+      // 这里我们先不自动创建，让用户手动触发
+      console.log('Auto login failed, but not creating new user automatically');
     } finally {
       setIsLoading(false);
     }
@@ -53,17 +56,16 @@ export function useWalletAuth() {
         message 
       });
 
-      // 创建用户
-      const response = await authAPI.createUser({
+      // 使用login API创建用户
+      const response = await authAPI.login({
         address: userAddress,
         signature,
-        message,
-        timestamp
+        nonce
       });
 
-      if (response) {
-        setUser(response);
-        setIsAuthenticated(true);
+      if (response.access) {
+        // 重新获取用户信息
+        await autoLoginUser(userAddress);
         toast.success('Welcome to BoBoom! Your account has been created.');
         console.log('New user created successfully');
       }
@@ -77,14 +79,16 @@ export function useWalletAuth() {
   useEffect(() => {
     if (!isClient) return; // 只在客户端运行
     
-    if (isConnected && address) {
+    if (isConnected && address && !hasAttemptedAutoLogin) {
       console.log('Wallet connected:', address);
+      setHasAttemptedAutoLogin(true);
       autoLoginUser(address);
-    } else {
+    } else if (!isConnected) {
       setUser(null);
       setIsAuthenticated(false);
+      setHasAttemptedAutoLogin(false);
     }
-  }, [isConnected, address, isClient]);
+  }, [isConnected, address, isClient, hasAttemptedAutoLogin]);
 
   // 手动登录（带签名验证）
   const loginWithSignature = async () => {

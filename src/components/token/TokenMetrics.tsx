@@ -8,8 +8,8 @@ interface TokenMetricsProps {
 
 export function TokenMetrics({ token, okbPrice, showCurrentPrice = true }: TokenMetricsProps) {
   // 计算价格相关数据
-  const currentPrice = parseFloat(token.currentPrice || '0') * okbPrice;
-  const athPrice = parseFloat(token.ath || '0') * okbPrice;
+  const currentPrice = parseFloat(token.currentPrice || '0'); // 后端返回的已经是USD价格
+  const athPrice = parseFloat(token.ath || '0'); // 后端返回的已经是USD价格
   const marketCap = parseFloat(token.marketCap || '0');
   const athDrop = athPrice > 0 ? ((currentPrice - athPrice) / athPrice) * 100 : 0;
   const athProgress = athPrice > 0 ? Math.min((currentPrice / athPrice) * 100, 100) : 0;

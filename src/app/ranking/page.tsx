@@ -497,7 +497,7 @@ export default function RankingPage() {
                               <div className="text-gray-400 text-xs">Holders</div>
                             </div>
                             <div>
-                              <div className="text-white font-semibold text-lg">${(parseFloat(token.currentPrice || '0') * okbPrice).toFixed(6)}</div>
+                              <div className="text-white font-semibold text-lg">${parseFloat(token.currentPrice || '0').toFixed(6)}</div>
                               <div className="text-gray-400 text-xs">Price</div>
                             </div>
                           </div>

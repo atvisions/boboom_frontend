@@ -265,6 +265,43 @@ export const followAPI = {
     body: JSON.stringify(data),
   }, generateCacheKey('follow_user', followerAddress, data.following_address), 300000),
 
+  // 获取用户关注的用户列表
+  getFollowing: (userAddress: string, network: string = 'sepolia', limit?: number) => 
+    apiRequest<{
+      success: boolean;
+      data: {
+        following: Array<any>;
+        count: number;
+        user_address: string;
+        network: string;
+      };
+    }>(`/users/${userAddress}/following/?network=${network}${limit ? `&limit=${limit}` : ''}`, {}, generateCacheKey('user_following', userAddress, network, limit || ''), 300000),
+
+  // 获取用户的粉丝列表
+  getFollowers: (userAddress: string, network: string = 'sepolia', limit?: number) => 
+    apiRequest<{
+      success: boolean;
+      data: {
+        followers: Array<any>;
+        count: number;
+        user_address: string;
+        network: string;
+      };
+    }>(`/users/${userAddress}/followers/?network=${network}${limit ? `&limit=${limit}` : ''}`, {}, generateCacheKey('user_followers', userAddress, network, limit || ''), 300000),
+
+  // 检查关注状态
+  checkFollowStatus: (followerAddress: string, followingAddress: string, network: string = 'sepolia') => 
+    apiRequest<{
+      success: boolean;
+      data: {
+        is_following: boolean;
+        follower_count: number;
+        following_address: string;
+        follower_address: string;
+        network: string;
+      };
+    }>(`/users/${followerAddress}/follow/${followingAddress}/check/?network=${network}`, {}, generateCacheKey('check_follow_status', followerAddress, followingAddress, network), 300000),
+
   // 获取推荐关注用户
   getSuggestedUsers: (userAddress: string, network: string = 'sepolia', limit: number = 10) => 
     apiRequest<{
@@ -356,6 +393,20 @@ export const tokenAPI = {
       success: boolean;
       data: any;
     }>(`/tokens/${address}/?network=${network}`, {}, generateCacheKey('token_details', address, network), 300000),
+
+  // 获取代币24小时统计数据
+  getToken24hStats: (address: string, network: string = 'sepolia') => 
+    apiRequest<{
+      success: boolean;
+      data: {
+        currentPrice: string;
+        high24h: string;
+        low24h: string;
+        priceChange24h: string;
+        volume24h: string;
+        updatedAt: string;
+      };
+    }>(`/tokens/${address}/24h-stats/?network=${network}`, {}, generateCacheKey('token_24h_stats', address, network), 60000), // 1分钟缓存
 
   // 获取代币交易记录
   getTokenTransactions: (address: string, network: string = 'sepolia') =>

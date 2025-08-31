@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { useTokenFactory } from '@/hooks/useTokenFactory';
 import { useWalletAuth } from '@/hooks/useWalletAuth';
 import { toast } from '@/components/ui/toast-notification';
+import { userAPI, tokenAPI } from '@/services/api';
 
 interface TradingPanelProps {
   token: any;
@@ -18,14 +19,80 @@ export function TradingPanel({ token }: TradingPanelProps) {
   const [okbBalance, setOkbBalance] = useState('0');
   const [tokenBalance, setTokenBalance] = useState('0');
   const [okbPrice, setOkbPrice] = useState<number>(177.6);
+  const [userPortfolio, setUserPortfolio] = useState<any>(null);
+  const [userTokens, setUserTokens] = useState<any>(null);
+  
+  // 报价状态
+  const [buyQuote, setBuyQuote] = useState<any>(null);
+  const [sellQuote, setSellQuote] = useState<any>(null);
+  const [currentPrice, setCurrentPrice] = useState<number>(0);
 
   const {
     okbAllowanceBondingCurve,
     isPending,
+    isSuccess,
     approveOKBForTrading,
     buyToken,
-    sellToken
+    sellToken,
+    refetchOkbAllowanceBondingCurve,
+    refetchOkbBalance,
+    getBuyQuote,
+    getSellQuote,
+    getCurrentPrice
   } = useTokenFactory();
+
+  // 加载当前价格
+  useEffect(() => {
+    const loadCurrentPrice = async () => {
+      if (token?.address) {
+        try {
+          const price = await getCurrentPrice(token.address);
+          setCurrentPrice(price);
+        } catch (error) {
+          console.error('Failed to load current price:', error);
+        }
+      }
+    };
+
+    loadCurrentPrice();
+  }, [token?.address]); // 移除getCurrentPrice依赖
+
+  // 当金额变化时获取报价
+  useEffect(() => {
+    const fetchQuote = async () => {
+      if (!amount || parseFloat(amount) <= 0 || !token?.address) {
+        setBuyQuote(null);
+        setSellQuote(null);
+        return;
+      }
+
+      try {
+        if (activeTab === 'buy') {
+          const quote = await getBuyQuote(token.address, parseFloat(amount));
+          setBuyQuote(quote);
+          setSellQuote(null);
+        } else {
+          const quote = await getSellQuote(token.address, parseFloat(amount));
+          setSellQuote(quote);
+          setBuyQuote(null);
+        }
+      } catch (error) {
+        console.error('Failed to fetch quote:', error);
+        setBuyQuote(null);
+        setSellQuote(null);
+      }
+    };
+
+    // 添加防抖，避免频繁调用
+    const timeoutId = setTimeout(fetchQuote, 500);
+    return () => clearTimeout(timeoutId);
+  }, [amount, activeTab, token?.address]); // 移除getBuyQuote, getSellQuote依赖
+
+  // 当切换买卖模式时清空报价
+  useEffect(() => {
+    setBuyQuote(null);
+    setSellQuote(null);
+  }, [activeTab]);
 
   // 加载用户余额
   useEffect(() => {
@@ -33,26 +100,41 @@ export function TradingPanel({ token }: TradingPanelProps) {
       if (!address) return;
       
       try {
-        // 这里应该从API获取用户余额
-        // 暂时使用模拟数据
-        setOkbBalance('1000.0');
-        setTokenBalance('0.0');
+        // 获取用户资产组合
+        const portfolioResponse = await userAPI.getUserPortfolio(address);
+        setUserPortfolio(portfolioResponse);
+        setOkbBalance(portfolioResponse.okb || '0');
+
+        // 获取用户代币
+        const tokensResponse = await userAPI.getUserTokens(address, 'sepolia');
+        setUserTokens(tokensResponse);
+        
+        // 查找当前代币的余额
+        const currentToken = tokensResponse.holding.find(
+          (t: any) => t.address.toLowerCase() === token.address.toLowerCase()
+        );
+        if (currentToken) {
+          setTokenBalance(currentToken.balance || '0');
+        } else {
+          setTokenBalance('0');
+        }
       } catch (error) {
         console.error('Failed to load balances:', error);
+        // 使用合约余额作为备用
+        setOkbBalance(okbBalance.toString());
       }
     };
 
     loadBalances();
-  }, [address]);
+  }, [address, token.address]);
 
   // 加载OKB价格
   useEffect(() => {
     const loadOKBPrice = async () => {
       try {
-        const response = await fetch('/api/tokens/okb-price');
-        const data = await response.json();
-        if (data.success) {
-          setOkbPrice(parseFloat(data.data.price));
+        const response = await tokenAPI.getOKBPrice();
+        if (response.success) {
+          setOkbPrice(parseFloat(response.data.price));
         }
       } catch (error) {
         console.error('Failed to load OKB price:', error);
@@ -62,22 +144,94 @@ export function TradingPanel({ token }: TradingPanelProps) {
     loadOKBPrice();
   }, []);
 
+  // 监听交易成功，刷新授权状态
+  useEffect(() => {
+    if (isSuccess) {
+      // 交易成功后刷新授权状态
+      refetchOkbAllowanceBondingCurve();
+      // 刷新余额
+      refetchOkbBalance();
+      
+      // 延迟一下再刷新用户资产组合，确保链上数据已更新
+      setTimeout(async () => {
+        if (address) {
+          try {
+            // 重新获取用户资产组合
+            const portfolioResponse = await userAPI.getUserPortfolio(address);
+            setUserPortfolio(portfolioResponse);
+            setOkbBalance(portfolioResponse.okb || '0');
+
+            // 重新获取用户代币
+            const tokensResponse = await userAPI.getUserTokens(address, 'sepolia');
+            setUserTokens(tokensResponse);
+            
+            // 查找当前代币的余额
+            const currentToken = tokensResponse.holding.find(
+              (t: any) => t.address.toLowerCase() === token.address.toLowerCase()
+            );
+            if (currentToken) {
+              setTokenBalance(currentToken.balance || '0');
+            } else {
+              setTokenBalance('0');
+            }
+          } catch (error) {
+            console.error('Failed to refresh balances after transaction:', error);
+          }
+        }
+      }, 2000); // 延迟2秒，等待链上数据更新
+    }
+  }, [isSuccess, address, token.address]); // 移除refetch函数依赖
+
+
+
   // 计算预估价格
   const calculateEstimatedPrice = () => {
     if (!amount || parseFloat(amount) <= 0) return 0;
     
-    // 这里应该调用合约的getCurrentPrice函数
-    // 暂时使用代币的当前价格
-    return parseFloat(amount) * parseFloat(token.currentPrice);
+    // 使用真实的报价数据
+    if (activeTab === 'buy') {
+      return buyQuote?.tokensOut || 0;
+    } else {
+      return sellQuote?.okbOut || 0;
+    }
   };
 
   // 计算预估代币数量
   const calculateEstimatedTokens = () => {
     if (!amount || parseFloat(amount) <= 0) return 0;
     
-    const okbAmount = parseFloat(amount);
-    const tokenPrice = parseFloat(token.currentPrice);
-    return okbAmount / tokenPrice;
+    // 使用真实的报价数据
+    if (activeTab === 'buy') {
+      return buyQuote?.tokensOut || 0;
+    } else {
+      return sellQuote?.okbOut || 0;
+    }
+  };
+
+  // 计算手续费
+  const calculateFee = () => {
+    if (!amount || parseFloat(amount) <= 0) return 0;
+    
+    if (activeTab === 'buy') {
+      return buyQuote?.fee || 0;
+    } else {
+      return sellQuote?.fee || 0;
+    }
+  };
+
+  // 计算价格影响
+  const calculatePriceImpact = () => {
+    if (!amount || parseFloat(amount) <= 0 || currentPrice === 0) return 0;
+    
+    if (activeTab === 'buy' && buyQuote) {
+      const priceChange = (buyQuote.priceAfter - currentPrice) / currentPrice * 100;
+      return priceChange;
+    } else if (activeTab === 'sell' && sellQuote) {
+      const priceChange = (currentPrice - sellQuote.priceAfter) / currentPrice * 100;
+      return priceChange;
+    }
+    
+    return 0;
   };
 
   // 处理买入
@@ -98,11 +252,23 @@ export function TradingPanel({ token }: TradingPanelProps) {
       return;
     }
 
+    console.log("=== HANDLE BUY DEBUG ===");
+    console.log("OKB Amount:", okbAmount);
+    console.log("OKB Allowance:", okbAllowanceBondingCurve);
+    console.log("Needs approval:", okbAmount >= okbAllowanceBondingCurve);
+
     setIsLoading(true);
     try {
-      // 执行买入（授权检查在buyToken内部处理）
-      await buyToken(token.address, okbAmount);
-      toast.success('Buy order submitted successfully');
+      // 检查是否需要授权
+      if (okbAmount >= okbAllowanceBondingCurve) {
+        console.log("Calling approveOKBForTrading...");
+        // 需要授权，直接调用授权函数
+        await approveOKBForTrading(okbAmount);
+      } else {
+        console.log("Calling buyToken...");
+        // 直接买入
+        await buyToken(token.address, okbAmount);
+      }
       setAmount('');
     } catch (error) {
       console.error('Buy error:', error);
@@ -133,7 +299,6 @@ export function TradingPanel({ token }: TradingPanelProps) {
     setIsLoading(true);
     try {
       await sellToken(token.address, tokenAmount);
-      toast.success('Sell order submitted successfully');
       setAmount('');
     } catch (error) {
       console.error('Sell error:', error);
@@ -143,12 +308,27 @@ export function TradingPanel({ token }: TradingPanelProps) {
     }
   };
 
-  // 快速金额按钮
-  const quickAmounts = ['0.1', '0.5', '1', 'Max'];
+  // 快速金额按钮 - 根据买卖模式显示不同选项
+  const getQuickAmounts = () => {
+    if (activeTab === 'buy') {
+      return ['0.1', '0.5', '1', 'Max'];
+    } else {
+      // 卖出模式：显示百分比
+      return ['10%', '25%', '50%', 'Max'];
+    }
+  };
+
+  const quickAmounts = getQuickAmounts();
 
   const setQuickAmount = (value: string) => {
     if (value === 'Max') {
       setAmount(activeTab === 'buy' ? okbBalance : tokenBalance);
+    } else if (value.includes('%')) {
+      // 处理百分比
+      const percentage = parseFloat(value.replace('%', ''));
+      const maxBalance = activeTab === 'buy' ? parseFloat(okbBalance) : parseFloat(tokenBalance);
+      const calculatedAmount = (maxBalance * percentage) / 100;
+      setAmount(calculatedAmount.toFixed(6));
     } else {
       setAmount(value);
     }
@@ -192,6 +372,23 @@ export function TradingPanel({ token }: TradingPanelProps) {
           {parseFloat(activeTab === 'buy' ? okbBalance : tokenBalance).toFixed(6)} {activeTab === 'buy' ? 'OKB' : token.symbol}
         </span>
       </div>
+      
+      {/* 买入时显示授权额度 */}
+      {activeTab === 'buy' && (
+        <div className="flex items-center justify-between text-gray-400 mb-4">
+          <span className="text-sm">OKB allowance:</span>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm">
+              {parseFloat(okbAllowanceBondingCurve.toString()).toFixed(6)} OKB
+            </span>
+            {parseFloat(amount || '0') >= okbAllowanceBondingCurve && (
+              <span className="text-xs text-yellow-500">
+                ⚠️ Insufficient allowance
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 输入框 - 增加高度，去掉Amount标签 */}
       <div className="mb-4">
@@ -244,12 +441,20 @@ export function TradingPanel({ token }: TradingPanelProps) {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Estimated {token.symbol}:</span>
                   <span className="text-white font-medium">
-                    {estimatedTokens.toFixed(6)} {token.symbol}
+                    {buyQuote ? buyQuote.tokensOut.toFixed(6) : 'Calculating...'} {token.symbol}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Fee:</span>
+                  <span className="text-yellow-500">
+                    {buyQuote ? buyQuote.fee.toFixed(6) : '0.000000'} OKB
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Price Impact:</span>
-                  <span className="text-green-500">~0.1%</span>
+                  <span className="text-green-500">
+                    {buyQuote ? `${calculatePriceImpact().toFixed(2)}%` : '~0.00%'}
+                  </span>
                 </div>
               </>
             ) : (
@@ -257,12 +462,20 @@ export function TradingPanel({ token }: TradingPanelProps) {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Estimated OKB:</span>
                   <span className="text-white font-medium">
-                    {estimatedPrice.toFixed(4)} OKB
+                    {sellQuote ? sellQuote.okbOut.toFixed(6) : 'Calculating...'} OKB
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Fee:</span>
+                  <span className="text-yellow-500">
+                    {sellQuote ? sellQuote.fee.toFixed(6) : '0.000000'} {token.symbol}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Price Impact:</span>
-                  <span className="text-red-500">~0.1%</span>
+                  <span className="text-red-500">
+                    {sellQuote ? `${calculatePriceImpact().toFixed(2)}%` : '~0.00%'}
+                  </span>
                 </div>
               </>
             )}
@@ -270,18 +483,7 @@ export function TradingPanel({ token }: TradingPanelProps) {
         </div>
       )}
 
-      {/* 授权状态 */}
-      {activeTab === 'buy' && okbAllowanceBondingCurve < parseFloat(amount || '0') && (
-        <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-6">
-          <div className="flex items-center space-x-2 mb-2">
-            <Shield className="h-4 w-4 text-yellow-500" />
-            <span className="text-yellow-500 text-sm font-medium">Approval Required</span>
-          </div>
-          <p className="text-yellow-400 text-xs">
-            You need to approve OKB spending before trading
-          </p>
-        </div>
-      )}
+
 
       {/* 交易按钮 */}
       <Button
@@ -296,11 +498,20 @@ export function TradingPanel({ token }: TradingPanelProps) {
         {isLoading || isPending ? (
           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
         ) : activeTab === 'buy' ? (
-          <ArrowUp className="h-4 w-4 mr-2" />
+          parseFloat(amount || '0') >= okbAllowanceBondingCurve ? (
+            <Shield className="h-4 w-4 mr-2" />
+          ) : (
+            <ArrowUp className="h-4 w-4 mr-2" />
+          )
         ) : (
           <ArrowDown className="h-4 w-4 mr-2" />
         )}
-        {isLoading || isPending ? 'Processing...' : `${activeTab === 'buy' ? 'Buy' : 'Sell'} ${token.symbol}`}
+        {isLoading || isPending 
+          ? 'Processing...' 
+          : activeTab === 'buy' && parseFloat(amount || '0') >= okbAllowanceBondingCurve
+            ? 'Approve OKB'
+            : `${activeTab === 'buy' ? 'Buy' : 'Sell'} ${token.symbol}`
+        }
       </Button>
     </div>
   );

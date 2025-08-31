@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, TrendingDown, Clock } from 'lucide-react';
+import { tokenAPI } from '@/services/api';
 
 // 动态导入 ApexCharts 以避免 SSR 问题
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
@@ -17,8 +18,116 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
   const [priceType, setPriceType] = useState<'price' | 'mcap'>('mcap');
   const [currency, setCurrency] = useState<'USD' | 'OKB'>('USD');
   const [showTimeDropdown, setShowTimeDropdown] = useState(false);
+  const [stats24h, setStats24h] = useState<any>(null);
+  const [candlestickData, setCandlestickData] = useState<any[]>([]);
+  const [volumeData, setVolumeData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [okbPrice, setOkbPrice] = useState<number>(177.6); // 默认OKB价格
 
-  // 生成模拟K线数据
+  // 加载OKB价格
+  useEffect(() => {
+    const loadOKBPrice = async () => {
+      try {
+        const response = await tokenAPI.getOKBPrice();
+        if (response.success) {
+          setOkbPrice(parseFloat(response.data.price));
+        }
+      } catch (error) {
+        console.error('Failed to load OKB price:', error);
+      }
+    };
+
+    loadOKBPrice();
+  }, []);
+
+  // 加载24小时统计数据
+  useEffect(() => {
+    const load24hStats = async () => {
+      try {
+        setLoading(true);
+        const response = await tokenAPI.getToken24hStats(tokenAddress, 'sepolia');
+        if (response.success) {
+          setStats24h(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to load 24h stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (tokenAddress) {
+      load24hStats();
+    }
+  }, [tokenAddress]);
+
+  // 加载蜡烛图数据
+  useEffect(() => {
+    const loadCandlestickData = async () => {
+      try {
+        // 根据timeframe确定interval
+        const intervalMap: { [key: string]: string } = {
+          '1h': '1h',
+          '4h': '4h', 
+          '1d': '1d',
+          '1w': '1d', // 暂时用1d代替
+          '1m': '1m'  // 修正：1m应该映射到1m
+        };
+        
+        const interval = intervalMap[timeframe] || '4h';
+        const response = await tokenAPI.getTokenPriceHistory(tokenAddress, {
+          interval: interval as any,
+          limit: 100,
+          network: 'sepolia'
+        });
+        
+        if (response.success && response.data.candles) {
+          // 转换数据格式为ApexCharts需要的格式，并根据货币进行转换
+          const candles = response.data.candles.map((candle: any) => {
+            let open, high, low, close;
+            
+            if (currency === 'OKB') {
+              // 转换为OKB价格
+              open = candle.open / okbPrice;
+              high = candle.high / okbPrice;
+              low = candle.low / okbPrice;
+              close = candle.close / okbPrice;
+            } else {
+              // USD价格
+              open = candle.open;
+              high = candle.high;
+              low = candle.low;
+              close = candle.close;
+            }
+            
+            return {
+              x: new Date(candle.timestamp),
+              y: [open, high, low, close]
+            };
+          });
+          
+          const volumes = response.data.candles.map((candle: any) => ({
+            x: new Date(candle.timestamp),
+            y: candle.volume || 0
+          }));
+          
+          setCandlestickData(candles);
+          setVolumeData(volumes);
+        }
+      } catch (error) {
+        console.error('Failed to load candlestick data:', error);
+        // 如果API调用失败，使用模拟数据作为备用
+        setCandlestickData(generateMockCandlestickData());
+        setVolumeData(generateMockVolumeData());
+      }
+    };
+
+    if (tokenAddress) {
+      loadCandlestickData();
+    }
+  }, [tokenAddress, timeframe, currency, okbPrice]);
+
+  // 生成模拟K线数据（作为备用）
   const generateMockCandlestickData = () => {
     const data = [];
     const now = Date.now();
@@ -58,8 +167,9 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
     return data;
   };
 
-  const candlestickData = generateMockCandlestickData();
-  const volumeData = generateMockVolumeData();
+  // 如果没有真实数据，使用模拟数据作为备用
+  const fallbackCandlestickData = generateMockCandlestickData();
+  const fallbackVolumeData = generateMockVolumeData();
 
   // ApexCharts 配置
   const chartOptions = {
@@ -104,15 +214,16 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
           colors: '#9CA3AF'
         },
         formatter: function(value: number) {
+          const symbol = currency === 'OKB' ? 'OKB' : '$';
           // 根据价格大小动态调整小数位数
           if (value >= 1) {
-            return '$' + value.toFixed(2);
+            return symbol + value.toFixed(2);
           } else if (value >= 0.01) {
-            return '$' + value.toFixed(4);
+            return symbol + value.toFixed(4);
           } else if (value >= 0.0001) {
-            return '$' + value.toFixed(6);
+            return symbol + value.toFixed(6);
           } else {
-            return '$' + value.toFixed(8);
+            return symbol + value.toFixed(8);
           }
         }
       }
@@ -126,15 +237,16 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
       custom: function({ series, seriesIndex, dataPointIndex, w }: any) {
         const data = w.globals.initialSeries[seriesIndex].data[dataPointIndex];
         const [open, high, low, close] = data.y;
+        const symbol = currency === 'OKB' ? 'OKB' : '$';
         
         return `
           <div class="custom-tooltip" style="background: rgba(0,0,0,0.9); padding: 8px; border-radius: 4px; border: 1px solid #70E000;">
             <div style="color: #9CA3AF; font-size: 11px; margin-bottom: 4px;">${new Date(data.x).toLocaleTimeString()}</div>
             <div style="color: white; font-size: 12px; margin: 2px 0;">
-              <span style="color: #9CA3AF;">O:</span> $${open.toFixed(6)}
+              <span style="color: #9CA3AF;">O:</span> ${symbol}${open.toFixed(6)}
             </div>
             <div style="color: white; font-size: 12px; margin: 2px 0;">
-              <span style="color: #9CA3AF;">H:</span> $${high.toFixed(6)}
+              <span style="color: #9CA3AF;">H:</span> ${symbol}${high.toFixed(6)}
             </div>
             <div style="color: white; font-size: 12px; margin: 2px 0;">
               <span style="color: #9CA3AF;">L:</span> $${low.toFixed(6)}
@@ -366,7 +478,7 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
             series={[
               {
                 name: 'Price',
-                data: candlestickData
+                data: candlestickData.length > 0 ? candlestickData : fallbackCandlestickData
               }
             ]}
             type="candlestick"
@@ -380,7 +492,7 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
               series={[
                 {
                   name: 'Volume',
-                  data: volumeData
+                  data: volumeData.length > 0 ? volumeData : fallbackVolumeData
                 }
               ]}
               type="bar"
@@ -395,30 +507,64 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
         {/* 当前价格卡片 */}
         <div className="bg-[#0E0E0E] rounded-lg p-4">
           <div className="text-gray-400 text-xs mb-1">Current Price</div>
-          <div className="text-white font-bold text-sm">$0.00054864</div>
-        </div>
-        
-        <div className="bg-[#0E0E0E] rounded-lg p-4">
-          <div className="text-gray-400 text-xs mb-1">24h High</div>
-          <div className="text-white font-bold text-sm">$0.00083990</div>
-        </div>
-        
-        <div className="bg-[#0E0E0E] rounded-lg p-4">
-          <div className="text-gray-400 text-xs mb-1">24h Low</div>
-          <div className="text-white font-bold text-sm">$0.00027339</div>
-        </div>
-        
-        <div className="bg-[#0E0E0E] rounded-lg p-4">
-          <div className="text-gray-400 text-xs mb-1">24h Change</div>
-          <div className="text-red-500 font-bold text-sm flex items-center">
-            <TrendingDown className="h-3 w-3 mr-1" />
-            -56.91%
+          <div className="text-white font-bold text-sm">
+            {loading ? (
+              <div className="animate-pulse bg-gray-600 h-4 w-20 rounded"></div>
+            ) : (
+              `$${parseFloat(stats24h?.currentPrice || '0').toFixed(8)}`
+            )}
           </div>
         </div>
         
         <div className="bg-[#0E0E0E] rounded-lg p-4">
+          <div className="text-gray-400 text-xs mb-1">24h High</div>
+          <div className="text-white font-bold text-sm">
+            {loading ? (
+              <div className="animate-pulse bg-gray-600 h-4 w-20 rounded"></div>
+            ) : (
+              `$${parseFloat(stats24h?.high24h || '0').toFixed(8)}`
+            )}
+          </div>
+        </div>
+        
+        <div className="bg-[#0E0E0E] rounded-lg p-4">
+          <div className="text-gray-400 text-xs mb-1">24h Low</div>
+          <div className="text-white font-bold text-sm">
+            {loading ? (
+              <div className="animate-pulse bg-gray-600 h-4 w-20 rounded"></div>
+            ) : (
+              `$${parseFloat(stats24h?.low24h || '0').toFixed(8)}`
+            )}
+          </div>
+        </div>
+        
+        <div className="bg-[#0E0E0E] rounded-lg p-4">
+          <div className="text-gray-400 text-xs mb-1">24h Change</div>
+          {loading ? (
+            <div className="animate-pulse bg-gray-600 h-4 w-16 rounded"></div>
+          ) : (
+            <div className={`font-bold text-sm flex items-center ${
+              parseFloat(stats24h?.priceChange24h || '0') >= 0 ? 'text-green-500' : 'text-red-500'
+            }`}>
+              {parseFloat(stats24h?.priceChange24h || '0') >= 0 ? (
+                <TrendingUp className="h-3 w-3 mr-1" />
+              ) : (
+                <TrendingDown className="h-3 w-3 mr-1" />
+              )}
+              {parseFloat(stats24h?.priceChange24h || '0') >= 0 ? '+' : ''}{parseFloat(stats24h?.priceChange24h || '0').toFixed(2)}%
+            </div>
+          )}
+        </div>
+        
+        <div className="bg-[#0E0E0E] rounded-lg p-4">
           <div className="text-gray-400 text-xs mb-1">24h Volume</div>
-          <div className="text-white font-bold text-sm">$2.7M</div>
+          <div className="text-white font-bold text-sm">
+            {loading ? (
+              <div className="animate-pulse bg-gray-600 h-4 w-16 rounded"></div>
+            ) : (
+              `$${(parseFloat(stats24h?.volume24h || '0') / 1000000).toFixed(1)}M`
+            )}
+          </div>
         </div>
       </div>
     </div>

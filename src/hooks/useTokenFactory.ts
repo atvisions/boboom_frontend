@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
 import { parseEther, formatEther } from 'viem';
 import { getContractAddresses } from '@/contracts/config';
@@ -58,6 +58,15 @@ export function useTokenFactory(network: 'sepolia' | 'xlayer' = 'sepolia') {
   const okbBalance = okbBalanceRaw ? parseFloat(formatEther(okbBalanceRaw as bigint)) : 0;
   const okbAllowance = okbAllowanceRaw ? parseFloat(formatEther(okbAllowanceRaw as bigint)) : 0;
   const okbAllowanceBondingCurve = okbAllowanceBondingCurveRaw ? parseFloat(formatEther(okbAllowanceBondingCurveRaw as bigint)) : 0;
+
+  // 监听交易成功状态，自动刷新余额
+  useEffect(() => {
+    if (isSuccess && hash) {
+      console.log("Transaction successful, refreshing balances...");
+      refetchOkbBalance();
+      refetchOkbAllowanceBondingCurve();
+    }
+  }, [isSuccess, hash]); // 移除refetch函数依赖
 
   // 创建代币（无初始购买）
   const createToken = async (tokenData: TokenCreationData) => {
@@ -198,6 +207,20 @@ export function useTokenFactory(network: 'sepolia' | 'xlayer' = 'sepolia') {
     }
   };
 
+  // 实时检查OKB授权额度
+  const checkOkbAllowance = async () => {
+    if (!address) return 0;
+    
+    try {
+      // 重新获取授权额度
+      await refetchOkbAllowanceBondingCurve();
+      return okbAllowanceBondingCurve;
+    } catch (error) {
+      console.error('Failed to check OKB allowance:', error);
+      return okbAllowanceBondingCurve;
+    }
+  };
+
   // 买入代币
   const buyToken = async (tokenAddress: string, okbAmount: number) => {
     if (!address) {
@@ -205,27 +228,46 @@ export function useTokenFactory(network: 'sepolia' | 'xlayer' = 'sepolia') {
       return;
     }
 
-    // 检查授权额度是否足够
-    if (okbAllowanceBondingCurve < okbAmount) {
-      toast.info('Approving OKB tokens for trading...');
-      await approveOKBForTrading(okbAmount);
-      return; // 等待授权完成后再买入
-    }
+    console.log("=== BUY TOKENS DEBUG ===");
+    console.log("Address:", address);
+    console.log("Token Address:", tokenAddress);
+    console.log("OKB Amount:", okbAmount);
+    console.log("writeContract available:", !!writeContract);
+    console.log("Network addresses:", addresses);
+    console.log("BondingCurve address:", addresses.BONDING_CURVE_V3);
 
     try {
       const contractConfig = {
         address: addresses.BONDING_CURVE_V3 as `0x${string}`,
-        abi: BondingCurveV3ABI,
+        abi: BondingCurveV3ABI.abi,
         functionName: 'buyTokens' as const,
-        args: [tokenAddress as `0x${string}`, parseEther(okbAmount.toString())] as const,
+        args: [tokenAddress as `0x${string}`, parseEther(okbAmount.toString()), 0] as const, // 添加minTokensOut参数，设为0表示接受任何滑点
       };
 
       console.log("=== BUY TOKENS ===");
       console.log("Contract config for buyTokens:", contractConfig);
-      writeContract(contractConfig as any);
+      
+      // 检查writeContract是否可用
+      if (!writeContract) {
+        throw new Error('writeContract is not available');
+      }
+      
+      console.log("Calling writeContract...");
+      // 触发买入交易，这会弹出MetaMask
+      const result = writeContract(contractConfig as any);
+      console.log("writeContract result:", result);
+      
+      // 检查是否有错误
+      if (error) {
+        console.error("writeContract error:", error);
+        throw new Error(`writeContract error: ${error.message}`);
+      }
+      
+      console.log("writeContract called successfully");
     } catch (err) {
       console.error('Error buying tokens:', err);
       toast.error('Failed to buy tokens');
+      throw err; // 重新抛出错误，让调用者知道
     }
   };
 
@@ -239,17 +281,107 @@ export function useTokenFactory(network: 'sepolia' | 'xlayer' = 'sepolia') {
     try {
       const contractConfig = {
         address: addresses.BONDING_CURVE_V3 as `0x${string}`,
-        abi: BondingCurveV3ABI,
+        abi: BondingCurveV3ABI.abi,
         functionName: 'sellTokens' as const,
-        args: [tokenAddress as `0x${string}`, parseEther(tokenAmount.toString())] as const,
+        args: [tokenAddress as `0x${string}`, parseEther(tokenAmount.toString()), 0] as const, // 添加minOkbOut参数，设为0表示接受任何滑点
       };
 
       console.log("=== SELL TOKENS ===");
       console.log("Contract config for sellTokens:", contractConfig);
+      
+      // 检查writeContract是否可用
+      if (!writeContract) {
+        throw new Error('writeContract is not available');
+      }
+      
       writeContract(contractConfig as any);
     } catch (err) {
       console.error('Error selling tokens:', err);
       toast.error('Failed to sell tokens');
+      throw err; // 重新抛出错误，让调用者知道
+    }
+  };
+
+  // 获取买入报价
+  const getBuyQuote = async (tokenAddress: string, okbAmount: number) => {
+    if (!address) return null;
+    
+    try {
+      const result = await fetch('/api/quote/buy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tokenAddress,
+          okbAmount,
+          network: 'sepolia'
+        }),
+      });
+      
+      if (result.ok) {
+        const data = await result.json();
+        return data;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting buy quote:', error);
+      return null;
+    }
+  };
+
+  // 获取卖出报价
+  const getSellQuote = async (tokenAddress: string, tokenAmount: number) => {
+    if (!address) return null;
+    
+    try {
+      const result = await fetch('/api/quote/sell', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tokenAddress,
+          tokenAmount,
+          network: 'sepolia'
+        }),
+      });
+      
+      if (result.ok) {
+        const data = await result.json();
+        return data;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting sell quote:', error);
+      return null;
+    }
+  };
+
+  // 获取当前价格
+  const getCurrentPrice = async (tokenAddress: string) => {
+    if (!address) return 0;
+    
+    try {
+      const result = await fetch('/api/quote/price', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tokenAddress,
+          network: 'sepolia'
+        }),
+      });
+      
+      if (result.ok) {
+        const data = await result.json();
+        return data.price || 0;
+      }
+      return 0;
+    } catch (error) {
+      console.error('Error getting current price:', error);
+      return 0;
     }
   };
 
@@ -276,7 +408,11 @@ export function useTokenFactory(network: 'sepolia' | 'xlayer' = 'sepolia') {
     createTokenWithPurchase,
     approveOKB,
     approveOKBForTrading,
+    checkOkbAllowance,
     buyToken,
     sellToken,
+    getBuyQuote,
+    getSellQuote,
+    getCurrentPrice,
   };
 }
