@@ -445,6 +445,80 @@ export const tokenAPI = {
       data: any;
     }>(`/tokens/${address}/?network=${network}`),
 
+  // 获取代币详情（新接口）
+  getTokenDetails: (address: string, network: string = 'sepolia') => 
+    apiRequest<{
+      success: boolean;
+      data: {
+        address: string;
+        symbol: string;
+        name: string;
+        description: string;
+        creator: string;
+        createdAt: string;
+        currentPrice: string;
+        marketCap: string;
+        volume24h: string;
+        graduationProgress: number;
+        holderCount: number;
+        transactionCount: number;
+        isVerified: boolean;
+        isFeatured: boolean;
+        imageUrl: string;
+        phase: string;
+        priceChange24h: number;
+      };
+    }>(`/tokens/${address}/?network=${network}`),
+
+  // 获取代币交易记录
+  getTokenTransactions: (address: string, network: string = 'sepolia') =>
+    apiRequest<{
+      success: boolean;
+      data: {
+        transactions: Array<{
+          id: number;
+          transaction_hash: string;
+          user_address: string;
+          transaction_type: string;
+          okb_amount: string;
+          token_amount: string;
+          price: string;
+          fee: string;
+          block_number: number;
+          block_timestamp: string;
+        }>;
+      };
+    }>(`/tokens/${address}/transactions/?network=${network}`),
+
+  // 获取代币持有人
+  getTokenHolders: (address: string, network: string = 'sepolia') =>
+    apiRequest<{
+      success: boolean;
+      data: {
+        holders: Array<{
+          address: string;
+          balance: string;
+          percentage: string;
+          is_creator: boolean;
+        }>;
+      };
+    }>(`/tokens/${address}/holders/?network=${network}`),
+
+  // 获取代币图表数据
+  getTokenChartData: (address: string, timeframe: string, network: string = 'sepolia') =>
+    apiRequest<{
+      success: boolean;
+      data: {
+        labels: string[];
+        datasets: Array<{
+          label: string;
+          data: number[];
+          borderColor: string;
+          backgroundColor: string;
+        }>;
+      };
+    }>(`/tokens/${address}/chart/?timeframe=${timeframe}&network=${network}`),
+
   // 获取OKB价格
   getOKBPrice: () => 
     apiRequest<{

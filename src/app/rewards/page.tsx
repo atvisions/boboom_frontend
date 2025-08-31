@@ -1,6 +1,6 @@
 "use client";
 import { Sidebar } from "@/components/common/Sidebar";
-import { SearchHeader } from "@/components/home/SearchHeader";
+import { SearchHeader } from "@/components/common/SearchHeader";
 import { Gift } from "lucide-react";
 
 export default function RewardsPage() {

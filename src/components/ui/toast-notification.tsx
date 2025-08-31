@@ -115,23 +115,3 @@ export const toastMessages = {
   },
 };
 
-// 使用示例：
-// import { toast, toastMessages } from "@/components/ui/toast-notification";
-// 
-// // 基本使用
-// toast.success("操作成功");
-// toast.error("操作失败");
-// 
-// // 使用预设消息
-// toast.success(toastMessages.favorites.added("Bitcoin"));
-// toast.error(toastMessages.common.networkError);
-// 
-// // 带配置的使用
-// toast.success("操作成功", {
-//   description: "详细信息",
-//   duration: 5000,
-//   action: {
-//     label: "撤销",
-//     onClick: () => console.log("撤销操作"),
-//   },
-// });

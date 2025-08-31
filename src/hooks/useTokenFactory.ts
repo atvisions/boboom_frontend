@@ -4,6 +4,7 @@ import { parseEther, formatEther } from 'viem';
 import { getContractAddresses } from '@/contracts/config';
 import TokenFactoryV3ABI from '@/contracts/abis/TokenFactoryV3.json';
 import OKBTokenABI from '@/contracts/abis/OKBToken.json';
+import BondingCurveV3ABI from '@/contracts/abis/BondingCurveV3_Final.json';
 import { toast } from 'sonner';
 
 export interface TokenCreationData {
@@ -45,9 +46,18 @@ export function useTokenFactory(network: 'sepolia' | 'xlayer' = 'sepolia') {
     args: address ? [address, addresses.TOKEN_FACTORY_V3] : undefined,
   });
 
+  // 读取OKB对BondingCurve的授权额度
+  const { data: okbAllowanceBondingCurveRaw, refetch: refetchOkbAllowanceBondingCurve } = useReadContract({
+    address: addresses.OKB_TOKEN as `0x${string}`,
+    abi: OKBTokenABI,
+    functionName: 'allowance',
+    args: address ? [address, addresses.BONDING_CURVE_V3] : undefined,
+  });
+
   // 格式化OKB余额和授权额度
   const okbBalance = okbBalanceRaw ? parseFloat(formatEther(okbBalanceRaw as bigint)) : 0;
   const okbAllowance = okbAllowanceRaw ? parseFloat(formatEther(okbAllowanceRaw as bigint)) : 0;
+  const okbAllowanceBondingCurve = okbAllowanceBondingCurveRaw ? parseFloat(formatEther(okbAllowanceBondingCurveRaw as bigint)) : 0;
 
   // 创建代币（无初始购买）
   const createToken = async (tokenData: TokenCreationData) => {
@@ -140,7 +150,7 @@ export function useTokenFactory(network: 'sepolia' | 'xlayer' = 'sepolia') {
     }
   };
 
-  // 批准OKB Token
+  // 批准OKB Token（用于代币创建）
   const approveOKB = async (amount: number) => {
     if (!address) {
       toast.error('Please connect your wallet first');
@@ -164,6 +174,85 @@ export function useTokenFactory(network: 'sepolia' | 'xlayer' = 'sepolia') {
     }
   };
 
+  // 批准OKB Token（用于交易）
+  const approveOKBForTrading = async (amount: number) => {
+    if (!address) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    try {
+      const okbAmount = parseEther(amount.toString());
+      
+      const contractConfig = {
+        address: addresses.OKB_TOKEN as `0x${string}`,
+        abi: OKBTokenABI,
+        functionName: 'approve' as const,
+        args: [addresses.BONDING_CURVE_V3, okbAmount] as const,
+      };
+
+      writeContract(contractConfig as any);
+    } catch (err) {
+      console.error('Error approving OKB for trading:', err);
+      toast.error('Failed to approve OKB for trading');
+    }
+  };
+
+  // 买入代币
+  const buyToken = async (tokenAddress: string, okbAmount: number) => {
+    if (!address) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    // 检查授权额度是否足够
+    if (okbAllowanceBondingCurve < okbAmount) {
+      toast.info('Approving OKB tokens for trading...');
+      await approveOKBForTrading(okbAmount);
+      return; // 等待授权完成后再买入
+    }
+
+    try {
+      const contractConfig = {
+        address: addresses.BONDING_CURVE_V3 as `0x${string}`,
+        abi: BondingCurveV3ABI,
+        functionName: 'buyTokens' as const,
+        args: [tokenAddress as `0x${string}`, parseEther(okbAmount.toString())] as const,
+      };
+
+      console.log("=== BUY TOKENS ===");
+      console.log("Contract config for buyTokens:", contractConfig);
+      writeContract(contractConfig as any);
+    } catch (err) {
+      console.error('Error buying tokens:', err);
+      toast.error('Failed to buy tokens');
+    }
+  };
+
+  // 卖出代币
+  const sellToken = async (tokenAddress: string, tokenAmount: number) => {
+    if (!address) {
+      toast.error('Please connect your wallet first');
+      return;
+    }
+
+    try {
+      const contractConfig = {
+        address: addresses.BONDING_CURVE_V3 as `0x${string}`,
+        abi: BondingCurveV3ABI,
+        functionName: 'sellTokens' as const,
+        args: [tokenAddress as `0x${string}`, parseEther(tokenAmount.toString())] as const,
+      };
+
+      console.log("=== SELL TOKENS ===");
+      console.log("Contract config for sellTokens:", contractConfig);
+      writeContract(contractConfig as any);
+    } catch (err) {
+      console.error('Error selling tokens:', err);
+      toast.error('Failed to sell tokens');
+    }
+  };
+
   return {
     // 状态
     isPending,
@@ -177,12 +266,17 @@ export function useTokenFactory(network: 'sepolia' | 'xlayer' = 'sepolia') {
     // 数据
     okbBalance,
     okbAllowance,
+    okbAllowanceBondingCurve,
     refetchOkbBalance,
     refetchOkbAllowance,
+    refetchOkbAllowanceBondingCurve,
     
     // 方法
     createToken,
     createTokenWithPurchase,
     approveOKB,
+    approveOKBForTrading,
+    buyToken,
+    sellToken,
   };
 }

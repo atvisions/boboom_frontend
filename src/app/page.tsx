@@ -1,5 +1,5 @@
 import { Sidebar } from "@/components/common/Sidebar";
-import { SearchHeader } from "@/components/home/SearchHeader";
+import { SearchHeader } from "@/components/common/SearchHeader";
 import { LiveUpdatesCard } from "@/components/home/LiveUpdatesCard";
 import { TrendingSection } from "@/components/home/TrendingSection";
 import { TokenGrid } from "@/components/home/TokenGrid";

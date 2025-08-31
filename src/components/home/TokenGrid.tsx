@@ -250,8 +250,7 @@ export function TokenGrid() {
                 favorites.has(token.address) ? 'border-[#70E000] shadow-lg shadow-[#70E000]/20' : ''
               }`}
               onClick={() => {
-                // TODO: 跳转到代币详情页面
-                console.log('Navigate to token details:', token.symbol);
+                router.push(`/token/${token.address}`);
               }}
             >
               {/* 收藏按钮 - 右上角 */}

@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/common/Sidebar";
-import { SearchHeader } from "@/components/home/SearchHeader";
+import { SearchHeader } from "@/components/common/SearchHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

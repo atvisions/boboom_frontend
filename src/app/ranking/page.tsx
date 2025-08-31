@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Sidebar } from "@/components/common/Sidebar";
-import { SearchHeader } from "@/components/home/SearchHeader";
+import { SearchHeader } from "@/components/common/SearchHeader";
 import { Trophy, TrendingUp, TrendingDown, Star, Medal, Crown, Zap, Clock, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
