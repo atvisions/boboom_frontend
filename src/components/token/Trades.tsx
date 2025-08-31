@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowUp, ArrowDown, ExternalLink, Clock, Users, Crown, Medal, Award } from 'lucide-react';
+import { ArrowUp, ArrowDown, ExternalLink, Clock, Users, Crown, Medal, Award, ChevronDown } from 'lucide-react';
 
 interface TradesAndHoldersProps {
   tokenAddress: string;
@@ -9,88 +9,36 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
   const [activeTab, setActiveTab] = useState<'trades' | 'holders'>('trades');
   const [transactions, setTransactions] = useState<any[]>([]);
   const [holders, setHolders] = useState<any[]>([]);
+  const [displayedTrades, setDisplayedTrades] = useState<number>(20);
+  const [displayedHolders, setDisplayedHolders] = useState<number>(20);
 
   // 生成模拟交易数据
   const generateMockTransactions = () => {
-    const mockTransactions = [
-      {
-        id: 1,
-        transaction_type: 'BUY',
-        user_address: '0x1234...5678',
-        token_amount: '1,250,000',
-        okb_amount: '0.6850',
-        time: '5m ago'
-      },
-      {
-        id: 2,
-        transaction_type: 'SELL',
-        user_address: '0xabcd...ef12',
-        token_amount: '500,000',
-        okb_amount: '0.2739',
-        time: '15m ago'
-      },
-      {
-        id: 3,
-        transaction_type: 'BUY',
-        user_address: '0x9876...5432',
-        token_amount: '2,500,000',
-        okb_amount: '1.3700',
-        time: '30m ago'
-      },
-      {
-        id: 4,
-        transaction_type: 'BUY',
-        user_address: '0x5555...5555',
-        token_amount: '750,000',
-        okb_amount: '0.4110',
-        time: '45m ago'
-      },
-      {
-        id: 5,
-        transaction_type: 'SELL',
-        user_address: '0x6666...6666',
-        token_amount: '300,000',
-        okb_amount: '0.1644',
-        time: '1h ago'
-      }
-    ];
+    const mockTransactions = [];
+    for (let i = 1; i <= 100; i++) {
+      mockTransactions.push({
+        id: i,
+        transaction_type: i % 3 === 0 ? 'SELL' : 'BUY',
+        user_address: `0x${Math.random().toString(16).substr(2, 4)}...${Math.random().toString(16).substr(2, 4)}`,
+        token_amount: (Math.random() * 5000000 + 100000).toLocaleString(),
+        okb_amount: (Math.random() * 2 + 0.1).toFixed(4),
+        time: `${Math.floor(Math.random() * 60)}m ago`
+      });
+    }
     return mockTransactions;
   };
 
   // 生成模拟持有人数据
   const generateMockHolders = () => {
-    const mockHolders = [
-      {
-        address: '0x1234...5678',
-        balance: '5,000,000',
-        percentage: '25.00',
-        is_creator: true
-      },
-      {
-        address: '0xabcd...ef12',
-        balance: '3,000,000',
-        percentage: '15.00',
-        is_creator: false
-      },
-      {
-        address: '0x9876...5432',
-        balance: '2,500,000',
-        percentage: '12.50',
-        is_creator: false
-      },
-      {
-        address: '0x5555...5555',
-        balance: '2,000,000',
-        percentage: '10.00',
-        is_creator: false
-      },
-      {
-        address: '0x6666...6666',
-        balance: '1,500,000',
-        percentage: '7.50',
-        is_creator: false
-      }
-    ];
+    const mockHolders = [];
+    for (let i = 1; i <= 100; i++) {
+      mockHolders.push({
+        address: `0x${Math.random().toString(16).substr(2, 4)}...${Math.random().toString(16).substr(2, 4)}`,
+        balance: (Math.random() * 10000000 + 100000).toLocaleString(),
+        percentage: (Math.random() * 20 + 0.1).toFixed(2),
+        is_creator: i === 1
+      });
+    }
     return mockHolders;
   };
 
@@ -99,6 +47,16 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
     setTransactions(generateMockTransactions());
     setHolders(generateMockHolders());
   }, []);
+
+  // 加载更多交易
+  const loadMoreTrades = () => {
+    setDisplayedTrades(prev => Math.min(prev + 20, transactions.length));
+  };
+
+  // 加载更多持有人
+  const loadMoreHolders = () => {
+    setDisplayedHolders(prev => Math.min(prev + 20, holders.length));
+  };
 
   // 获取排名图标
   const getRankIcon = (index: number) => {
@@ -113,6 +71,10 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
         return <span className="text-gray-400 text-sm font-bold">{index + 1}</span>;
     }
   };
+
+  // 检查是否还有更多数据可以加载
+  const hasMoreTrades = displayedTrades < transactions.length;
+  const hasMoreHolders = displayedHolders < holders.length;
 
   return (
     <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6">
@@ -146,9 +108,9 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
         {/* 右侧信息 */}
         <div className="text-gray-400 text-sm">
           {activeTab === 'trades' ? (
-            <span>Recent transactions</span>
+            <span>Showing {Math.min(displayedTrades, transactions.length)} of {transactions.length} transactions</span>
           ) : (
-            <span>{holders.length} holders</span>
+            <span>Showing {Math.min(displayedHolders, holders.length)} of {holders.length} holders</span>
           )}
         </div>
       </div>
@@ -156,7 +118,7 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
       {/* Trades 内容 */}
       {activeTab === 'trades' && (
         <div className="space-y-3">
-          {transactions.map((tx, index) => (
+          {transactions.slice(0, displayedTrades).map((tx, index) => (
             <div 
               key={tx.id}
               className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded-lg border border-[#232323] hover:border-[#70E000]/30 transition-all duration-200"
@@ -199,13 +161,26 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
               </div>
             </div>
           ))}
+          
+          {/* 加载更多按钮 */}
+          {hasMoreTrades && (
+            <div className="text-center pt-4">
+              <button
+                onClick={loadMoreTrades}
+                className="px-6 py-3 bg-[#70E000] text-black rounded-lg hover:bg-[#5BC000] transition-colors font-medium flex items-center mx-auto space-x-2"
+              >
+                <span>Load More</span>
+                <ChevronDown className="h-4 w-4" />
+              </button>
+            </div>
+          )}
         </div>
       )}
 
       {/* Holders 内容 */}
       {activeTab === 'holders' && (
         <div className="space-y-3">
-          {holders.map((holder, index) => (
+          {holders.slice(0, displayedHolders).map((holder, index) => (
             <div 
               key={holder.address}
               className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded-lg border border-[#232323] hover:border-[#70E000]/30 transition-all duration-200"
@@ -246,6 +221,19 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
               </div>
             </div>
           ))}
+          
+          {/* 加载更多按钮 */}
+          {hasMoreHolders && (
+            <div className="text-center pt-4">
+              <button
+                onClick={loadMoreHolders}
+                className="px-6 py-3 bg-[#70E000] text-black rounded-lg hover:bg-[#5BC000] transition-colors font-medium flex items-center mx-auto space-x-2"
+              >
+                <span>Load More</span>
+                <ChevronDown className="h-4 w-4" />
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
