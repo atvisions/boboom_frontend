@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTokenFactory } from '@/hooks/useTokenFactory';
 import { useWalletAuth } from '@/hooks/useWalletAuth';
-import { toast } from '@/components/ui/toast-notification';
+import { toast, toastMessages } from '@/components/ui/toast-notification';
 import { userAPI, tokenAPI } from '@/services/api';
 
 interface TradingPanelProps {
@@ -21,6 +21,10 @@ export function TradingPanel({ token }: TradingPanelProps) {
   const [okbPrice, setOkbPrice] = useState<number>(177.6);
   const [userPortfolio, setUserPortfolio] = useState<any>(null);
   const [userTokens, setUserTokens] = useState<any>(null);
+  const [lastTransactionType, setLastTransactionType] = useState<'buy' | 'sell' | 'approve' | null>(null);
+  const [isRefreshingBalances, setIsRefreshingBalances] = useState<boolean>(false);
+  const [prevOkbBalance, setPrevOkbBalance] = useState<string>('0');
+  const [prevTokenBalance, setPrevTokenBalance] = useState<string>('0');
   
   // 报价状态
   const [buyQuote, setBuyQuote] = useState<any>(null);
@@ -30,6 +34,7 @@ export function TradingPanel({ token }: TradingPanelProps) {
   const {
     okbAllowanceBondingCurve,
     isPending,
+    isConfirming,
     isSuccess,
     approveOKBForTrading,
     buyToken,
@@ -88,10 +93,11 @@ export function TradingPanel({ token }: TradingPanelProps) {
     return () => clearTimeout(timeoutId);
   }, [amount, activeTab, token?.address]); // 移除getBuyQuote, getSellQuote依赖
 
-  // 当切换买卖模式时清空报价
+  // 当切换买卖模式时清空报价和输入金额
   useEffect(() => {
     setBuyQuote(null);
     setSellQuote(null);
+    setAmount(''); // 清空输入框
   }, [activeTab]);
 
   // 加载用户余额
@@ -144,43 +150,94 @@ export function TradingPanel({ token }: TradingPanelProps) {
     loadOKBPrice();
   }, []);
 
-  // 监听交易成功，刷新授权状态
+  // 监听交易成功，刷新授权状态并显示成功提示
   useEffect(() => {
     if (isSuccess) {
-      // 交易成功后刷新授权状态
-      refetchOkbAllowanceBondingCurve();
-      // 刷新余额
-      refetchOkbBalance();
+      // 开始余额刷新阶段：显示遮罩与骨架
+      setIsRefreshingBalances(true);
+      setPrevOkbBalance(okbBalance.toString());
+      setPrevTokenBalance(tokenBalance.toString());
+      // 显示交易成功提示
+      if (lastTransactionType === 'buy') {
+        toast.success(toastMessages.tokens.bought(token.symbol), {
+          description: `Successfully purchased ${token.symbol} tokens`,
+          duration: 4000
+        });
+      } else if (lastTransactionType === 'sell') {
+        toast.success(toastMessages.tokens.sold(token.symbol), {
+          description: `Successfully sold ${token.symbol} tokens`,
+          duration: 4000
+        });
+      } else if (lastTransactionType === 'approve') {
+        // 授权成功，显示授权成功提示，但不显示交易成功
+        toast.success('OKB approval successful', {
+          description: 'You can now proceed with your transaction',
+          duration: 3000
+        });
+      }
       
-      // 延迟一下再刷新用户资产组合，确保链上数据已更新
-      setTimeout(async () => {
-        if (address) {
-          try {
-            // 重新获取用户资产组合
-            const portfolioResponse = await userAPI.getUserPortfolio(address);
-            setUserPortfolio(portfolioResponse);
-            setOkbBalance(portfolioResponse.okb || '0');
+      // 重置交易类型
+      setLastTransactionType(null);
+      
+      // 交易成功后立即刷新授权与余额
+      (async () => {
+        try {
+          await Promise.all([
+            refetchOkbAllowanceBondingCurve(),
+            refetchOkbBalance(),
+          ]);
+        } catch (e) {
+          console.error('Refetch allowance/balance error:', e);
+        }
+      })();
 
-            // 重新获取用户代币
-            const tokensResponse = await userAPI.getUserTokens(address, 'sepolia');
+      // 轮询获取最新余额，直到变化或超时
+      (async () => {
+        const MAX_ATTEMPTS = 15; // 最长约15秒
+        const SLEEP = (ms: number) => new Promise((r) => setTimeout(r, ms));
+        let updated = false;
+
+        for (let i = 0; i < MAX_ATTEMPTS; i += 1) {
+          try {
+            if (!address) break;
+
+            const [portfolioResponse, tokensResponse] = await Promise.all([
+              userAPI.getUserPortfolio(address),
+              userAPI.getUserTokens(address, 'sepolia'),
+            ]);
+
+            setUserPortfolio(portfolioResponse);
             setUserTokens(tokensResponse);
-            
-            // 查找当前代币的余额
+
+            const latestOkb = (portfolioResponse.okb || '0').toString();
+            setOkbBalance(latestOkb);
+
             const currentToken = tokensResponse.holding.find(
               (t: any) => t.address.toLowerCase() === token.address.toLowerCase()
             );
-            if (currentToken) {
-              setTokenBalance(currentToken.balance || '0');
-            } else {
-              setTokenBalance('0');
+            const latestTokenBal = (currentToken ? currentToken.balance : '0') || '0';
+            setTokenBalance(latestTokenBal);
+
+            const okbChanged = Math.abs(parseFloat(latestOkb) - parseFloat(prevOkbBalance || '0')) > 1e-9;
+            const tokenChanged = Math.abs(parseFloat(latestTokenBal) - parseFloat(prevTokenBalance || '0')) > 1e-9;
+            if (okbChanged || tokenChanged) {
+              updated = true;
+              break;
             }
           } catch (error) {
-            console.error('Failed to refresh balances after transaction:', error);
+            console.error('Polling balance error:', error);
           }
+
+          await SLEEP(1000);
         }
-      }, 2000); // 延迟2秒，等待链上数据更新
+
+        if (!updated) {
+          console.warn('Balance polling timeout, closing overlay as fallback');
+        }
+        setIsRefreshingBalances(false);
+      })();
     }
-  }, [isSuccess, address, token.address]); // 移除refetch函数依赖
+  }, [isSuccess, lastTransactionType, address, token.address, token.symbol]); // 移除refetch函数依赖
 
 
 
@@ -262,16 +319,19 @@ export function TradingPanel({ token }: TradingPanelProps) {
       // 检查是否需要授权
       if (okbAmount >= okbAllowanceBondingCurve) {
         console.log("Calling approveOKBForTrading...");
+        setLastTransactionType('approve'); // 设置为授权类型
         // 需要授权，直接调用授权函数
         await approveOKBForTrading(okbAmount);
       } else {
         console.log("Calling buyToken...");
+        setLastTransactionType('buy'); // 设置为买入类型
         // 直接买入
         await buyToken(token.address, okbAmount);
       }
       setAmount('');
     } catch (error) {
       console.error('Buy error:', error);
+      setLastTransactionType(null); // 重置交易类型
       toast.error('Failed to execute buy order');
     } finally {
       setIsLoading(false);
@@ -297,11 +357,14 @@ export function TradingPanel({ token }: TradingPanelProps) {
     }
 
     setIsLoading(true);
+    setLastTransactionType('sell'); // 设置交易类型，用于成功时显示对应提示
+    
     try {
       await sellToken(token.address, tokenAmount);
       setAmount('');
     } catch (error) {
       console.error('Sell error:', error);
+      setLastTransactionType(null); // 重置交易类型
       toast.error('Failed to execute sell order');
     } finally {
       setIsLoading(false);
@@ -365,11 +428,16 @@ export function TradingPanel({ token }: TradingPanelProps) {
         </button>
       </div>
 
-      {/* 余额显示 - 一行显示 */}
+      {/* 余额显示 - 保持原设计，仅遮挡数值区域 */}
       <div className="flex items-center justify-between text-white mb-6">
         <span className="text-sm">balance:</span>
-        <span className="font-medium">
-          {parseFloat(activeTab === 'buy' ? okbBalance : tokenBalance).toFixed(6)} {activeTab === 'buy' ? 'OKB' : token.symbol}
+        <span className="font-medium relative inline-block min-w-[160px] text-right">
+          <span className={isRefreshingBalances ? 'opacity-0' : ''}>
+            {parseFloat(activeTab === 'buy' ? okbBalance : tokenBalance).toFixed(6)} {activeTab === 'buy' ? 'OKB' : token.symbol}
+          </span>
+          {isRefreshingBalances && (
+            <span className="absolute inset-0 rounded bg-gray-700/60 animate-pulse"></span>
+          )}
         </span>
       </div>
       
@@ -409,13 +477,14 @@ export function TradingPanel({ token }: TradingPanelProps) {
         </div>
       </div>
 
-      {/* 快速金额按钮 */}
+      {/* 快速金额按钮（在刷新余额时禁用） */}
       <div className="grid grid-cols-5 gap-2 mb-6">
         <Button
           variant="outline"
           size="sm"
           onClick={() => setAmount('')}
-          className="border-gray-600 text-gray-400 hover:bg-gray-600 hover:text-white"
+          disabled={isLoading || isPending || isConfirming || isRefreshingBalances}
+          className="border-gray-600 text-gray-400 hover:bg-gray-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Reset
         </Button>
@@ -425,7 +494,8 @@ export function TradingPanel({ token }: TradingPanelProps) {
             variant="outline"
             size="sm"
             onClick={() => setQuickAmount(value)}
-            className="border-gray-600 text-gray-400 hover:bg-gray-600 hover:text-white"
+            disabled={isLoading || isPending || isConfirming || isRefreshingBalances}
+            className="border-gray-600 text-gray-400 hover:bg-gray-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {value}
           </Button>
@@ -468,7 +538,7 @@ export function TradingPanel({ token }: TradingPanelProps) {
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Fee:</span>
                   <span className="text-yellow-500">
-                    {sellQuote ? sellQuote.fee.toFixed(6) : '0.000000'} {token.symbol}
+                    {sellQuote ? sellQuote.fee.toFixed(6) : '0.000000'} OKB
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
@@ -488,14 +558,14 @@ export function TradingPanel({ token }: TradingPanelProps) {
       {/* 交易按钮 */}
       <Button
         onClick={activeTab === 'buy' ? handleBuy : handleSell}
-        disabled={isLoading || isPending || !amount || parseFloat(amount) <= 0}
+        disabled={isLoading || isPending || isConfirming || isRefreshingBalances || !amount || parseFloat(amount) <= 0}
         className={`w-full py-3 font-medium ${
           activeTab === 'buy'
             ? 'bg-[#70E000] text-black hover:bg-[#5BC000]'
             : 'bg-red-500 text-white hover:bg-red-600'
         } disabled:opacity-50 disabled:cursor-not-allowed`}
       >
-        {isLoading || isPending ? (
+        {isLoading || isPending || isConfirming || isRefreshingBalances ? (
           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
         ) : activeTab === 'buy' ? (
           parseFloat(amount || '0') >= okbAllowanceBondingCurve ? (
@@ -506,8 +576,8 @@ export function TradingPanel({ token }: TradingPanelProps) {
         ) : (
           <ArrowDown className="h-4 w-4 mr-2" />
         )}
-        {isLoading || isPending 
-          ? 'Processing...' 
+        {isLoading || isPending || isConfirming || isRefreshingBalances
+          ? 'Processing...'
           : activeTab === 'buy' && parseFloat(amount || '0') >= okbAllowanceBondingCurve
             ? 'Approve OKB'
             : `${activeTab === 'buy' ? 'Buy' : 'Sell'} ${token.symbol}`

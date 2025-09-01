@@ -27,7 +27,9 @@ export default function TokenDetailPage() {
   useEffect(() => {
     const loadOKBPrice = async () => {
       try {
-        const response = await fetch('/api/tokens/okb-price');
+        // 直接调用后端API，避免Next.js API路由的重定向问题
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+        const response = await fetch(`${backendUrl}/api/tokens/okb-price/`);
         const data = await response.json();
         if (data.success) {
           setOkbPrice(parseFloat(data.data.price));

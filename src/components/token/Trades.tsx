@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowUp, ArrowDown, ExternalLink, Clock, Users, Crown, Medal, Award, ChevronDown } from 'lucide-react';
+import { ArrowUp, ArrowDown, ExternalLink, Clock, Users, Crown, Medal, Award, ChevronDown, Copy, Check } from 'lucide-react';
 import { tokenAPI } from '@/services/api';
 
 interface TradesAndHoldersProps {
@@ -14,6 +14,7 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
   const [displayedHolders, setDisplayedHolders] = useState<number>(20);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copiedHash, setCopiedHash] = useState<string | null>(null);
 
   // 加载交易数据
   const loadTransactions = async () => {
@@ -30,6 +31,17 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
       setError('Failed to load transactions');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 复制hash到剪贴板
+  const copyToClipboard = async (hash: string) => {
+    try {
+      await navigator.clipboard.writeText(hash);
+      setCopiedHash(hash);
+      setTimeout(() => setCopiedHash(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy hash:', err);
     }
   };
 
@@ -59,6 +71,29 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
       loadHolders();
     }
   }, [tokenAddress, activeTab]);
+
+  // 定期刷新交易数据（每30秒）
+  useEffect(() => {
+    if (activeTab === 'trades') {
+      const interval = setInterval(() => {
+        loadTransactions();
+      }, 30000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [activeTab, tokenAddress]);
+
+  // 暴露刷新函数给父组件
+  useEffect(() => {
+    // 将刷新函数挂载到window对象，供父组件调用
+    (window as any).refreshTokenTransactions = loadTransactions;
+    (window as any).refreshTokenHolders = loadHolders;
+    
+    return () => {
+      delete (window as any).refreshTokenTransactions;
+      delete (window as any).refreshTokenHolders;
+    };
+  }, []);
 
   // 加载更多交易
   const loadMoreTrades = () => {
@@ -209,10 +244,37 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
                   )}
                 </div>
                 
-                {/* 用户地址 */}
-                <span className="text-white font-mono text-sm">
-                  {formatAddress(tx.from)}
-                </span>
+                {/* 用户地址和交易hash */}
+                <div className="flex flex-col space-y-1">
+                  <span className="text-white font-mono text-sm">
+                    {formatAddress(tx.from)}
+                  </span>
+                  {tx.hash && (
+                    <div className="flex items-center space-x-2 text-xs text-gray-400">
+                      <span>Hash:</span>
+                      <a
+                        href={`https://sepolia.etherscan.io/tx/${tx.hash.startsWith('0x') ? tx.hash : '0x' + tx.hash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#70E000] hover:text-[#5BC000] transition-colors cursor-pointer"
+                        title="Click to view on Etherscan"
+                      >
+                        {tx.hash.startsWith('0x') ? tx.hash.slice(2, 10) : tx.hash.slice(0, 8)}...{tx.hash.slice(-6)}
+                      </a>
+                      <button
+                        onClick={() => copyToClipboard(tx.hash.startsWith('0x') ? tx.hash : '0x' + tx.hash)}
+                        className="p-1 hover:bg-[#2a2a2a] rounded transition-colors"
+                        title="Copy hash to clipboard"
+                      >
+                        {copiedHash === tx.hash ? (
+                          <Check className="h-3 w-3 text-green-500" />
+                        ) : (
+                          <Copy className="h-3 w-3 text-gray-400 hover:text-[#70E000]" />
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
               
               {/* 右侧：交易详情 */}
@@ -225,10 +287,24 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
                   <span className="text-gray-400">{formatTime(tx.timestamp)}</span>
                 </div>
                 
-                {/* OKB金额 */}
-                <div className="text-gray-400 text-xs">
-                  {parseFloat(tx.okb_amount).toFixed(4)} OKB
-                </div>
+                         {/* OKB金额和Etherscan链接 */}
+         <div className="flex items-center justify-end space-x-3">
+           <span className="text-gray-400 text-xs">
+             {parseFloat(tx.okb_amount).toFixed(4)} OKB
+           </span>
+           {tx.hash && (
+             <a
+               href={`https://sepolia.etherscan.io/tx/${tx.hash.startsWith('0x') ? tx.hash : '0x' + tx.hash}`}
+               target="_blank"
+               rel="noopener noreferrer"
+               className="inline-flex items-center space-x-1 text-[#70E000] hover:text-[#5BC000] transition-colors text-xs"
+               title="View on Etherscan"
+             >
+               <span>View</span>
+               <ExternalLink className="h-3 w-3" />
+             </a>
+           )}
+         </div>
               </div>
             </div>
           ))}

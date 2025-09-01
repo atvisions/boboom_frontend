@@ -417,7 +417,7 @@ export const tokenAPI = {
       pageSize: number;
       total: number;
       hasMore: boolean;
-    }>(`/tokens/${address}/transactions?network=${network}`, {}, generateCacheKey('token_transactions', address, network), 300000),
+    }>(`/tokens/${address}/transactions?network=${network}`, {}, generateCacheKey('token_transactions', address, network), 30000), // 30秒缓存
 
   // 获取代币持有人
   getTokenHolders: (address: string, network: string = 'sepolia') =>
