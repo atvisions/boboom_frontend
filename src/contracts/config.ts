@@ -30,6 +30,12 @@ export const NETWORK_CONFIG = {
   RPC_URL: process.env.NEXT_PUBLIC_RPC_URL || 'https://eth-sepolia.g.alchemy.com/v2/Dwhp-JulbzNpZrEHruaBSD7RRx4Eeukb',
 };
 
+// 代币特性配置
+export const TOKEN_FLAGS = {
+  // 当 OKB 为原生币（如 X Layer 主网的 OKB）时，设置为 'true'
+  OKB_IS_NATIVE: (process.env.NEXT_PUBLIC_OKB_IS_NATIVE || 'false').toLowerCase() === 'true',
+};
+
 // 获取当前网络的合约地址
 export function getContractAddresses(network: 'sepolia' | 'xlayer' = 'sepolia') {
   return CONTRACT_CONFIG[network];
