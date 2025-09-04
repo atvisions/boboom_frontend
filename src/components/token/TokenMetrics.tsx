@@ -11,11 +11,12 @@ export function TokenMetrics({ token, okbPrice, showCurrentPrice = true }: Token
   const currentPrice = parseFloat(token.currentPrice || '0'); // 后端返回的已经是USD价格
   const athPrice = parseFloat(token.ath || '0'); // 后端返回的已经是USD价格
   const marketCap = parseFloat(token.marketCap || '0');
+  const volume24h = parseFloat(token.volume24h || '0');
   const athDrop = athPrice > 0 ? ((currentPrice - athPrice) / athPrice) * 100 : 0;
   const athProgress = athPrice > 0 ? Math.min((currentPrice / athPrice) * 100, 100) : 0;
 
-  // 根据是否显示当前价格决定列数
-  const gridCols = showCurrentPrice ? 'md:grid-cols-3' : 'md:grid-cols-2';
+  // 根据是否显示当前价格决定列数 - 现在总是显示4列
+  const gridCols = 'md:grid-cols-2 lg:grid-cols-4';
 
   return (
     <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6">
@@ -50,6 +51,17 @@ export function TokenMetrics({ token, okbPrice, showCurrentPrice = true }: Token
           </div>
           <div className="text-sm text-gray-400">
             {token.holderCount || 0} holders
+          </div>
+        </div>
+
+        {/* 24h Volume */}
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium text-gray-400">24h Volume</h3>
+          <div className="text-2xl font-bold text-white">
+            ${volume24h.toLocaleString()}
+          </div>
+          <div className="text-sm text-gray-400">
+            {token.transactionCount || 0} transactions
           </div>
         </div>
 

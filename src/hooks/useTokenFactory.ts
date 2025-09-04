@@ -33,9 +33,12 @@ export function useTokenFactory(network: 'sepolia' | 'xlayer' = 'sepolia') {
 
   // 写入合约（独立通道）：创建
   const { writeContract: writeCreate, data: createHash, isPending: isCreatePending, error: createError } = useWriteContract();
-  const { isLoading: isCreateConfirming, isSuccess: isCreateSuccess, isError: isCreateFailed, error: createReceiptError } = useWaitForTransactionReceipt({
+  const { isLoading: isCreateConfirming, isSuccess: isCreateSuccess, isError: isCreateFailed, error: createReceiptError, data: createReceipt } = useWaitForTransactionReceipt({
     hash: createHash,
   });
+
+  // 获取实际的交易哈希（从交易收据中）
+  const actualCreateHash = createReceipt?.transactionHash || createHash;
 
   // 读取用户OKB余额
   const { data: okbBalanceRaw, refetch: refetchOkbBalance } = useReadContract({
@@ -406,6 +409,7 @@ export function useTokenFactory(network: 'sepolia' | 'xlayer' = 'sepolia') {
 
     // 创建状态（独立）
     createHash,
+    actualCreateHash,
     isCreatePending,
     isCreateConfirming,
     isCreateSuccess,

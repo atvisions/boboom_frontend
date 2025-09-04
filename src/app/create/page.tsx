@@ -36,6 +36,7 @@ function CreateTokenForm() {
     isApprovalConfirming,
     // 创建独立状态
     createHash,
+    actualCreateHash,
     isCreatePending,
     isCreateConfirming,
     // 数据
@@ -131,6 +132,10 @@ function CreateTokenForm() {
         initialPurchase
       };
 
+      // 记录开始创建新代币的时间戳，用于验证交易哈希的有效性
+      console.log('Starting new token creation flow for:', tokenData.name);
+      console.log('Current createHash before starting:', createHash);
+      
       setPendingTokenData(tokenData);
       setShowStepsModal(true);
     } catch (error) {
@@ -190,14 +195,66 @@ function CreateTokenForm() {
   // 检查代币地址
   const handleCheckTokenAddress = async (txHash: string): Promise<string | null> => {
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
-      const response = await fetch(`${backendUrl}/api/tokens/latest-by-creator/${address?.toLowerCase()}/?tx_hash=${txHash}`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.data.address) return data.data.address;
+      console.log('handleCheckTokenAddress called with txHash:', txHash);
+      console.log('User address:', address);
+      
+      if (!txHash || !address) {
+        console.error('Missing txHash or address:', { txHash, address });
+        return null;
       }
-      return null;
-    } catch (error) { console.error('Error checking token address:', error); return null; }
+      
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+      const apiUrl = `${backendUrl}/api/tokens/latest-by-creator/${address?.toLowerCase()}/?tx_hash=${txHash}`;
+      console.log('API URL:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      console.log('API response status:', response.status);
+      console.log('API response headers:', Object.fromEntries(response.headers.entries()));
+      
+      const responseText = await response.text();
+      console.log('API response text:', responseText);
+      
+      if (response.ok) {
+        try {
+          const data = JSON.parse(responseText);
+          console.log('API response data:', data);
+          
+          if (data.success && data.data && data.data.address) {
+            console.log('✅ Found token address:', data.data.address);
+            console.log('Token found by:', data.data.found_by);
+            return data.data.address;
+          } else {
+            console.warn('⚠️ API returned success=false or no address:', data);
+            return null;
+          }
+        } catch (parseError) {
+          console.error('❌ Failed to parse JSON response:', parseError);
+          console.error('Response text was:', responseText);
+          return null;
+        }
+      } else {
+        console.error('❌ API response not ok:', response.status, responseText);
+        
+        // 尝试解析错误响应
+        try {
+          const errorData = JSON.parse(responseText);
+          console.error('Error details:', errorData);
+        } catch (e) {
+          console.error('Could not parse error response as JSON');
+        }
+        
+        return null;
+      }
+    } catch (error) { 
+      console.error('❌ Exception in handleCheckTokenAddress:', error); 
+      return null; 
+    }
   };
 
   return (
@@ -215,7 +272,7 @@ function CreateTokenForm() {
           isApproving={isApprovalPending || isApprovalConfirming}
           isCreating={isCreatePending || isCreateConfirming}
           approvalHash={approvalHash}
-          txHash={createHash}
+          txHash={actualCreateHash}
         />
       )}
       

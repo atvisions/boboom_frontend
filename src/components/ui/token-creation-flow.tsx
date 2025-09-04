@@ -169,30 +169,84 @@ export function TokenCreationFlow(props: TokenCreationFlowProps) {
     if (!isOpen) return;
     if (step !== 'SYNC') return;
     if (startedSync.current) return;
+    
+    // 等待实际交易哈希可用
+    if (!txHash) {
+      console.log('Waiting for actual transaction hash...');
+      return;
+    }
+    
     startedSync.current = true;
-
     setStates(s => ({ ...s, SYNC: { ...s.SYNC, status: 'loading', message: 'Syncing with backend...' }}));
 
     const run = async () => {
-      if (!txHash) return;
+      console.log('Starting sync with actual transaction hash:', txHash);
       let attempts = 0;
-      const maxAttempts = 30;
+      const maxAttempts = 60; // 增加到60次重试
+      
       while (attempts < maxAttempts) {
         attempts += 1;
+        
+        // 更新状态信息，显示更详细的进度
+        let statusMessage = `Syncing... (${attempts}/${maxAttempts})`;
+        if (attempts <= 10) {
+          statusMessage += ' - Initial sync';
+        } else if (attempts <= 30) {
+          statusMessage += ' - Waiting for blockchain confirmation';
+        } else {
+          statusMessage += ' - Backend processing';
+        }
+        
+        setStates(s => ({ ...s, SYNC: { ...s.SYNC, status: 'loading', message: statusMessage }}));
+        
         try {
           const addr = await onCheckTokenAddress(txHash);
           if (addr) {
-            setStates(s => ({ ...s, SYNC: { ...s.SYNC, status: 'done', message: `Token: ${addr}` }}));
+            console.log('Successfully found token address:', addr);
+            setStates(s => ({ ...s, SYNC: { ...s.SYNC, status: 'done', message: `Token found: ${addr}` }}));
             setStep('DONE');
+            
+            // 使用 Next.js router 进行跳转，而不是 window.location.href
             setTimeout(() => {
+              // 使用 window.location.href 确保完全刷新页面，避免缓存问题
               window.location.href = `/token/${addr}`;
-            }, 800);
+            }, 1000);
             return;
           }
-        } catch {}
-        await new Promise(r => setTimeout(r, 1000));
+        } catch (error) {
+          console.warn(`Sync attempt ${attempts} failed:`, error);
+          
+          // 如果是明确的404错误（代币未找到），继续重试
+          // 如果是其他错误，也继续重试，但记录错误信息
+          if (attempts % 10 === 0) {
+            setStates(s => ({ ...s, SYNC: { ...s.SYNC, message: `${statusMessage} - Please wait...` }}));
+          }
+        }
+        
+        // 调整等待时间：前10次快速重试，之后较长等待以配合30秒的事件监听器周期
+        let waitTime;
+        if (attempts <= 10) {
+          waitTime = 2000; // 前10次每2秒重试一次
+        } else if (attempts <= 30) {
+          waitTime = 5000; // 接下来20次每5秒重试一次
+        } else {
+          waitTime = 10000; // 最后30次每10秒重试一次
+        }
+        
+        await new Promise(r => setTimeout(r, waitTime));
       }
-      setStates(s => ({ ...s, SYNC: { ...s.SYNC, status: 'error', message: 'Sync timeout, please refresh later' }}));
+      
+      // 所有重试都失败了
+      console.error('All sync attempts failed');
+      setStates(s => ({ 
+        ...s, 
+        SYNC: { 
+          ...s.SYNC, 
+          status: 'error', 
+          message: 'Sync timeout. The token may still be processing. Please check your profile or try refreshing the page later.',
+          hint: 'You can also manually navigate to your profile to find the newly created token.'
+        }
+      }));
       setStep('ERROR');
     };
     run();

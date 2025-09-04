@@ -3,13 +3,34 @@ import { useAccount, useSignMessage } from 'wagmi';
 import { authAPI } from '@/services/api';
 import { toast, toastMessages } from '@/components/ui/toast-notification';
 
+// 全局状态管理，防止重复调用
+let globalAuthState = {
+  user: null as any,
+  isAuthenticated: false,
+  isLoading: false,
+  hasAttemptedAutoLogin: false,
+  currentAddress: null as string | null,
+  autoLoginPromise: null as Promise<void> | null
+};
+
+const authStateListeners = new Set<() => void>();
+
+const notifyAuthStateChange = () => {
+  authStateListeners.forEach(listener => listener());
+};
+
+const updateGlobalAuthState = (updates: Partial<typeof globalAuthState>) => {
+  globalAuthState = { ...globalAuthState, ...updates };
+  notifyAuthStateChange();
+};
+
 export function useWalletAuth() {
   const { address, isConnected } = useAccount();
-  const [user, setUser] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<any>(globalAuthState.user);
+  const [isLoading, setIsLoading] = useState(globalAuthState.isLoading);
+  const [isAuthenticated, setIsAuthenticated] = useState(globalAuthState.isAuthenticated);
   const [isClient, setIsClient] = useState(false);
-  const [hasAttemptedAutoLogin, setHasAttemptedAutoLogin] = useState(false);
+  const [hasAttemptedAutoLogin, setHasAttemptedAutoLogin] = useState(globalAuthState.hasAttemptedAutoLogin);
 
   const { signMessageAsync } = useSignMessage();
 
@@ -18,25 +39,74 @@ export function useWalletAuth() {
     setIsClient(true);
   }, []);
 
-  // 自动登录/注册用户
+  // 监听全局认证状态变化
+  useEffect(() => {
+    const updateLocalState = () => {
+      setUser(globalAuthState.user);
+      setIsLoading(globalAuthState.isLoading);
+      setIsAuthenticated(globalAuthState.isAuthenticated);
+      setHasAttemptedAutoLogin(globalAuthState.hasAttemptedAutoLogin);
+    };
+    
+    authStateListeners.add(updateLocalState);
+    
+    return () => {
+      authStateListeners.delete(updateLocalState);
+    };
+  }, []);
+
+  // 自动登录/注册用户（全局单例）
   const autoLoginUser = async (userAddress: string) => {
-    setIsLoading(true);
-    try {
-      const response = await authAPI.autoLogin(userAddress);
-      if (response.user) {
-        setUser(response.user);
-        setIsAuthenticated(true);
-        console.log('User auto login successful:', response.message);
-        return; // 成功登录，直接返回
-      }
-    } catch (error) {
-      console.error('Auto login failed:', error);
-      // 只有在明确需要创建新用户时才调用createNewUser
-      // 这里我们先不自动创建，让用户手动触发
-      console.log('Auto login failed, but not creating new user automatically');
-    } finally {
-      setIsLoading(false);
+    // 如果已经在处理相同地址的自动登录，直接返回现有的 Promise
+    if (globalAuthState.autoLoginPromise && globalAuthState.currentAddress === userAddress) {
+      console.log('Auto login already in progress for:', userAddress);
+      return globalAuthState.autoLoginPromise;
     }
+    
+    // 如果已经为这个地址尝试过自动登录，不再重复
+    if (globalAuthState.hasAttemptedAutoLogin && globalAuthState.currentAddress === userAddress) {
+      console.log('Auto login already attempted for:', userAddress);
+      return;
+    }
+    
+    // 如果已经认证成功，不需要重复登录
+    if (globalAuthState.isAuthenticated && globalAuthState.currentAddress === userAddress) {
+      console.log('User already authenticated for:', userAddress);
+      return;
+    }
+    
+    console.log('Starting auto login for:', userAddress);
+    updateGlobalAuthState({ 
+      isLoading: true, 
+      currentAddress: userAddress,
+      hasAttemptedAutoLogin: true
+    });
+    
+    const loginPromise = (async () => {
+      try {
+          const response = await authAPI.autoLogin(userAddress);
+          if (response.user) {
+            updateGlobalAuthState({
+              user: response.user,
+              isAuthenticated: true,
+              isLoading: false
+            });
+            console.log('User auto login successful:', response.message);
+            return;
+          }
+        } catch (error) {
+          console.error('Auto login failed:', error);
+          console.log('Auto login failed, but not creating new user automatically');
+        } finally {
+        updateGlobalAuthState({ 
+          isLoading: false,
+          autoLoginPromise: null
+        });
+      }
+    })();
+    
+    updateGlobalAuthState({ autoLoginPromise: loginPromise });
+    return loginPromise;
   };
 
   // 创建新用户（带签名验证）
@@ -64,10 +134,27 @@ export function useWalletAuth() {
       });
 
       if (response.access) {
-        // 重新获取用户信息
-        await autoLoginUser(userAddress);
-        toast.success('Welcome to BoBoom! Your account has been created.');
-        console.log('New user created successfully');
+        // 登录成功后获取用户信息
+        try {
+          const autoLoginResponse = await authAPI.autoLogin(userAddress);
+          updateGlobalAuthState({
+            user: autoLoginResponse.user,
+            isAuthenticated: true,
+            hasAttemptedAutoLogin: true,
+            currentAddress: userAddress
+          });
+          toast.success('Welcome to BoBoom! Your account has been created.');
+          console.log('New user created successfully');
+        } catch (autoLoginError) {
+          console.error('Failed to get user info after login:', autoLoginError);
+          // 即使获取用户信息失败，也标记为已认证
+          updateGlobalAuthState({
+            user: null,
+            isAuthenticated: true,
+            hasAttemptedAutoLogin: true,
+            currentAddress: userAddress
+          });
+        }
       }
     } catch (error) {
       console.error('Failed to create user:', error);
@@ -79,16 +166,38 @@ export function useWalletAuth() {
   useEffect(() => {
     if (!isClient) return; // 只在客户端运行
     
-    if (isConnected && address && !hasAttemptedAutoLogin) {
-      console.log('Wallet connected:', address);
-      setHasAttemptedAutoLogin(true);
-      autoLoginUser(address);
+    if (isConnected && address) {
+      // 如果地址变化了，重置状态
+      if (globalAuthState.currentAddress !== address) {
+        console.log('Address changed from', globalAuthState.currentAddress, 'to', address);
+        updateGlobalAuthState({
+          user: null,
+          isAuthenticated: false,
+          hasAttemptedAutoLogin: false,
+          currentAddress: address,
+          autoLoginPromise: null
+        });
+        // 地址变化时才进行自动登录
+        autoLoginUser(address);
+      } else if (!globalAuthState.hasAttemptedAutoLogin && !globalAuthState.autoLoginPromise) {
+        // 只有在未尝试过自动登录且没有正在进行的登录请求时才调用
+        console.log('First time auto login for:', address);
+        autoLoginUser(address);
+      }
     } else if (!isConnected) {
-      setUser(null);
-      setIsAuthenticated(false);
-      setHasAttemptedAutoLogin(false);
+      // 只有在状态确实需要重置时才更新
+      if (globalAuthState.currentAddress !== null || globalAuthState.isAuthenticated) {
+        console.log('Wallet disconnected, resetting auth state');
+        updateGlobalAuthState({
+          user: null,
+          isAuthenticated: false,
+          hasAttemptedAutoLogin: false,
+          currentAddress: null,
+          autoLoginPromise: null
+        });
+      }
     }
-  }, [isConnected, address, isClient, hasAttemptedAutoLogin]);
+  }, [isConnected, address, isClient]);
 
   // 手动登录（带签名验证）
   const loginWithSignature = async () => {
@@ -120,8 +229,20 @@ export function useWalletAuth() {
       });
 
       if (response.access) {
+        // 登录成功，保存token并更新状态
+        localStorage.setItem('access_token', response.access);
+        localStorage.setItem('refresh_token', response.refresh);
+        
         // 获取用户信息
-        await autoLoginUser(address);
+        const userResponse = await authAPI.autoLogin(address);
+        if (userResponse.user) {
+          updateGlobalAuthState({
+            user: userResponse.user,
+            isAuthenticated: true,
+            hasAttemptedAutoLogin: true,
+            currentAddress: address
+          });
+        }
         toast.success('Login successful!');
       }
     } catch (error) {
@@ -134,8 +255,13 @@ export function useWalletAuth() {
 
   // 登出
   const logout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
+    updateGlobalAuthState({
+      user: null,
+      isAuthenticated: false,
+      hasAttemptedAutoLogin: false,
+      currentAddress: null,
+      autoLoginPromise: null
+    });
     toast.success('Logged out successfully');
   };
 

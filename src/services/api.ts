@@ -1,10 +1,14 @@
 // API基础配置
 import { API_CONFIG } from '@/config/api';
 
+// 始终使用完整的后端URL
 const API_BASE_URL = `${API_CONFIG.BASE_URL}/api`;
 
 // 简单的内存缓存
 const cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
+
+// 正在进行的请求缓存，用于防止重复请求
+const pendingRequests = new Map<string, Promise<any>>();
 
 // 缓存管理
 function getCachedData(key: string): any | null {
@@ -22,6 +26,31 @@ function getCachedData(key: string): any | null {
 
 function setCachedData(key: string, data: any, ttl: number = 60000): void {
   cache.set(key, { data, timestamp: Date.now(), ttl });
+}
+
+// 清除缓存
+function clearCache(keyPattern?: string): void {
+  if (keyPattern) {
+    // 清除匹配模式的缓存
+    for (const key of cache.keys()) {
+      if (key.includes(keyPattern)) {
+        cache.delete(key);
+      }
+    }
+  } else {
+    // 清除所有缓存
+    cache.clear();
+  }
+}
+
+// 清除过期缓存
+function clearExpiredCache(): void {
+  const now = Date.now();
+  for (const [key, cached] of cache.entries()) {
+    if (now - cached.timestamp > cached.ttl) {
+      cache.delete(key);
+    }
+  }
 }
 
 // 生成缓存键
@@ -44,6 +73,12 @@ async function apiRequest<T>(
     if (cachedData) {
       return cachedData;
     }
+    
+    // 检查是否有正在进行的相同请求
+    const pendingRequest = pendingRequests.get(cacheKey);
+    if (pendingRequest) {
+      return pendingRequest;
+    }
   }
   
   const config: RequestInit = {
@@ -54,52 +89,70 @@ async function apiRequest<T>(
     ...options,
   };
 
-  // 重试机制
-  const maxRetries = 2;
-  let lastError: Error | null = null;
+  // 创建请求 Promise 并添加到 pendingRequests
+  const requestPromise = (async () => {
+    // 重试机制
+    const maxRetries = 2;
+    let lastError: Error | null = null;
 
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
-      
-      const response = await fetch(url, {
-        ...config,
-        signal: controller.signal,
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+        
+        const response = await fetch(url, {
+          ...config,
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // 缓存成功的数据
+        if (cacheKey) {
+          setCachedData(cacheKey, data, cacheTTL);
+        }
+        
+        return data;
+      } catch (error) {
+        lastError = error as Error;
+        
+        // 如果是超时错误且还有重试机会，则重试
+        if (error instanceof Error && error.name === 'AbortError' && attempt < maxRetries) {
+          console.warn(`API request timeout, retrying... (attempt ${attempt + 1}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1))); // 递增延迟
+          continue;
+        }
+        
+        // 其他错误或重试次数用完
+        break;
       }
-      
-      const data = await response.json();
-      
-      // 缓存成功的数据
-      if (cacheKey) {
-        setCachedData(cacheKey, data, cacheTTL);
-      }
-      
-      return data;
-    } catch (error) {
-      lastError = error as Error;
-      
-      // 如果是超时错误且还有重试机会，则重试
-      if (error instanceof Error && error.name === 'AbortError' && attempt < maxRetries) {
-        console.warn(`API request timeout, retrying... (attempt ${attempt + 1}/${maxRetries})`);
-        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1))); // 递增延迟
-        continue;
-      }
-      
-      // 其他错误或重试次数用完
-      break;
+    }
+    
+    console.error('API request failed:', lastError);
+    throw lastError;
+  })();
+
+  // 将请求添加到 pendingRequests
+  if (cacheKey) {
+    pendingRequests.set(cacheKey, requestPromise);
+  }
+
+  try {
+    const result = await requestPromise;
+    return result;
+  } finally {
+    // 请求完成后清理 pendingRequests
+    if (cacheKey) {
+      pendingRequests.delete(cacheKey);
     }
   }
-  
-  console.error('API request failed:', lastError);
-  throw lastError;
 }
 
 // 用户认证相关接口
@@ -207,18 +260,24 @@ export const favoriteAPI = {
   toggleFavorite: (userAddress: string, data: {
     token_address: string;
     network?: string;
-  }) => apiRequest<{
-    success: boolean;
-    data: {
-      is_favorited: boolean;
-      favorite_count: number;
-      token_address: string;
-      user_address: string;
-    };
-  }>(`/users/${userAddress}/favorites/toggle/`, {
-    method: 'POST',
-    body: JSON.stringify(data),
-  }, generateCacheKey('toggle_favorite', userAddress, data.token_address), 300000),
+  }) => {
+    // 清除相关缓存
+    clearCache(`check_favorite_status_${userAddress}_${data.token_address}`);
+    clearCache(`user_favorites_${userAddress}`);
+    
+    return apiRequest<{
+      success: boolean;
+      data: {
+        is_favorited: boolean;
+        favorite_count: number;
+        token_address: string;
+        user_address: string;
+      };
+    }>(`/users/${userAddress}/favorites/toggle/`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
 
   // 获取用户收藏列表
   getUserFavorites: (userAddress: string, network: string = 'sepolia', limit?: number) => 
@@ -243,7 +302,7 @@ export const favoriteAPI = {
         user_address: string;
         network: string;
       };
-    }>(`/users/${userAddress}/favorites/${tokenAddress}/?network=${network}`, {}, generateCacheKey('check_favorite_status', userAddress, tokenAddress, network), 300000),
+    }>(`/users/${userAddress}/favorites/${tokenAddress}/?network=${network}`, {}, generateCacheKey('check_favorite_status', userAddress, tokenAddress, network), 30000),
 };
 
 // 关注功能相关接口
@@ -377,7 +436,88 @@ export const tokenAPI = {
           pages: number;
         };
       };
-    }>(`/tokens/?${searchParams.toString()}`, {}, generateCacheKey('tokens', encodeURIComponent(searchParams.toString())), 300000);
+    }>(`/tokens/?${searchParams.toString()}`, {}, generateCacheKey('tokens', encodeURIComponent(searchParams.toString())), 5000);
+  },
+
+  // 获取最新代币列表 - 专用于Newest TAB
+  getNewestTokens: (params: {
+    page?: number;
+    limit?: number;
+    network?: string;
+  } = {}) => {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) {
+        searchParams.append(key, String(value));
+      }
+    });
+    
+    return apiRequest<{
+      success: boolean;
+      data: {
+        tokens: Array<any>;
+        pagination: {
+          page: number;
+          limit: number;
+          total: number;
+          pages: number;
+        };
+      };
+    }>(`/tokens/newest/?${searchParams.toString()}`, {}, generateCacheKey('newest_tokens', encodeURIComponent(searchParams.toString())), 5000);
+  },
+
+  // 获取即将毕业代币列表 - 专用于Near Graduation TAB
+  getNearGraduationTokens: (params: {
+    page?: number;
+    limit?: number;
+    network?: string;
+  } = {}) => {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) {
+        searchParams.append(key, String(value));
+      }
+    });
+    
+    return apiRequest<{
+      success: boolean;
+      data: {
+        tokens: Array<any>;
+        pagination: {
+          page: number;
+          limit: number;
+          total: number;
+          pages: number;
+        };
+      };
+    }>(`/tokens/near-graduation/?${searchParams.toString()}`, {}, generateCacheKey('near_graduation_tokens', encodeURIComponent(searchParams.toString())), 5000);
+  },
+
+  // 获取按市值排序的代币列表 - 专用于Top MC TAB
+  getTopMCTokens: (params: {
+    page?: number;
+    limit?: number;
+    network?: string;
+  } = {}) => {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) {
+        searchParams.append(key, String(value));
+      }
+    });
+    
+    return apiRequest<{
+      success: boolean;
+      data: {
+        tokens: Array<any>;
+        pagination: {
+          page: number;
+          limit: number;
+          total: number;
+          pages: number;
+        };
+      };
+    }>(`/tokens/top-mc/?${searchParams.toString()}`, {}, generateCacheKey('top_mc_tokens', encodeURIComponent(searchParams.toString())), 5000);
   },
 
   // 获取代币详情
@@ -385,14 +525,14 @@ export const tokenAPI = {
     apiRequest<{
       success: boolean;
       data: any;
-    }>(`/tokens/${address}/?network=${network}`, {}, generateCacheKey('token_detail', address, network), 300000),
+    }>(`/tokens/${address}/?network=${network}`, {}, generateCacheKey('token_detail', address, network), 0),
 
   // 获取代币详情（新接口）
   getTokenDetails: (address: string, network: string = 'sepolia') => 
     apiRequest<{
       success: boolean;
       data: any;
-    }>(`/tokens/${address}/?network=${network}`, {}, generateCacheKey('token_details', address, network), 300000),
+    }>(`/tokens/${address}/?network=${network}`, {}, generateCacheKey('token_details', address, network), 0),
 
   // 获取代币24小时统计数据
   getToken24hStats: (address: string, network: string = 'sepolia') => 
@@ -492,6 +632,13 @@ export const tokenAPI = {
 };
 
 // 导出所有API
+// 导出缓存管理函数
+export const cacheAPI = {
+  clear: clearCache,
+  clearExpired: clearExpiredCache,
+  clearTokens: () => clearCache('tokens'),
+};
+
 export const api = {
   auth: authAPI,
   user: userAPI,
@@ -499,6 +646,7 @@ export const api = {
   follow: followAPI,
   avatar: avatarAPI,
   token: tokenAPI,
+  cache: cacheAPI,
 };
 
 export default api;

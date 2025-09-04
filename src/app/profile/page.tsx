@@ -498,7 +498,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                     {userData?.avatar_url ? (
                       userData.avatar_url.startsWith('/media/') ? (
                         <img 
-                          src={userData.avatar_url} 
+                          src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'}${userData.avatar_url}`} 
                           alt="Avatar" 
                           className="w-full h-full rounded-full object-cover"
                         />
@@ -864,7 +864,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                                   {follow.user.avatar_url ? (
                                     follow.user.avatar_url.startsWith('/media/') ? (
                                       <img 
-                                        src={follow.user.avatar_url} 
+                                        src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'}${follow.user.avatar_url}`} 
                                         alt="Avatar" 
                                         className="w-full h-full rounded-full object-cover"
                                       />

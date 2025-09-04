@@ -45,7 +45,11 @@ export const metadata: Metadata = {
   description: "Create, trade, and incubate the next generation of meme coins. Innovative blockchain-based launchpad platform.",
   keywords: ["launchpad", "meme coin", "blockchain", "crypto", "token launch"],
   authors: [{ name: "BoBoom Team" }],
-  viewport: "width=device-width, initial-scale=1",
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

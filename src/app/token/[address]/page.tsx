@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import { Sidebar } from '@/components/common/Sidebar';
 import { SearchHeader } from '@/components/common/SearchHeader';
@@ -9,9 +9,12 @@ import { TradingPanel } from '@/components/token/TradingPanel';
 import { TradesAndHolders } from '@/components/token/Trades';
 import { BondingCurveProgress } from '@/components/token/BondingCurveProgress';
 import { CandlestickChart } from '@/components/token/CandlestickChart';
-import { tokenAPI } from '@/services/api';
+
+import { tokenAPI, userAPI } from '@/services/api';
 import { useWalletAuth } from '@/hooks/useWalletAuth';
 import { toast } from '@/components/ui/toast-notification';
+import websocketService from '@/services/websocket';
+import { useTokenFactory } from '@/hooks/useTokenFactory';
 
 export default function TokenDetailPage() {
   const params = useParams();
@@ -20,6 +23,8 @@ export default function TokenDetailPage() {
   const [okbPrice, setOkbPrice] = useState<number>(177.6);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userTokenBalance, setUserTokenBalance] = useState<string>('0'); // 用户代币余额
+  const eventSourceRef = useRef<EventSource | null>(null);
 
   const tokenAddress = params?.address as string;
 
@@ -27,12 +32,9 @@ export default function TokenDetailPage() {
   useEffect(() => {
     const loadOKBPrice = async () => {
       try {
-        // 直接调用后端API，避免Next.js API路由的重定向问题
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
-        const response = await fetch(`${backendUrl}/api/tokens/okb-price/`);
-        const data = await response.json();
-        if (data.success) {
-          setOkbPrice(parseFloat(data.data.price));
+        const response = await tokenAPI.getOKBPrice();
+        if (response.success) {
+          setOkbPrice(parseFloat(response.data.price));
         }
       } catch (error) {
         console.error('Failed to load OKB price:', error);
@@ -42,16 +44,114 @@ export default function TokenDetailPage() {
     loadOKBPrice();
   }, []);
 
-  // 加载代币详情
+  // 处理WebSocket代币详情数据
+  const handleTokenDetailData = useCallback((data: any) => {
+    console.log('[TokenDetailPage] Received WebSocket data:', data);
+    console.log('[TokenDetailPage] Data type:', data.type);
+    console.log('[TokenDetailPage] Token address from data:', data.data?.address);
+    console.log('[TokenDetailPage] Current token address:', tokenAddress);
+    
+    if (data.type === 'token_detail' || data.type === 'token_detail_update') {
+      const tokenData = data.data;
+      if (tokenData && tokenData.address === tokenAddress) {
+        console.log('[TokenDetailPage] Processing token data:', tokenData);
+        // 将后端的snake_case字段映射为前端期望的camelCase
+        const mappedToken = {
+          ...tokenData,
+          // 基本信息字段映射
+          imageUrl: tokenData.image_url || tokenData.imageUrl,
+          totalSupply: tokenData.total_supply || tokenData.totalSupply,
+          currentPrice: tokenData.current_price || tokenData.currentPrice,
+          marketCap: tokenData.market_cap || tokenData.marketCap,
+          volume24h: tokenData.volume_24h || tokenData.volume24h,
+          priceChange24h: tokenData.price_change_24h || tokenData.priceChange24h,
+          okbCollected: tokenData.okb_collected || tokenData.okbCollected,
+          tokensTraded: tokenData.tokens_traded || tokenData.tokensTraded,
+          graduationProgress: parseFloat(tokenData.graduationProgress || tokenData.graduation_progress || '0'),
+          curveTradingActive: tokenData.curve_trading_enabled || tokenData.curveTradingActive,
+          graduatedAt: tokenData.graduated_at || tokenData.graduatedAt,
+          izumiPoolAddress: tokenData.izumi_pool_address || tokenData.izumiPoolAddress,
+          holderCount: tokenData.holder_count || tokenData.holderCount,
+          transactionCount: tokenData.transaction_count || tokenData.transactionCount,
+          isVerified: tokenData.is_verified || tokenData.isVerified || false,
+          isFeatured: tokenData.is_featured || tokenData.isFeatured || false,
+          isActive: tokenData.is_active || tokenData.isActive,
+          createdAt: tokenData.created_at || tokenData.createdAt || new Date().toISOString(),
+          updatedAt: tokenData.updated_at || tokenData.updatedAt
+        };
+        console.log('[TokenDetailPage] Mapped token data:', mappedToken);
+        console.log('[TokenDetailPage] graduationProgress after mapping:', mappedToken.graduationProgress, typeof mappedToken.graduationProgress);
+        setToken(mappedToken);
+        setLoading(false);
+        setError(null);
+      }
+    } else if (data.type === 'price_update') {
+      const priceData = data.data;
+      if (priceData && priceData.address === tokenAddress) {
+        console.log('[TokenDetailPage] Processing price update:', priceData);
+        setToken((prevToken: any) => {
+          if (!prevToken) return prevToken;
+          return {
+            ...prevToken,
+            currentPrice: priceData.current_price || priceData.currentPrice,
+            marketCap: priceData.market_cap || priceData.marketCap,
+            volume24h: priceData.volume_24h || priceData.volume24h,
+            priceChange24h: priceData.price_change_24h || priceData.priceChange24h,
+            high24h: priceData.high_24h || priceData.high24h || prevToken.high24h,
+            low24h: priceData.low_24h || priceData.low24h || prevToken.low24h
+          };
+        });
+      }
+    }
+  }, [tokenAddress]);
+
+  // 初始化WebSocket连接和备用API加载
   useEffect(() => {
     if (!isClient || !tokenAddress) return;
 
+    // 连接WebSocket获取实时代币详情
+    const connectionId = websocketService.connect(`tokens/${tokenAddress}/`, handleTokenDetailData);
+    
+    // 备用API加载（如果WebSocket连接失败）
     const loadTokenDetails = async () => {
       try {
         setLoading(true);
-        const response = await tokenAPI.getTokenDetails(tokenAddress, 'sepolia');
-        if (response.success) {
-          setToken(response.data);
+        const [detailResponse, statsResponse] = await Promise.all([
+          tokenAPI.getTokenDetails(tokenAddress, 'sepolia'),
+          tokenAPI.getToken24hStats(tokenAddress, 'sepolia')
+        ]);
+        
+        if (detailResponse.success) {
+          const tokenData = detailResponse.data;
+          const statsData = statsResponse.success ? statsResponse.data : { high24h: '0', low24h: '0' };
+          
+          // 将后端的snake_case字段映射为前端期望的camelCase
+          setToken({
+            ...tokenData,
+            // 基本信息字段映射
+            imageUrl: tokenData.image_url || tokenData.imageUrl,
+            totalSupply: tokenData.total_supply || tokenData.totalSupply,
+            currentPrice: tokenData.current_price || tokenData.currentPrice,
+            marketCap: tokenData.market_cap || tokenData.marketCap,
+            volume24h: tokenData.volume_24h || tokenData.volume24h,
+            priceChange24h: tokenData.price_change_24h || tokenData.priceChange24h,
+            // 24h统计数据
+            high24h: statsData.high24h || tokenData.high24h || '0',
+            low24h: statsData.low24h || tokenData.low24h || '0',
+            okbCollected: tokenData.okb_collected || tokenData.okbCollected,
+            tokensTraded: tokenData.tokens_traded || tokenData.tokensTraded,
+            graduationProgress: parseFloat(tokenData.graduationProgress || tokenData.graduation_progress || '0'),
+            curveTradingActive: tokenData.curve_trading_enabled || tokenData.curveTradingActive,
+            graduatedAt: tokenData.graduated_at || tokenData.graduatedAt,
+            izumiPoolAddress: tokenData.izumi_pool_address || tokenData.izumiPoolAddress,
+            holderCount: tokenData.holder_count || tokenData.holderCount,
+            transactionCount: tokenData.transaction_count || tokenData.transactionCount,
+            isVerified: tokenData.is_verified || tokenData.isVerified || false,
+            isFeatured: tokenData.is_featured || tokenData.isFeatured || false,
+            isActive: tokenData.is_active || tokenData.isActive,
+            createdAt: tokenData.created_at || tokenData.createdAt || new Date().toISOString(),
+            updatedAt: tokenData.updated_at || tokenData.updatedAt
+          });
         } else {
           setError('Failed to load token details');
         }
@@ -63,8 +163,41 @@ export default function TokenDetailPage() {
       }
     };
 
+    // 立即加载初始数据，同时尝试WebSocket连接
     loadTokenDetails();
-  }, [tokenAddress, isClient]);
+    
+    // WebSocket连接状态检查 - 延长等待时间并添加重试机制
+    const checkConnectionAndLoad = () => {
+      let checkCount = 0;
+      const maxChecks = 3;
+      
+      const checkConnection = () => {
+        checkCount++;
+        if (websocketService.isConnected(connectionId)) {
+          console.log('WebSocket connected successfully');
+          return;
+        }
+        
+        if (checkCount < maxChecks) {
+          console.log(`WebSocket connection check ${checkCount}/${maxChecks}, retrying...`);
+          setTimeout(checkConnection, 2000);
+        } else {
+          console.log('WebSocket connection failed after multiple attempts, using API only');
+        }
+      };
+      
+      setTimeout(checkConnection, 1000); // 首次检查延迟1秒
+    };
+    
+    checkConnectionAndLoad();
+    
+    // 清理函数
+    return () => {
+      websocketService.disconnect(connectionId);
+    };
+  }, [tokenAddress, isClient, handleTokenDetailData]);
+
+  // 移除了SSE相关代码，现在使用WebSocket
 
   if (loading) {
     return (
@@ -139,7 +272,7 @@ export default function TokenDetailPage() {
               <div className="lg:col-span-2">
                 <div className="sticky top-6 space-y-6">
                   <TradingPanel token={token} />
-                  <BondingCurveProgress token={token} />
+          <BondingCurveProgress token={token} />
                 </div>
               </div>
             </div>

@@ -6,6 +6,7 @@ import { useTokenFactory } from '@/hooks/useTokenFactory';
 import { useWalletAuth } from '@/hooks/useWalletAuth';
 import { toast, toastMessages } from '@/components/ui/toast-notification';
 import { userAPI, tokenAPI } from '@/services/api';
+import { connectToUserBalance } from '@/services/websocket';
 
 interface TradingPanelProps {
   token: any;
@@ -40,6 +41,10 @@ export function TradingPanel({ token }: TradingPanelProps) {
     isCreatePending,
     isCreateConfirming,
     isCreateSuccess,
+    // 授权状态
+    isApprovalPending,
+    isApprovalConfirming,
+    isApprovalSuccess,
     approveOKBForTrading,
     buyToken,
     sellToken,
@@ -104,6 +109,34 @@ export function TradingPanel({ token }: TradingPanelProps) {
     setSellQuote(null);
     setAmount(''); // 清空输入框
   }, [activeTab]);
+
+  // 监听授权成功，自动执行买入
+  useEffect(() => {
+    const handleApprovalSuccess = async () => {
+      if (isApprovalSuccess && lastTransactionType === 'approve' && amount && parseFloat(amount) > 0) {
+        console.log('Approval successful, proceeding with buy...');
+        setLastTransactionType('buy');
+        try {
+          await buyToken(token.address, parseFloat(amount));
+          setAmount(''); // 买入成功后清空输入框
+        } catch (error) {
+          console.error('Buy after approval error:', error);
+          toast.error('Failed to execute buy order after approval');
+        }
+        setLastTransactionType(null);
+      }
+    };
+
+    handleApprovalSuccess();
+  }, [isApprovalSuccess, lastTransactionType, amount, token.address, buyToken]);
+
+  // 监听买入/卖出成功，清空输入框
+  useEffect(() => {
+    if (isCreateSuccess && (lastTransactionType === 'buy' || lastTransactionType === 'sell')) {
+      setAmount('');
+      setLastTransactionType(null);
+    }
+  }, [isCreateSuccess, lastTransactionType]);
 
   // 加载用户余额
   useEffect(() => {
@@ -225,7 +258,49 @@ export function TradingPanel({ token }: TradingPanelProps) {
     }
   }, [isCreateSuccess, lastTransactionType, address, token.address, token.symbol]);
 
+  // WebSocket连接用于实时余额更新
+  useEffect(() => {
+    if (!address || !isAuthenticated) {
+      return;
+    }
 
+    console.log('Setting up WebSocket connection for user balance updates:', address);
+    
+    const handleBalanceUpdate = (data: any) => {
+      console.log('Received balance update:', data);
+      
+      if (data.type === 'balance_update') {
+        const { user_address, token_address, okb_balance, token_balance } = data;
+        
+        // 检查是否是当前用户的更新
+        if (user_address.toLowerCase() === address.toLowerCase()) {
+          console.log('Updating balances from WebSocket:', { okb_balance, token_balance });
+          
+          // 更新OKB余额
+          if (okb_balance !== undefined) {
+            setOkbBalance(okb_balance.toString());
+          }
+          
+          // 更新代币余额（如果是当前代币）
+          if (token_address && token_address.toLowerCase() === token.address.toLowerCase() && token_balance !== undefined) {
+            setTokenBalance(token_balance.toString());
+          }
+          
+          // 如果正在刷新余额，停止刷新状态
+          if (isRefreshingBalances) {
+            setIsRefreshingBalances(false);
+          }
+        }
+      }
+    };
+
+    const connectionId = connectToUserBalance(address, handleBalanceUpdate);
+    
+    return () => {
+      // 清理WebSocket连接
+      // websocketService.disconnect(connectionId); // 如果需要的话可以添加断开连接的逻辑
+    };
+  }, [address, isAuthenticated, token.address, isRefreshingBalances]);
 
   // 计算预估价格
   const calculateEstimatedPrice = () => {
@@ -300,7 +375,6 @@ export function TradingPanel({ token }: TradingPanelProps) {
     console.log("OKB Allowance:", okbAllowanceBondingCurve);
     console.log("Needs approval:", okbAmount >= okbAllowanceBondingCurve);
 
-    setIsLoading(true);
     try {
       // 检查是否需要授权
       if (okbAmount >= okbAllowanceBondingCurve) {
@@ -314,13 +388,10 @@ export function TradingPanel({ token }: TradingPanelProps) {
         // 直接买入
         await buyToken(token.address, okbAmount);
       }
-      setAmount('');
     } catch (error) {
       console.error('Buy error:', error);
       setLastTransactionType(null); // 重置交易类型
       toast.error('Failed to execute buy order');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -342,18 +413,14 @@ export function TradingPanel({ token }: TradingPanelProps) {
       return;
     }
 
-    setIsLoading(true);
     setLastTransactionType('sell'); // 设置交易类型，用于成功时显示对应提示
     
     try {
       await sellToken(token.address, tokenAmount);
-      setAmount('');
     } catch (error) {
       console.error('Sell error:', error);
       setLastTransactionType(null); // 重置交易类型
       toast.error('Failed to execute sell order');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -475,7 +542,7 @@ export function TradingPanel({ token }: TradingPanelProps) {
           variant="outline"
           size="sm"
           onClick={() => setAmount('')}
-          disabled={isLoading || isCreatePending || isCreateConfirming || isRefreshingBalances}
+          disabled={isLoading || isCreatePending || isCreateConfirming || isApprovalPending || isApprovalConfirming || isRefreshingBalances}
           className="border-gray-600 text-gray-400 hover:bg-gray-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Reset
@@ -486,7 +553,7 @@ export function TradingPanel({ token }: TradingPanelProps) {
             variant="outline"
             size="sm"
             onClick={() => setQuickAmount(value)}
-            disabled={isLoading || isCreatePending || isCreateConfirming || isRefreshingBalances}
+            disabled={isLoading || isCreatePending || isCreateConfirming || isApprovalPending || isApprovalConfirming || isRefreshingBalances}
             className="border-gray-600 text-gray-400 hover:bg-gray-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {value}
@@ -494,7 +561,7 @@ export function TradingPanel({ token }: TradingPanelProps) {
         ))}
       </div>
 
-      {/* 预估信息 */}
+      {/* 预估信息 - 在有金额输入时始终显示，不因为授权而隐藏 */}
       {amount && parseFloat(amount) > 0 && (
         <div className="bg-[#0a0a0a] border border-[#333333] rounded-lg p-4 mb-6">
           <div className="space-y-2">
@@ -550,14 +617,14 @@ export function TradingPanel({ token }: TradingPanelProps) {
       {/* 交易按钮 */}
       <Button
         onClick={activeTab === 'buy' ? handleBuy : handleSell}
-        disabled={isLoading || isCreatePending || isCreateConfirming || isRefreshingBalances || !amount || parseFloat(amount) <= 0}
+        disabled={isLoading || isCreatePending || isCreateConfirming || isApprovalPending || isApprovalConfirming || isRefreshingBalances || !amount || parseFloat(amount) <= 0}
         className={`w-full py-3 font-medium ${
           activeTab === 'buy'
             ? 'bg-[#70E000] text-black hover:bg-[#5BC000]'
             : 'bg-red-500 text-white hover:bg-red-600'
         } disabled:opacity-50 disabled:cursor-not-allowed`}
       >
-        {isLoading || isCreatePending || isCreateConfirming || isRefreshingBalances ? (
+        {isLoading || isCreatePending || isCreateConfirming || isApprovalPending || isApprovalConfirming || isRefreshingBalances ? (
           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
         ) : activeTab === 'buy' ? (
           parseFloat(amount || '0') >= okbAllowanceBondingCurve ? (
@@ -568,7 +635,7 @@ export function TradingPanel({ token }: TradingPanelProps) {
         ) : (
           <ArrowDown className="h-4 w-4 mr-2" />
         )}
-        {isLoading || isCreatePending || isCreateConfirming || isRefreshingBalances
+        {isLoading || isCreatePending || isCreateConfirming || isApprovalPending || isApprovalConfirming || isRefreshingBalances
           ? 'Processing...'
           : activeTab === 'buy' && parseFloat(amount || '0') >= okbAllowanceBondingCurve
             ? 'Approve OKB'

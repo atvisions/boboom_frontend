@@ -562,7 +562,16 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
             {loading ? (
               <div className="animate-pulse bg-gray-600 h-4 w-16 rounded"></div>
             ) : (
-              `$${(parseFloat(stats24h?.volume24h || '0') / 1000000).toFixed(1)}M`
+              (() => {
+                const volume = parseFloat(stats24h?.volume24h || '0');
+                if (volume >= 1000000) {
+                  return `$${(volume / 1000000).toFixed(1)}M`;
+                } else if (volume >= 1000) {
+                  return `$${(volume / 1000).toFixed(1)}K`;
+                } else {
+                  return `$${volume.toFixed(2)}`;
+                }
+              })()
             )}
           </div>
         </div>

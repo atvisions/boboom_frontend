@@ -1,13 +1,14 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Flame, Share2, Info, Star, User, BadgeCheck } from "lucide-react";
 import { FaXTwitter, FaTelegram, FaGlobe } from "react-icons/fa6";
 import Image from "next/image";
 import { toast, toastMessages } from "@/components/ui/toast-notification";
 import { useDebounce } from "@/hooks/useDebounce";
-import { tokenAPI, favoriteAPI } from "@/services/api";
+import { tokenAPI, favoriteAPI, userAPI, cacheAPI } from "@/services/api";
 import { useWalletAuth } from "@/hooks/useWalletAuth";
 import { useRouter } from "next/navigation";
+import websocketService from "@/services/websocket";
 
 // 时间格式化函数
 const getTimeAgo = (dateString: string) => {
@@ -51,11 +52,68 @@ export function TrendingSection() {
     loadOKBPrice();
   }, [isClient]);
 
-  // 加载热门代币数据
+  // 处理WebSocket代币列表数据
+  const handleTokenListData = useCallback((data: any) => {
+    if (data.type === 'token_list') {
+      const tokenList = data.data;
+      if (Array.isArray(tokenList)) {
+        // 取前4个作为热门代币
+        const trendingTokens = tokenList.slice(0, 4).map((token: any) => ({
+          ...token,
+          // WebSocket数据可能使用下划线命名，需要转换
+          graduationProgress: parseFloat(token.graduationProgress || token.graduation_progress || '0'),
+          volume24h: token.volume24h || token.volume_24h || '0',
+          createdAt: token.createdAt || token.created_at || new Date().toISOString(),
+          isVerified: token.isVerified || token.is_verified || false,
+          imageUrl: token.imageUrl || token.image_url || '',
+          marketCap: token.marketCap || token.market_cap || '0',
+          currentPrice: token.currentPrice || token.current_price || '0'
+        }));
+        
+        setTokens(trendingTokens);
+        
+        // 加载创作者信息
+        const creatorAddresses = trendingTokens
+          .map((token: any) => token.creator)
+          .filter((creator: any) => creator && typeof creator === 'string');
+        
+        const loadCreators = async () => {
+          const newCreators: {[key: string]: any} = {};
+          
+          for (const creatorAddress of creatorAddresses) {
+            try {
+              const creatorData = await userAPI.getUser(creatorAddress.toLowerCase());
+              newCreators[creatorAddress] = creatorData;
+            } catch (error) {
+              console.error('Failed to load creator info for:', creatorAddress, error);
+            }
+          }
+          
+          setCreators(newCreators);
+        };
+        
+        loadCreators();
+        setLoading(false);
+        setError(null);
+      }
+    }
+  }, [setTokens, setCreators, setLoading, setError]);
+
+  // 初始化WebSocket连接和备用API加载
   useEffect(() => {
     if (!isClient) return; // 只在客户端运行
     
+    console.log('[TrendingSection] Component mounting, clearing cache...');
+    // 清除代币相关缓存，确保获取最新数据
+    cacheAPI.clearTokens();
+    
+    let connectionId: string | null = null;
+    let isComponentMounted = true;
+    
+    // 备用API加载（如果WebSocket连接失败）
     const loadTrendingTokens = async () => {
+      if (!isComponentMounted) return;
+      
       try {
         setLoading(true);
         const response = await tokenAPI.getTokens({
@@ -64,8 +122,31 @@ export function TrendingSection() {
           network: 'sepolia'
         });
         
-        if (response.success) {
-          setTokens(response.data.tokens);
+        if (response.success && isComponentMounted) {
+          console.log('[TrendingSection] API response received:', response.data);
+          // 处理API返回的数据，确保字段名一致
+          const processedTokens = response.data.tokens.map((token: any) => {
+            const processed = {
+              ...token,
+              // API返回的是驼峰命名，确保数据类型正确
+              graduationProgress: parseFloat(token.graduationProgress || '0'),
+              volume24h: token.volume24h || '0',
+              marketCap: token.marketCap || '0',
+              currentPrice: token.currentPrice || '0',
+              imageUrl: token.imageUrl || '',
+              createdAt: token.createdAt || new Date().toISOString(),
+              isVerified: token.isVerified || false
+            };
+            console.log(`[TrendingSection] Processing token ${token.symbol}:`, {
+              original: token.graduationProgress,
+              processed: processed.graduationProgress,
+              type: typeof processed.graduationProgress
+            });
+            return processed;
+          });
+          
+          console.log('[TrendingSection] Setting processed tokens:', processedTokens);
+          setTokens(processedTokens);
           
           // 加载创作者信息
           const creatorAddresses = response.data.tokens
@@ -73,14 +154,14 @@ export function TrendingSection() {
             .filter((creator: any) => creator && typeof creator === 'string');
           
           const loadCreators = async () => {
+            if (!isComponentMounted) return;
+            
             const newCreators: {[key: string]: any} = {};
             
             for (const creatorAddress of creatorAddresses) {
               try {
-                const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
-                const creatorResponse = await fetch(`${backendUrl}/api/users/${creatorAddress.toLowerCase()}/`);
-                if (creatorResponse.ok) {
-                  const creatorData = await creatorResponse.json();
+                const creatorData = await userAPI.getUser(creatorAddress.toLowerCase());
+                if (isComponentMounted) {
                   newCreators[creatorAddress] = creatorData;
                 }
               } catch (error) {
@@ -88,23 +169,70 @@ export function TrendingSection() {
               }
             }
             
-            setCreators(newCreators);
+            if (isComponentMounted) {
+              setCreators(newCreators);
+            }
           };
           
           loadCreators();
-        } else {
+        } else if (isComponentMounted) {
           setError('Failed to load trending tokens');
         }
       } catch (err) {
-        console.error('Error loading trending tokens:', err);
-        setError('Failed to load trending tokens');
+        console.error('[TrendingSection] Error loading trending tokens:', err);
+        if (isComponentMounted) {
+          setError('Failed to load trending tokens');
+        }
       } finally {
-        setLoading(false);
+        if (isComponentMounted) {
+          console.log('[TrendingSection] Loading finished');
+          setLoading(false);
+        }
       }
     };
 
+    // 立即加载初始数据
     loadTrendingTokens();
-  }, [isClient]);
+    
+    // 连接WebSocket获取实时代币列表
+    console.log('[TrendingSection] Attempting WebSocket connection...');
+    connectionId = websocketService.connect('tokens/', handleTokenListData);
+    
+    // WebSocket连接状态检查 - 改进的连接检查机制
+    const checkConnectionAndLoad = () => {
+      let checkCount = 0;
+      const maxChecks = 3;
+      
+      const checkConnection = () => {
+        if (!isComponentMounted) return;
+        
+        checkCount++;
+        if (connectionId && websocketService.isConnected(connectionId)) {
+          console.log('[TrendingSection] WebSocket connected successfully');
+          return;
+        }
+        
+        if (checkCount < maxChecks) {
+          console.log(`[TrendingSection] WebSocket connection check ${checkCount}/${maxChecks}, retrying...`);
+          setTimeout(checkConnection, 2000);
+        } else {
+          console.log('[TrendingSection] WebSocket connection failed after multiple attempts, using API only');
+        }
+      };
+      
+      setTimeout(checkConnection, 1000); // 首次检查延迟1秒
+    };
+    
+    checkConnectionAndLoad();
+    
+    // 清理函数
+    return () => {
+      isComponentMounted = false;
+      if (connectionId) {
+        websocketService.removeMessageHandler(connectionId, handleTokenListData);
+      }
+    };
+  }, [isClient, handleTokenListData]);
 
   // 加载用户收藏状态
   useEffect(() => {
@@ -159,6 +287,24 @@ export function TrendingSection() {
             toast.success(toastMessages.favorites.removed(tokenName));
           }
           setFavorites(newFavorites);
+          
+          // 重新检查收藏状态以确保同步
+          setTimeout(async () => {
+            try {
+              const statusResponse = await favoriteAPI.checkFavoriteStatus(address, tokenAddress, 'sepolia');
+              if (statusResponse.success) {
+                const updatedFavorites = new Set(favorites);
+                if (statusResponse.data.is_favorited) {
+                  updatedFavorites.add(tokenAddress);
+                } else {
+                  updatedFavorites.delete(tokenAddress);
+                }
+                setFavorites(updatedFavorites);
+              }
+            } catch (error) {
+              console.error('Error rechecking favorite status:', error);
+            }
+          }, 500);
         } else {
           toast.error('Failed to update favorite status');
         }
@@ -360,7 +506,12 @@ export function TrendingSection() {
                   <div className="flex justify-between items-center">
                     <span className="text-gray-300 text-sm">24h Volume</span>
                     <span className="text-white font-bold text-sm">
-                      ${(parseFloat(token.volume24h) * okbPrice).toFixed(2)}
+                      ${(() => {
+                        const volume = parseFloat(token.volume24h || '0');
+                        const volumeInUSD = volume * okbPrice;
+                        // 如果交易量小于0.01美元，显示为$0.00
+                        return volumeInUSD < 0.01 ? '0.00' : volumeInUSD.toFixed(2);
+                      })()}
                     </span>
                   </div>
                 </div>

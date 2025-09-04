@@ -1,13 +1,14 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ChevronDown, ToggleLeft, TrendingUp, Clock, Zap, Star, Shield, BadgeCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { toast, toastMessages } from "@/components/ui/toast-notification";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useRouter } from "next/navigation";
-import { tokenAPI, favoriteAPI } from "@/services/api";
+import { tokenAPI, favoriteAPI, userAPI } from "@/services/api";
 import { useWalletAuth } from "@/hooks/useWalletAuth";
+import websocketService from "@/services/websocket";
 
 // 时间格式化函数
 const getTimeAgo = (dateString: string) => {
@@ -59,6 +60,7 @@ export function TokenGrid() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [tokens, setTokens] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false); // 用于标签切换时的刷新状态
   const [error, setError] = useState<string | null>(null);
   const [okbPrice, setOkbPrice] = useState<number>(177.6); // 默认OKB价格
   const [creators, setCreators] = useState<{[key: string]: any}>({}); // 存储创作者信息
@@ -81,130 +83,356 @@ export function TokenGrid() {
     loadOKBPrice();
   }, [isClient]);
 
-  // 加载代币数据
-  useEffect(() => {
-    if (!isClient || !isInitialized) return; // 等待客户端渲染和初始化完成
+  // 防抖的数据加载函数
+  const [loadingTimeout, setLoadingTimeout] = useState<NodeJS.Timeout | null>(null);
+  
+  // 处理WebSocket代币列表数据
+  const handleTokenListData = useCallback((data: any) => {
+    console.log('Received WebSocket data:', data);
     
-    const loadTokens = async () => {
-      try {
-        setLoading(true);
-        console.log('Loading tokens with sort:', selectedSort);
+    // 处理不同类型的WebSocket消息
+    const isValidTokenData = (
+      data.type === 'token_list' || 
+      data.type === 'newest_tokens' || 
+      data.type === 'near_graduation_tokens' || 
+      data.type === 'top_mc_tokens' ||
+      data.type === 'newest_tokens_update' ||
+      data.type === 'near_graduation_tokens_update' ||
+      data.type === 'top_mc_tokens_update'
+    );
+    
+    if (isValidTokenData) {
+      const tokenList = data.data;
+      if (Array.isArray(tokenList)) {
+        const processedTokens = tokenList.map((token: any) => ({
+          ...token,
+          // WebSocket数据可能使用下划线命名，需要转换
+          graduationProgress: parseFloat(token.graduationProgress || token.graduation_progress || '0'),
+          volume24h: token.volume24h || token.volume_24h || '0',
+          createdAt: token.createdAt || token.created_at || new Date().toISOString(),
+          isVerified: token.isVerified || token.is_verified || false,
+          imageUrl: token.imageUrl || token.image_url || '',
+          marketCap: token.marketCap || token.market_cap || '0',
+          currentPrice: token.currentPrice || token.current_price || '0'
+        }));
         
-        // 根据选择的排序方式构建API参数
-        let apiParams: any = {
-          limit: (selectedSort === 'curved' || selectedSort === 'top-mc') ? 50 : 12, // curved和top-mc选项获取更多代币
-          network: 'sepolia'
-        };
-
-        // 根据排序选项设置不同的API参数
-        switch (selectedSort) {
-          case 'top-mc':
-            // 获取所有代币，然后在前端按市值排序
-            break;
-          case 'newest':
-            apiParams.category = 'newly_created';
-            break;
-          case 'curved':
-            // 获取所有代币，然后在前端过滤进度80%以上的
-            break;
-          default:
-            break;
+        console.log(`Processed ${processedTokens.length} tokens from WebSocket`);
+        
+        // WebSocket端点已经按照排序返回数据，无需再次排序
+        // 但为了保险起见，仍然保留一些基本的过滤逻辑
+        let filteredTokens = processedTokens;
+        
+        if (selectedSort === 'curved') {
+          // Near graduation端点应该已经过滤了，但再次确认
+          filteredTokens = processedTokens.filter((token: any) => 
+            token.graduationProgress >= 80
+          );
+          console.log(`Filtered to ${filteredTokens.length} tokens with progress >= 80%`);
         }
-
-        console.log('API params:', apiParams);
-        const response = await tokenAPI.getTokens(apiParams);
         
-        if (response.success) {
-          let filteredTokens = response.data.tokens;
+        setTokens(filteredTokens);
+        
+        // 加载创作者信息
+        const creatorAddresses = filteredTokens
+          .map((token: any) => token.creator)
+          .filter((creator: any) => creator && typeof creator === 'string');
+        
+        const loadCreators = async () => {
+          const newCreators: {[key: string]: any} = {};
           
-          // 根据排序选项处理数据
-          if (selectedSort === 'curved') {
-            // 过滤进度80%以上的代币
-            console.log('Total tokens received:', response.data.tokens.length);
-            console.log('Progress distribution:', response.data.tokens.map((t: any) => t.graduationProgress).sort((a: number, b: number) => a - b));
-            filteredTokens = response.data.tokens.filter((token: any) => 
-              token.graduationProgress >= 80
-            );
-            console.log('Filtered tokens with progress >= 80%:', filteredTokens.length);
-          } else if (selectedSort === 'top-mc') {
-            // 按市值排序（从高到低）
-            filteredTokens = response.data.tokens.sort((a: any, b: any) => {
-              const marketCapA = parseFloat(a.marketCap || '0');
-              const marketCapB = parseFloat(b.marketCap || '0');
-              return marketCapB - marketCapA; // 降序排列
-            });
-            console.log('Sorted tokens by market cap (top 12):', filteredTokens.slice(0, 12).map((t: any) => ({ name: t.name, marketCap: t.marketCap })));
+          for (const creatorAddress of creatorAddresses) {
+            try {
+              const creatorData = await userAPI.getUser(creatorAddress.toLowerCase());
+              newCreators[creatorAddress] = creatorData;
+            } catch (error) {
+              console.error('Failed to load creator info for:', creatorAddress, error);
+            }
           }
           
-          setTokens(filteredTokens);
+          setCreators(newCreators);
+        };
+        
+        loadCreators();
+        setLoading(false);
+        setIsRefreshing(false);
+        setError(null);
+      }
+    }
+  }, [selectedSort]);
+
+  // WebSocket连接状态
+  const [connectionId, setConnectionId] = useState<string | null>(null);
+  
+  // 初始化WebSocket连接
+  useEffect(() => {
+    if (!isClient || !isInitialized) return; // 只在客户端运行且初始化完成后
+    
+    // 清除之前的定时器
+    if (loadingTimeout) {
+      clearTimeout(loadingTimeout);
+    }
+    
+    // 设置防抖延迟
+    const timeout = setTimeout(() => {
+      // 根据选择的排序方式连接不同的WebSocket端点
+      const connectWebSocket = () => {
+        try {
+          // 只在没有现有数据时显示loading状态，有数据时显示刷新状态
+          if (tokens.length === 0) {
+            setLoading(true);
+          } else {
+            setIsRefreshing(true);
+          }
+          console.log('Connecting WebSocket for sort:', selectedSort);
           
-          // 加载创作者信息
-          const creatorAddresses = filteredTokens
-            .map((token: any) => token.creator)
-            .filter((creator: any) => creator && typeof creator === 'string');
+          // 断开之前的连接
+          if (connectionId) {
+            websocketService.disconnect(connectionId);
+            setConnectionId(null);
+          }
           
-          const loadCreators = async () => {
-            const newCreators: {[key: string]: any} = {};
+          // 根据排序选项选择WebSocket端点
+          let endpoint;
+          switch (selectedSort) {
+            case 'newest':
+              endpoint = 'tokens/newest/';
+              break;
+            case 'curved':
+              endpoint = 'tokens/near-graduation/';
+              break;
+            case 'top-mc':
+              endpoint = 'tokens/top-mc/';
+              break;
+            default:
+              endpoint = 'tokens/newest/';
+              break;
+          }
+          
+          // 建立WebSocket连接
+          const newConnectionId = websocketService.connect(
+            endpoint,
+            handleTokenListData,
+            (error) => {
+              console.error('WebSocket connection error:', error);
+              setError('WebSocket connection failed');
+              setLoading(false);
+            setIsRefreshing(false);
+              // 如果WebSocket连接失败，回退到API
+              fallbackToAPI();
+            }
+          );
+          
+          setConnectionId(newConnectionId);
+          console.log(`WebSocket connected to ${endpoint} with ID:`, newConnectionId);
+        } catch (error) {
+          console.error('Failed to connect WebSocket:', error);
+          // 如果WebSocket连接失败，回退到API
+          fallbackToAPI();
+        }
+      };
+      
+      // API回退函数
+      const fallbackToAPI = async () => {
+        try {
+          // 只在没有现有数据时显示loading状态，有数据时显示刷新状态
+          if (tokens.length === 0) {
+            setLoading(true);
+          } else {
+            setIsRefreshing(true);
+          }
+          console.log('Falling back to API for sort:', selectedSort);
+          
+          // 根据选择的排序方式调用不同的专用API
+          let response;
+          const apiParams = {
+            limit: selectedSort === 'newest' ? 12 : 50,
+            network: 'sepolia'
+          };
+
+          switch (selectedSort) {
+            case 'newest':
+              response = await tokenAPI.getNewestTokens(apiParams);
+              break;
+            case 'curved':
+              response = await tokenAPI.getNearGraduationTokens(apiParams);
+              break;
+            case 'top-mc':
+              response = await tokenAPI.getTopMCTokens(apiParams);
+              break;
+            default:
+              response = await tokenAPI.getNewestTokens(apiParams);
+              break;
+          }
+
+          console.log('API fallback response:', response);
+        
+          if (response.success) {
+            console.log('[TokenGrid] API response received:', response.data);
+            // 处理API返回的数据，确保字段名一致
+            const processedTokens = response.data.tokens.map((token: any) => {
+              const processed = {
+                ...token,
+                // API返回的是驼峰命名，确保数据类型正确
+                graduationProgress: parseFloat(token.graduationProgress || '0'),
+                volume24h: token.volume24h || '0',
+                marketCap: token.marketCap || '0',
+                currentPrice: token.currentPrice || '0',
+                imageUrl: token.imageUrl || '',
+                createdAt: token.createdAt || new Date().toISOString(),
+                isVerified: token.isVerified || false
+              };
+              console.log(`[TokenGrid] Processing token ${token.symbol}:`, {
+                original: token.graduationProgress,
+                processed: processed.graduationProgress,
+                type: typeof processed.graduationProgress
+              });
+              return processed;
+            });
             
-            for (const creatorAddress of creatorAddresses) {
-              try {
-                const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
-                const creatorResponse = await fetch(`${backendUrl}/api/users/${creatorAddress.toLowerCase()}/`);
-                if (creatorResponse.ok) {
-                  const creatorData = await creatorResponse.json();
-                  newCreators[creatorAddress] = creatorData;
-                }
-              } catch (error) {
-                console.error('Failed to load creator info for:', creatorAddress, error);
-              }
+            let filteredTokens = processedTokens;
+            
+            // 根据排序选项处理数据
+            if (selectedSort === 'curved') {
+              // 过滤进度80%以上的代币
+              console.log('Total tokens received:', processedTokens.length);
+              console.log('Progress distribution:', processedTokens.map((t: any) => t.graduationProgress).sort((a: number, b: number) => a - b));
+              filteredTokens = processedTokens.filter((token: any) => 
+                token.graduationProgress >= 80
+              );
+              console.log('Filtered tokens with progress >= 80%:', filteredTokens.length);
+            } else if (selectedSort === 'top-mc') {
+              // 按市值排序（从高到低）
+              filteredTokens = processedTokens.sort((a: any, b: any) => {
+                const marketCapA = parseFloat(a.marketCap || '0');
+                const marketCapB = parseFloat(b.marketCap || '0');
+                return marketCapB - marketCapA; // 降序排列
+              });
+              console.log('Sorted tokens by market cap (top 12):', filteredTokens.slice(0, 12).map((t: any) => ({ name: t.name, marketCap: t.marketCap })));
             }
             
-            setCreators(newCreators);
-          };
-          
-          loadCreators();
-        } else {
+            console.log('[TokenGrid] Setting filtered tokens:', filteredTokens);
+            setTokens(filteredTokens);
+            
+            // 加载创作者信息
+            const creatorAddresses = filteredTokens
+              .map((token: any) => token.creator)
+              .filter((creator: any) => creator && typeof creator === 'string');
+            
+            const loadCreators = async () => {
+              const newCreators: {[key: string]: any} = {};
+              
+              for (const creatorAddress of creatorAddresses) {
+                try {
+                  const creatorData = await userAPI.getUser(creatorAddress.toLowerCase());
+                  newCreators[creatorAddress] = creatorData;
+                } catch (error) {
+                  console.error('Failed to load creator info for:', creatorAddress, error);
+                }
+              }
+              
+              setCreators(newCreators);
+            };
+            
+            loadCreators();
+          } else {
+            setError('Failed to load tokens');
+          }
+        } catch (err) {
+          console.error('Error loading tokens:', err);
           setError('Failed to load tokens');
+        } finally {
+          setLoading(false);
+          setIsRefreshing(false);
         }
-      } catch (err) {
-        console.error('Error loading tokens:', err);
-        setError('Failed to load tokens');
-      } finally {
-        setLoading(false);
+      };
+
+      // 优先使用WebSocket连接
+      console.log(`[TokenGrid] Connecting WebSocket for sort: ${selectedSort}`);
+      connectWebSocket();
+    }, 300); // 300ms 防抖延迟
+    
+    setLoadingTimeout(timeout);
+    
+    // 清理函数
+    return () => {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+      // 断开WebSocket连接
+      if (connectionId) {
+        websocketService.disconnect(connectionId);
+        setConnectionId(null);
       }
     };
+  }, [selectedSort, isClient, isInitialized, handleTokenListData, connectionId]);
+  
+  // 组件卸载时清理WebSocket连接
+  useEffect(() => {
+    return () => {
+      if (connectionId) {
+        websocketService.disconnect(connectionId);
+      }
+    };
+  }, [connectionId]);
 
-    loadTokens();
-  }, [selectedSort, isClient, isInitialized]);
-
+  // 防抖的收藏状态加载
+  const [favoriteTimeout, setFavoriteTimeout] = useState<NodeJS.Timeout | null>(null);
+  
   // 加载用户收藏状态
   useEffect(() => {
     if (!isClient) return; // 只在客户端运行
     
-    const loadFavoriteStatus = async () => {
-      if (!isConnected || !address || tokens.length === 0) return;
+    // 清除之前的定时器
+    if (favoriteTimeout) {
+      clearTimeout(favoriteTimeout);
+    }
+    
+    // 设置防抖延迟
+    const timeout = setTimeout(() => {
+      const loadFavoriteStatus = async () => {
+        if (!isConnected || !address || tokens.length === 0) return;
 
-      try {
-        const favoritePromises = tokens.map(token =>
-          favoriteAPI.checkFavoriteStatus(address, token.address, 'sepolia')
-        );
-        
-        const responses = await Promise.all(favoritePromises);
-        const newFavorites = new Set<string>();
-        
-        responses.forEach((response, index) => {
-          if (response.success && response.data.is_favorited) {
-            newFavorites.add(tokens[index].address);
+        try {
+          // 批量检查收藏状态，但限制并发数量
+          const batchSize = 5;
+          const newFavorites = new Set<string>();
+          
+          for (let i = 0; i < tokens.length; i += batchSize) {
+            const batch = tokens.slice(i, i + batchSize);
+            const favoritePromises = batch.map(token =>
+              favoriteAPI.checkFavoriteStatus(address, token.address, 'sepolia')
+            );
+            
+            const responses = await Promise.all(favoritePromises);
+            responses.forEach((response, index) => {
+              if (response.success && response.data.is_favorited) {
+                newFavorites.add(batch[index].address);
+              }
+            });
+            
+            // 小延迟避免过于频繁的请求
+            if (i + batchSize < tokens.length) {
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
           }
-        });
-        
-        setFavorites(newFavorites);
-      } catch (error) {
-        console.error('Error loading favorite status:', error);
+          
+          setFavorites(newFavorites);
+        } catch (error) {
+          console.error('Error loading favorite status:', error);
+        }
+      };
+
+      loadFavoriteStatus();
+    }, 500); // 500ms 防抖延迟
+    
+    setFavoriteTimeout(timeout);
+    
+    // 清理函数
+    return () => {
+      if (timeout) {
+        clearTimeout(timeout);
       }
     };
-
-    loadFavoriteStatus();
   }, [isConnected, address, tokens, isClient]);
 
   const [isFavoriteLoading, debouncedToggleFavorite] = useDebounce(
@@ -230,6 +458,24 @@ export function TokenGrid() {
             toast.success(toastMessages.favorites.removed(tokenName));
           }
           setFavorites(newFavorites);
+          
+          // 重新检查收藏状态以确保同步
+          setTimeout(async () => {
+            try {
+              const statusResponse = await favoriteAPI.checkFavoriteStatus(address, tokenAddress, 'sepolia');
+              if (statusResponse.success) {
+                const updatedFavorites = new Set(favorites);
+                if (statusResponse.data.is_favorited) {
+                  updatedFavorites.add(tokenAddress);
+                } else {
+                  updatedFavorites.delete(tokenAddress);
+                }
+                setFavorites(updatedFavorites);
+              }
+            } catch (error) {
+              console.error('Error rechecking favorite status:', error);
+            }
+          }, 500);
         } else {
           toast.error('Failed to update favorite status');
         }
@@ -322,7 +568,9 @@ export function TokenGrid() {
       </div>
 
       {/* 代币网格 - 响应式布局 */}
-      {loading ? (
+      {/* 移除刷新状态指示器，避免抖动 */}
+      
+      {(loading && tokens.length === 0) ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
           {[...Array(12)].map((_, index) => (
             <div key={index} className="group relative bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 animate-pulse">
@@ -515,14 +763,16 @@ export function TokenGrid() {
                                 );
                               } else {
                                 try {
+                                  // Handle Unicode encoded emoji from backend
                                   if (creatorInfo.avatar_url.includes('\\u')) {
-                                    return <span className="text-xs">{JSON.parse(`"${creatorInfo.avatar_url}"`)}</span>;
+                                    // Parse the Unicode escape sequences
+                                    const decoded = JSON.parse(`"${creatorInfo.avatar_url}"`);
+                                    return <span className="text-xs">{decoded}</span>;
                                   }
-                                  if (creatorInfo.avatar_url.startsWith('\\u')) {
-                                    return <span className="text-xs">{String.fromCodePoint(parseInt(creatorInfo.avatar_url.slice(2), 16))}</span>;
-                                  }
+                                  // Handle direct emoji or other formats
                                   return <span className="text-xs">{creatorInfo.avatar_url}</span>;
                                 } catch (e) {
+                                  // Fallback to original string if parsing fails
                                   return <span className="text-xs">{creatorInfo.avatar_url}</span>;
                                 }
                               }
@@ -574,7 +824,12 @@ export function TokenGrid() {
                   </div>
                   <div className="text-right">
                     <div className="text-white font-semibold text-lg mb-1">
-                      ${(parseFloat(token.volume24h) * okbPrice).toFixed(2)}
+                      ${(() => {
+                        const volume = parseFloat(token.volume24h || '0');
+                        const volumeInUSD = volume * okbPrice;
+                        // 如果交易量小于0.01美元，显示为$0.00
+                        return volumeInUSD < 0.01 ? '0.00' : volumeInUSD.toFixed(2);
+                      })()}
                     </div>
                     <div className="text-gray-400 text-xs">
                       24h VOL

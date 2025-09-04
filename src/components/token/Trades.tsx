@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ArrowUp, ArrowDown, ExternalLink, Clock, Users, Crown, Medal, Award, ChevronDown, Copy, Check } from 'lucide-react';
 import { tokenAPI } from '@/services/api';
+import websocketService from '@/services/websocket';
 
 interface TradesAndHoldersProps {
   tokenAddress: string;
@@ -16,13 +17,47 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
   const [error, setError] = useState<string | null>(null);
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
 
-  // 加载交易数据
+  // 处理WebSocket交易数据
+  const handleTransactionData = useCallback((data: any) => {
+    if (data.type === 'transaction') {
+      const transaction = data.data;
+      if (transaction && transaction.token_address === tokenAddress) {
+        // 将后端的snake_case字段映射为前端期望的格式
+        const mappedTransaction = {
+          ...transaction,
+          tokenAddress: transaction.token_address || transaction.tokenAddress,
+          okbAmount: transaction.okb_amount || transaction.okbAmount,
+          blockNumber: transaction.block_number || transaction.blockNumber
+        };
+        
+        setTransactions(prev => {
+          // 检查是否已存在该交易
+          const exists = prev.some(tx => tx.id === mappedTransaction.id || tx.hash === mappedTransaction.hash);
+          if (!exists) {
+            return [mappedTransaction, ...prev]; // 新交易添加到顶部
+          }
+          return prev;
+        });
+        setLoading(false);
+        setError(null);
+      }
+    }
+  }, [tokenAddress]);
+
+  // 备用API加载交易数据
   const loadTransactions = async () => {
     try {
       setLoading(true);
       const response = await tokenAPI.getTokenTransactions(tokenAddress, 'sepolia');
       if (response.success) {
-        setTransactions(response.data || []);
+        // 将后端的snake_case字段映射为前端期望的格式
+        const mappedTransactions = (response.data || []).map((transaction: any) => ({
+          ...transaction,
+          tokenAddress: transaction.token_address || transaction.tokenAddress,
+          okbAmount: transaction.okb_amount || transaction.okbAmount,
+          blockNumber: transaction.block_number || transaction.blockNumber
+        }));
+        setTransactions(mappedTransactions);
       } else {
         setError('Failed to load transactions');
       }
@@ -45,7 +80,24 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
     }
   };
 
-  // 加载持有人数据
+  // 处理WebSocket持有者数据
+  const handleHoldersData = useCallback((data: any) => {
+    if (data.type === 'token_holders') {
+      const holdersData = data.data;
+      if (Array.isArray(holdersData)) {
+        setHolders(holdersData);
+        setLoading(false);
+        setError(null);
+      }
+    } else if (data.type === 'holders_update') {
+      const updateData = data.data;
+      if (updateData && updateData.token_address === tokenAddress) {
+        setHolders(updateData.holders || []);
+      }
+    }
+  }, [tokenAddress]);
+
+  // 备用API加载持有人数据
   const loadHolders = async () => {
     try {
       setLoading(true);
@@ -63,25 +115,41 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
     }
   };
 
-  // 初始化数据
+  // 初始化WebSocket连接和数据
   useEffect(() => {
-    if (activeTab === 'trades') {
-      loadTransactions();
-    } else {
-      loadHolders();
-    }
-  }, [tokenAddress, activeTab]);
+    let transactionConnectionId: string | null = null;
+    let holdersConnectionId: string | null = null;
 
-  // 定期刷新交易数据（每30秒）
-  useEffect(() => {
     if (activeTab === 'trades') {
-      const interval = setInterval(() => {
-        loadTransactions();
-      }, 30000);
+      // 先加载初始交易数据
+      loadTransactions();
       
-      return () => clearInterval(interval);
+      // 连接交易WebSocket获取实时更新
+      transactionConnectionId = websocketService.connect('transactions/', handleTransactionData);
+      
+      console.log('Connected to transaction WebSocket for real-time updates');
+    } else {
+      // 先加载初始持有者数据
+      loadHolders();
+      
+      // 连接持有者WebSocket获取实时更新
+      holdersConnectionId = websocketService.connect(`tokens/${tokenAddress}/holders/`, handleHoldersData);
+      
+      console.log('Connected to holders WebSocket for real-time updates');
     }
-  }, [activeTab, tokenAddress]);
+
+    // 清理函数
+    return () => {
+      if (transactionConnectionId) {
+        websocketService.disconnect(transactionConnectionId);
+      }
+      if (holdersConnectionId) {
+        websocketService.disconnect(holdersConnectionId);
+      }
+    };
+  }, [tokenAddress, activeTab, handleTransactionData, handleHoldersData]);
+
+  // 移除定期刷新，现在使用WebSocket实时数据
 
   // 暴露刷新函数给父组件
   useEffect(() => {
@@ -290,7 +358,7 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
                          {/* OKB金额和Etherscan链接 */}
          <div className="flex items-center justify-end space-x-3">
            <span className="text-gray-400 text-xs">
-             {parseFloat(tx.okb_amount).toFixed(4)} OKB
+             {parseFloat(tx.okbAmount || tx.okb_amount || '0').toFixed(4)} OKB
            </span>
            {tx.hash && (
              <a

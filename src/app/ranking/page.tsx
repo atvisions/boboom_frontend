@@ -110,12 +110,8 @@ export default function RankingPage() {
               
               for (const creatorAddress of creatorAddresses) {
                 try {
-                  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
-                  const creatorResponse = await fetch(`${backendUrl}/api/users/${creatorAddress.toLowerCase()}/`);
-                  if (creatorResponse.ok) {
-                    const creatorData = await creatorResponse.json();
-                    newCreatorInfo[creatorAddress] = creatorData;
-                  }
+                  const creatorData = await userAPI.getUser(creatorAddress.toLowerCase());
+                  newCreatorInfo[creatorAddress] = creatorData;
                 } catch (error) {
                   console.error('Failed to load creator info for:', creatorAddress, error);
                 }
@@ -207,6 +203,24 @@ export default function RankingPage() {
           toast.success(toastMessages.favorites.removed(tokenName));
         }
         setFavorites(newFavorites);
+        
+        // 重新检查收藏状态以确保同步
+        setTimeout(async () => {
+          try {
+            const statusResponse = await favoriteAPI.checkFavoriteStatus(address, tokenAddress, 'sepolia');
+            if (statusResponse.success) {
+              const updatedFavorites = new Set(favorites);
+              if (statusResponse.data.is_favorited) {
+                updatedFavorites.add(tokenAddress);
+              } else {
+                updatedFavorites.delete(tokenAddress);
+              }
+              setFavorites(updatedFavorites);
+            }
+          } catch (error) {
+            console.error('Error rechecking favorite status:', error);
+          }
+        }, 500);
       } else {
         toast.error('Failed to update favorite status');
       }
@@ -563,7 +577,7 @@ export default function RankingPage() {
                           {creator.avatar_url ? (
                             creator.avatar_url.startsWith('/media/') ? (
                               <img 
-                                src={creator.avatar_url} 
+                                src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'}${creator.avatar_url}`} 
                                 alt="Avatar" 
                                 className="w-full h-full rounded-2xl object-cover"
                               />

@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Star, Share2, Copy, ExternalLink, TrendingUp, TrendingDown, ArrowLeft } from 'lucide-react';
 import { FaXTwitter, FaTelegram, FaDiscord, FaGithub, FaGlobe } from 'react-icons/fa6';
-import { userAPI, favoriteAPI } from '@/services/api';
+import { userAPI, favoriteAPI, tokenAPI } from '@/services/api';
 import { useWalletAuth } from '@/hooks/useWalletAuth';
 import { toast } from '@/components/ui/toast-notification';
 
@@ -33,23 +33,13 @@ export function TokenDetails({ token }: TokenDetailsProps) {
         }
         
         // 如果有创作者地址，调用API获取完整信息
-        if (creatorAddress) {
+        if (creatorAddress && (!creator || creator.address !== creatorAddress)) {
           console.log('Loading creator info for:', creatorAddress);
           try {
-            // 直接调用后端API
-            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
-            const response = await fetch(`${backendUrl}/api/users/${creatorAddress.toLowerCase()}/`);
-            if (response.ok) {
-              const data = await response.json();
-              console.log('Creator response:', data);
-              setCreator(data);
-            } else {
-              console.error('Failed to fetch creator info:', response.status);
-              // 如果API调用失败，使用token.creator中的基本信息作为备用
-              if (token.creator && typeof token.creator === 'object') {
-                setCreator(token.creator);
-              }
-            }
+            // 使用带缓存的 userAPI 而不是直接调用后端
+            const response = await userAPI.getUser(creatorAddress.toLowerCase());
+            console.log('Creator response:', response);
+            setCreator(response);
           } catch (fetchError) {
             console.error('Fetch error:', fetchError);
             // 如果API调用失败，使用token.creator中的基本信息作为备用
@@ -68,7 +58,7 @@ export function TokenDetails({ token }: TokenDetailsProps) {
     };
 
     loadCreatorInfo();
-  }, [token.creator]);
+  }, [token.creator, creator]);
 
   // 加载收藏状态
   useEffect(() => {
@@ -90,12 +80,9 @@ export function TokenDetails({ token }: TokenDetailsProps) {
   useEffect(() => {
     const loadOKBPrice = async () => {
       try {
-        // 直接调用后端API，避免Next.js API路由的重定向问题
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
-        const response = await fetch(`${backendUrl}/api/tokens/okb-price/`);
-        const data = await response.json();
-        if (data.success) {
-          setOkbPrice(parseFloat(data.data.price));
+        const response = await tokenAPI.getOKBPrice();
+        if (response.success) {
+          setOkbPrice(parseFloat(response.data.price));
         }
       } catch (error) {
         console.error('Failed to load OKB price:', error);
@@ -122,6 +109,18 @@ export function TokenDetails({ token }: TokenDetailsProps) {
       if (response.success) {
         setIsFavorited(response.data.is_favorited);
         toast.success(response.data.is_favorited ? 'Added to favorites' : 'Removed from favorites');
+        
+        // 重新检查收藏状态以确保同步
+        setTimeout(async () => {
+          try {
+            const statusResponse = await favoriteAPI.checkFavoriteStatus(address, token.address, 'sepolia');
+            if (statusResponse.success) {
+              setIsFavorited(statusResponse.data.is_favorited);
+            }
+          } catch (error) {
+            console.error('Error rechecking favorite status:', error);
+          }
+        }, 500);
       }
     } catch (error) {
       toast.error('Failed to update favorite status');
@@ -249,14 +248,12 @@ export function TokenDetails({ token }: TokenDetailsProps) {
                         <span className="text-xs">
                           {(() => {
                             try {
-                              // 处理Unicode编码的emoji
+                              // Handle Unicode encoded emoji from backend
                               if (creator.avatar_url.includes('\\u')) {
-                                return JSON.parse(`"${creator.avatar_url}"`);
+                                const decoded = JSON.parse(`"${creator.avatar_url}"`);
+                                return decoded;
                               }
-                              // 处理直接的Unicode字符
-                              if (creator.avatar_url.startsWith('\\u')) {
-                                return String.fromCodePoint(parseInt(creator.avatar_url.slice(2), 16));
-                              }
+                              // Handle direct emoji or other formats
                               return creator.avatar_url;
                             } catch (e) {
                               console.error('Error parsing avatar emoji:', e);
