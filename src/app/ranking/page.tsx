@@ -76,34 +76,40 @@ export default function RankingPage() {
           });
           
           if (response.success) {
-            let sortedTokens = response.data.tokens;
+            // 后端已经返回camelCase格式的数据，直接使用
+            let mappedTokens = response.data.tokens;
             
             // 根据排序选项排序
             switch (tokenSort) {
               case 'market-cap':
-                sortedTokens = sortedTokens.sort((a: any, b: any) => 
+                mappedTokens = mappedTokens.sort((a: any, b: any) => 
                   parseFloat(b.marketCap || '0') - parseFloat(a.marketCap || '0')
                 );
                 break;
               case 'volume':
-                sortedTokens = sortedTokens.sort((a: any, b: any) => 
+                mappedTokens = mappedTokens.sort((a: any, b: any) => 
                   parseFloat(b.volume24h || '0') - parseFloat(a.volume24h || '0')
                 );
                 break;
               case 'favorites':
                 // 这里需要后端提供收藏数量字段，暂时按市值排序
-                sortedTokens = sortedTokens.sort((a: any, b: any) => 
+                mappedTokens = mappedTokens.sort((a: any, b: any) => 
                   parseFloat(b.marketCap || '0') - parseFloat(a.marketCap || '0')
                 );
                 break;
             }
             
-            setTokens(sortedTokens);
+            setTokens(mappedTokens);
             
             // 加载代币创作者信息
-            const creatorAddresses = sortedTokens
+            const creatorAddresses = mappedTokens
               .map((token: any) => token.creator)
-              .filter((creator: any) => creator && typeof creator === 'string');
+              .filter((creator: any) =>
+                creator &&
+                typeof creator === 'string' &&
+                creator.startsWith('0x') &&
+                creator.length === 42
+              );
             
             const loadCreators = async () => {
               const newCreatorInfo: {[key: string]: any} = {};
@@ -113,7 +119,7 @@ export default function RankingPage() {
                   const creatorData = await userAPI.getUser(creatorAddress.toLowerCase());
                   newCreatorInfo[creatorAddress] = creatorData;
                 } catch (error) {
-                  console.error('Failed to load creator info for:', creatorAddress, error);
+                  console.warn('Failed to load creator info for:', creatorAddress, error);
                 }
               }
               
@@ -155,19 +161,30 @@ export default function RankingPage() {
 
     const loadFavoriteStatus = async () => {
       try {
-        const favoritePromises = tokens.map(token =>
-          favoriteAPI.checkFavoriteStatus(address, token.address, 'sepolia')
+        // 过滤出有效的代币地址（42字符长度）
+        const validTokens = tokens.filter(token =>
+          token.address &&
+          token.address.startsWith('0x') &&
+          token.address.length === 42
         );
-        
+
+        const favoritePromises = validTokens.map(token =>
+          favoriteAPI.checkFavoriteStatus(address, token.address, 'sepolia')
+            .catch(error => {
+              console.warn(`Failed to check favorite status for token ${token.address}:`, error);
+              return { success: false, data: { is_favorited: false } };
+            })
+        );
+
         const responses = await Promise.all(favoritePromises);
         const newFavorites = new Set<string>();
-        
+
         responses.forEach((response, index) => {
           if (response.success && response.data.is_favorited) {
-            newFavorites.add(tokens[index].address);
+            newFavorites.add(validTokens[index].address);
           }
         });
-        
+
         setFavorites(newFavorites);
       } catch (error) {
         console.error('Error loading favorite status:', error);
@@ -371,7 +388,13 @@ export default function RankingPage() {
                     </button>
                   </div>
                 ) : (
-                  tokens.map((token, index) => (
+                  tokens
+                    .filter(token =>
+                      token.address &&
+                      token.address.startsWith('0x') &&
+                      token.address.length === 42
+                    )
+                    .map((token, index) => (
                     <div
                       key={token.address}
                       className="group relative bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#70E000]/50 hover:shadow-xl hover:shadow-[#70E000]/10 transition-all duration-300 cursor-pointer"
@@ -401,18 +424,28 @@ export default function RankingPage() {
 
                         {/* Logo */}
                         <div className="flex-shrink-0 w-16 h-16 rounded-2xl overflow-hidden bg-gradient-to-br from-[#1B1B1B] to-[#232323] flex items-center justify-center shadow-lg">
-                          {token.imageUrl ? (
-                            <Image 
-                              src={token.imageUrl} 
-                              alt={`${token.name} logo`} 
-                              width={64} 
-                              height={64} 
+                          {token.imageUrl && token.imageUrl.trim() !== '' ? (
+                            <Image
+                              src={token.imageUrl}
+                              alt={`${token.name} logo`}
+                              width={64}
+                              height={64}
                               className="w-16 h-16 object-contain"
                               unoptimized={true}
+                              onError={(e) => {
+                                console.log(`Failed to load image for ${token.name}:`, token.imageUrl);
+                                // 隐藏图片，显示文字
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.nextElementSibling.style.display = 'block';
+                              }}
                             />
-                          ) : (
-                            <span className="text-2xl font-bold text-white">{token.symbol.slice(0, 2)}</span>
-                          )}
+                          ) : null}
+                          <span
+                            className="text-2xl font-bold text-white"
+                            style={{ display: token.imageUrl && token.imageUrl.trim() !== '' ? 'none' : 'block' }}
+                          >
+                            {token.symbol?.slice(0, 2) || 'TK'}
+                          </span>
                         </div>
 
                         {/* 代币信息 */}
@@ -449,14 +482,14 @@ export default function RankingPage() {
                               <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#70E000]/20 to-[#5BC000]/20 flex items-center justify-center overflow-hidden">
                                 {(() => {
                                   const creatorData = creatorInfo[token.creator];
-                                  if (creatorData?.avatar_url) {
+                                  if (creatorData?.avatar_url && creatorData.avatar_url.trim() !== '') {
                                     if (creatorData.avatar_url.startsWith('/media/')) {
                                       return (
-                                        <Image 
+                                        <Image
                                           src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'}${creatorData.avatar_url}?t=${creatorData.updated_at || Date.now()}`}
-                                          alt="Creator avatar" 
-                                          width={20} 
-                                          height={20} 
+                                          alt="Creator avatar"
+                                          width={20}
+                                          height={20}
                                           className="w-5 h-5 rounded-full object-cover"
                                           unoptimized={true}
                                         />
@@ -574,11 +607,11 @@ export default function RankingPage() {
 
                         {/* 头像 */}
                         <div className="flex-shrink-0 w-16 h-16 rounded-2xl bg-gradient-to-br from-[#70E000]/20 to-[#5BC000]/20 flex items-center justify-center shadow-lg">
-                          {creator.avatar_url ? (
+                          {creator.avatar_url && creator.avatar_url.trim() !== '' ? (
                             creator.avatar_url.startsWith('/media/') ? (
-                              <img 
-                                src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'}${creator.avatar_url}`} 
-                                alt="Avatar" 
+                              <img
+                                src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'}${creator.avatar_url}`}
+                                alt="Avatar"
                                 className="w-full h-full rounded-2xl object-cover"
                               />
                             ) : (

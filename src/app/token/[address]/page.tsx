@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
 import { Sidebar } from '@/components/common/Sidebar';
 import { SearchHeader } from '@/components/common/SearchHeader';
 import { TokenDetails } from '@/components/token/TokenDetails';
@@ -24,6 +25,7 @@ export default function TokenDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userTokenBalance, setUserTokenBalance] = useState<string>('0'); // 用户代币余额
+  const [stats24h, setStats24h] = useState<any>(null); // 24h 统计数据
   const eventSourceRef = useRef<EventSource | null>(null);
 
   const tokenAddress = params?.address as string;
@@ -55,6 +57,8 @@ export default function TokenDetailPage() {
       const tokenData = data.data;
       if (tokenData && tokenData.address === tokenAddress) {
         console.log('[TokenDetailPage] Processing token data:', tokenData);
+        console.log('[TokenDetailPage] Token name:', tokenData.name);
+        console.log('[TokenDetailPage] Token symbol:', tokenData.symbol);
         // 将后端的snake_case字段映射为前端期望的camelCase
         const mappedToken = {
           ...tokenData,
@@ -67,7 +71,7 @@ export default function TokenDetailPage() {
           priceChange24h: tokenData.price_change_24h || tokenData.priceChange24h,
           okbCollected: tokenData.okb_collected || tokenData.okbCollected,
           tokensTraded: tokenData.tokens_traded || tokenData.tokensTraded,
-          graduationProgress: parseFloat(tokenData.graduationProgress || tokenData.graduation_progress || '0'),
+          graduationProgress: parseFloat(tokenData.graduationProgress || tokenData.graduation_progress || tokenData.bonding_progress || '0'),
           curveTradingActive: tokenData.curve_trading_enabled || tokenData.curveTradingActive,
           graduatedAt: tokenData.graduated_at || tokenData.graduatedAt,
           izumiPoolAddress: tokenData.izumi_pool_address || tokenData.izumiPoolAddress,
@@ -101,6 +105,17 @@ export default function TokenDetailPage() {
             low24h: priceData.low_24h || priceData.low24h || prevToken.low24h
           };
         });
+
+        // 同时更新 stats24h 状态
+        setStats24h((prevStats: any) => ({
+          ...prevStats,
+          currentPrice: priceData.current_price || priceData.currentPrice,
+          priceChange24h: priceData.price_change_24h || priceData.priceChange24h,
+          volume24h: priceData.volume_24h || priceData.volume24h,
+          high24h: priceData.high_24h || priceData.high24h || prevStats?.high24h,
+          low24h: priceData.low_24h || priceData.low24h || prevStats?.low24h,
+          updatedAt: new Date().toISOString()
+        }));
       }
     }
   }, [tokenAddress]);
@@ -124,6 +139,9 @@ export default function TokenDetailPage() {
         if (detailResponse.success) {
           const tokenData = detailResponse.data;
           const statsData = statsResponse.success ? statsResponse.data : { high24h: '0', low24h: '0' };
+
+          // 保存 24h 统计数据
+          setStats24h(statsData);
           
           // 将后端的snake_case字段映射为前端期望的camelCase
           setToken({
@@ -140,7 +158,7 @@ export default function TokenDetailPage() {
             low24h: statsData.low24h || tokenData.low24h || '0',
             okbCollected: tokenData.okb_collected || tokenData.okbCollected,
             tokensTraded: tokenData.tokens_traded || tokenData.tokensTraded,
-            graduationProgress: parseFloat(tokenData.graduationProgress || tokenData.graduation_progress || '0'),
+            graduationProgress: parseFloat(tokenData.graduationProgress || tokenData.graduation_progress || tokenData.bonding_progress || '0'),
             curveTradingActive: tokenData.curve_trading_enabled || tokenData.curveTradingActive,
             graduatedAt: tokenData.graduated_at || tokenData.graduatedAt,
             izumiPoolAddress: tokenData.izumi_pool_address || tokenData.izumiPoolAddress,
@@ -248,6 +266,16 @@ export default function TokenDetailPage() {
         <div className="flex-1 overflow-y-auto bg-[#0E0E0E]">
           {/* 主内容区域 - 最大宽度限制 */}
           <div className="max-w-7xl mx-auto px-6 py-6">
+            {/* 回退按钮 */}
+            <div className="flex items-center mb-4">
+              <button
+                onClick={() => window.history.back()}
+                className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors group"
+              >
+                <ArrowLeft className="h-5 w-5 group-hover:-translate-x-1 transition-transform" />
+                <span className="text-sm font-medium">Back</span>
+              </button>
+            </div>
             <div className="grid grid-cols-1 lg:grid-cols-6 gap-6">
               {/* 左侧内容 - 占据4.5列 */}
               <div className="lg:col-span-4 space-y-6">
@@ -255,7 +283,7 @@ export default function TokenDetailPage() {
                 <TokenDetails token={token} />
                 
                 {/* 代币指标 */}
-                <TokenMetrics token={token} okbPrice={okbPrice} showCurrentPrice={true} />
+                <TokenMetrics token={token} okbPrice={okbPrice} showCurrentPrice={true} stats24h={stats24h} />
                 
                 {/* 图表区域 */}
                 <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl">

@@ -19,46 +19,68 @@ export function TokenDetails({ token }: TokenDetailsProps) {
   const [isFavoriteLoading, setIsFavoriteLoading] = useState(false);
   const [okbPrice, setOkbPrice] = useState<number>(177.6);
 
+  // 早期返回检查 - 如果token不存在，显示加载状态
+  if (!token) {
+    return (
+      <div className="bg-[#1B1B1B] rounded-2xl p-6 border border-gray-700/50">
+        <div className="animate-pulse">
+          <div className="h-6 bg-gray-700 rounded w-1/4 mb-4"></div>
+          <div className="h-4 bg-gray-700 rounded w-1/2 mb-2"></div>
+          <div className="h-4 bg-gray-700 rounded w-1/3"></div>
+        </div>
+      </div>
+    );
+  }
+
   // 加载创作者信息
   useEffect(() => {
-    const loadCreatorInfo = async () => {
-      try {
-        let creatorAddress = null;
-        
-        // 获取创作者地址
-        if (token.creator && typeof token.creator === 'object' && token.creator.address) {
-          creatorAddress = token.creator.address;
-        } else if (token.creator && typeof token.creator === 'string') {
-          creatorAddress = token.creator;
-        }
-        
-        // 如果有创作者地址，调用API获取完整信息
-        if (creatorAddress && (!creator || creator.address !== creatorAddress)) {
-          console.log('Loading creator info for:', creatorAddress);
-          try {
-            // 使用带缓存的 userAPI 而不是直接调用后端
-            const response = await userAPI.getUser(creatorAddress.toLowerCase());
-            console.log('Creator response:', response);
-            setCreator(response);
-          } catch (fetchError) {
-            console.error('Fetch error:', fetchError);
-            // 如果API调用失败，使用token.creator中的基本信息作为备用
-            if (token.creator && typeof token.creator === 'object') {
-              setCreator(token.creator);
-            }
+    if (token.creator) {
+      const loadCreator = async () => {
+        try {
+          // 确保我们不使用代币合约地址作为创建者地址
+          // 如果token.creator是字符串且与token.address相同，则可能是错误的
+          const creatorAddress = typeof token.creator === 'string' 
+            ? (token.creator.toLowerCase() === token.address.toLowerCase() ? '' : token.creator)
+            : token.creator.address;
+          
+          if (creatorAddress) {
+            const creatorData = await userAPI.getUser(creatorAddress.toLowerCase());
+            setCreator(creatorData);
+          } else {
+            // 如果创建者地址与代币地址相同，则显示为未知创建者
+            setCreator({
+              address: '',
+              username: 'Unknown Creator',
+              avatar_url: '👤'
+            });
+          }
+        } catch (error) {
+          console.error('Failed to load creator info:', error);
+          // 如果API调用失败，使用token.creator中的基本信息作为备用
+          if (token.creator && typeof token.creator === 'object') {
+            setCreator(token.creator);
+          } else if (typeof token.creator === 'string' && token.creator.toLowerCase() !== token.address.toLowerCase()) {
+            // 提供默认创建者信息，确保UI不会因为API错误而崩溃
+            // 同时确保不使用代币合约地址作为创建者地址
+            setCreator({
+              address: token.creator,
+              username: `${token.creator.slice(0, 6)}...${token.creator.slice(-4)}`,
+              avatar_url: '👤'
+            });
+          } else {
+            // 如果创建者地址与代币地址相同，则显示为未知创建者
+            setCreator({
+              address: '',
+              username: 'Unknown Creator',
+              avatar_url: '👤'
+            });
           }
         }
-      } catch (error) {
-        console.error('Failed to load creator info:', error);
-        // 如果API调用失败，使用token.creator中的基本信息作为备用
-        if (token.creator && typeof token.creator === 'object') {
-          setCreator(token.creator);
-        }
-      }
-    };
-
-    loadCreatorInfo();
-  }, [token.creator, creator]);
+      };
+      
+      loadCreator();
+    }
+  }, [token.creator]);
 
   // 加载收藏状态
   useEffect(() => {
@@ -161,27 +183,16 @@ export function TokenDetails({ token }: TokenDetailsProps) {
   return (
     <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6">
 
-      {/* 回退按钮 */}
-      <div className="flex items-center mb-4">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors group"
-        >
-          <ArrowLeft className="h-5 w-5 group-hover:-translate-x-1 transition-transform" />
-          <span className="text-sm font-medium">Back</span>
-        </button>
-      </div>
-
       {/* 主要内容 */}
       <div className="flex items-start justify-between">
         {/* 左侧内容 */}
         <div className="flex items-start space-x-5">
           {/* 1. 代币图标 */}
           <div className="w-24 h-24 rounded-2xl overflow-hidden bg-gradient-to-br from-[#1B1B1B] to-[#232323] flex items-center justify-center border-2 border-orange-400 shadow-lg flex-shrink-0">
-            {token.imageUrl ? (
+            {token?.image_url ? (
               <Image 
-                src={token.imageUrl} 
-                alt={`${token.name} logo`} 
+                src={token.image_url} 
+                alt={`${token?.name || 'Token'} logo`}
                 width={96} 
                 height={96} 
                 className="w-24 h-24 object-contain"
@@ -191,13 +202,13 @@ export function TokenDetails({ token }: TokenDetailsProps) {
                   target.style.display = 'none';
                   const parent = target.parentElement;
                   if (parent) {
-                    parent.innerHTML = `<span class="text-2xl font-bold text-white">${token.symbol.slice(0, 2)}</span>`;
+                    parent.innerHTML = `<span class="text-2xl font-bold text-white">${token?.symbol?.slice(0, 2) || '??'}</span>`;
                   }
                 }}
                 unoptimized={true}
               />
             ) : (
-              <span className="text-2xl font-bold text-white">{token.symbol.slice(0, 2)}</span>
+              <span className="text-2xl font-bold text-white">{token?.symbol?.slice(0, 2) || '??'}</span>
             )}
           </div>
           
@@ -205,8 +216,8 @@ export function TokenDetails({ token }: TokenDetailsProps) {
           <div className="space-y-3">
             {/* 代币名称 */}
             <div>
-              <h1 className="text-2xl font-bold text-white">{token.name}</h1>
-              <p className="text-gray-400 text-base font-medium">{token.symbol}</p>
+              <h1 className="text-2xl font-bold text-white">{token?.name || 'Loading...'}</h1>
+              <p className="text-gray-400 text-base font-medium">{token?.symbol || 'Loading...'}</p>
             </div>
             
             {/* 3. 代币介绍 */}

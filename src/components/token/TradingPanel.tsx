@@ -500,22 +500,7 @@ export function TradingPanel({ token }: TradingPanelProps) {
         </span>
       </div>
       
-      {/* 买入时显示授权额度 */}
-      {activeTab === 'buy' && (
-        <div className="flex items-center justify-between text-gray-400 mb-4">
-          <span className="text-sm">OKB allowance:</span>
-          <div className="flex items-center space-x-2">
-            <span className="text-sm">
-              {parseFloat(okbAllowanceBondingCurve.toString()).toFixed(6)} OKB
-            </span>
-            {parseFloat(amount || '0') >= okbAllowanceBondingCurve && (
-              <span className="text-xs text-yellow-500">
-                ⚠️ Insufficient allowance
-              </span>
-            )}
-          </div>
-        </div>
-      )}
+
 
       {/* 输入框 - 增加高度，去掉Amount标签 */}
       <div className="mb-4">

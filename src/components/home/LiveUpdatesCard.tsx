@@ -11,19 +11,19 @@ type WhaleItem = { tokenLogo: string; name: string; address: string; amount: str
 
 // 默认数据
 const defaultBuys: BuySellItem[] = [
-  { avatar: "🧑‍🚀", wallet: "0x3F4E...A7B8", tokenLogo: "/tokens/eth.png", tokenAddr: "0xC02a...6Cc2", side: "Buy", amount: "$12,340", coinName: "ShibaBNB", tokenAmount: "0.04 BNB" },
+  { avatar: "🧑‍🚀", wallet: "0x3F4E...A7B8", tokenLogo: "", tokenAddr: "0xC02a...6Cc2", side: "Buy", amount: "$12,340", coinName: "ShibaBNB", tokenAmount: "0.04 BNB" },
 ];
 
 const defaultSells: BuySellItem[] = [
-  { avatar: "🧑‍🎨", wallet: "0x9C1D...E5F6", tokenLogo: "/tokens/doge.png", tokenAddr: "0xD0gE...0012", side: "Sell", amount: "$2,980", coinName: "ShibaBNB", tokenAmount: "0.12 BNB" },
+  { avatar: "🧑‍🎨", wallet: "0x9C1D...E5F6", tokenLogo: "", tokenAddr: "0xD0gE...0012", side: "Sell", amount: "$2,980", coinName: "ShibaBNB", tokenAmount: "0.12 BNB" },
 ];
 
 const defaultNewTokens: NewTokenItem[] = [
-  { tokenLogo: "/tokens/usdt.png", name: "GeoToken", address: "0xGE0...1234", createdAgo: "24m ago" },
+  { tokenLogo: "", name: "GeoToken", address: "0xGE0...1234", createdAgo: "24m ago" },
 ];
 
 const defaultWhaleTrades: WhaleItem[] = [
-  { tokenLogo: "/tokens/bnb.png", name: "Kawaii", address: "0xKaW...9876", amount: "$512,430" },
+  { tokenLogo: "", name: "Kawaii", address: "0xKaW...9876", amount: "$512,430" },
 ];
 
 export function LiveUpdatesCard() {
@@ -55,7 +55,7 @@ export function LiveUpdatesCard() {
       const item: BuySellItem = {
         avatar: getRandomAvatar(),
         wallet: formatWallet(transaction.user_address),
-        tokenLogo: "/tokens/eth.png", // 默认logo，可以根据代币类型调整
+        tokenLogo: "", // 不使用默认logo，避免404错误
         tokenAddr: formatWallet(transaction.token_address),
         side: transaction.transaction_type === 'buy' ? 'Buy' : 'Sell',
         amount: `$${parseFloat(transaction.okb_amount || '0').toFixed(2)}`,
@@ -85,7 +85,7 @@ export function LiveUpdatesCard() {
     if (data.type === 'new_token') {
       const tokenData = data.data;
       const item: NewTokenItem = {
-        tokenLogo: "/tokens/usdt.png", // 默认logo
+        tokenLogo: "", // 不使用默认logo，避免404错误
         name: tokenData.name || 'New Token',
         address: formatWallet(tokenData.address),
         createdAgo: formatDistanceToNow(new Date(tokenData.created_at || Date.now()), { addSuffix: true })
@@ -107,7 +107,7 @@ export function LiveUpdatesCard() {
     if (data.type === 'whale_transaction') {
       const transaction = data.data;
       const item: WhaleItem = {
-        tokenLogo: "/tokens/bnb.png", // 默认logo
+        tokenLogo: "", // 不使用默认logo，避免404错误
         name: transaction.token_symbol || 'Whale Token',
         address: formatWallet(transaction.token_address),
         amount: `$${parseFloat(transaction.okb_amount || '0').toFixed(2)}`
@@ -171,7 +171,13 @@ export function LiveUpdatesCard() {
       <a className={`w-1/4 rounded-lg p-3 bg-[#1F6F2E] block cursor-pointer hover:opacity-95 ${pulse.buy ? 'jitter-on' : ''} fade-in`}>
         <div className="flex items-center">
           {/* 左侧圆形logo */}
-          <img src={buys[0].tokenLogo} alt="logo" className="w-10 h-10 rounded-full ring-2 ring-white/20 mr-3" />
+          {buys[0].tokenLogo ? (
+            <img src={buys[0].tokenLogo} alt="logo" className="w-10 h-10 rounded-full ring-2 ring-white/20 mr-3" />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center ring-2 ring-white/20 mr-3">
+              <span className="text-lg font-bold text-white">{buys[0].coinName?.slice(0, 2) || "??"}</span>
+            </div>
+          )}
           {/* 右侧文字区域 */}
           <div className="flex-1">
             <div className="flex items-center justify-between">
@@ -186,7 +192,13 @@ export function LiveUpdatesCard() {
       {currentType === 'sell' && sells.length > 0 && (
       <a className={`w-1/4 rounded-lg p-3 bg-[#6F1F1F] block cursor-pointer hover:opacity-95 ${pulse.sell ? 'jitter-on' : ''} fade-in`}>
         <div className="flex items-center">
-          <img src={sells[0].tokenLogo} alt="logo" className="w-10 h-10 rounded-full ring-2 ring-white/20 mr-3" />
+          {sells[0].tokenLogo ? (
+            <img src={sells[0].tokenLogo} alt="logo" className="w-10 h-10 rounded-full ring-2 ring-white/20 mr-3" />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center ring-2 ring-white/20 mr-3">
+              <span className="text-lg font-bold text-white">{sells[0].coinName?.slice(0, 2) || "??"}</span>
+            </div>
+          )}
           <div className="flex-1">
             <div className="flex items-center justify-between">
               <span className="text-white text-sm font-medium truncate">{sells[0].wallet}</span>
@@ -200,7 +212,13 @@ export function LiveUpdatesCard() {
       {currentType === 'news' && news.length > 0 && (
       <a className={`w-1/4 rounded-lg p-3 bg-[#173B6C] block cursor-pointer hover:opacity-95 ${pulse.news ? 'jitter-on' : ''} fade-in`}>
         <div className="flex items-center">
-          <img src={news[0].tokenLogo} alt="logo" className="w-10 h-10 rounded-full ring-2 ring-white/20 mr-3" />
+          {news[0].tokenLogo ? (
+            <img src={news[0].tokenLogo} alt="logo" className="w-10 h-10 rounded-full ring-2 ring-white/20 mr-3" />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center ring-2 ring-white/20 mr-3">
+              <span className="text-lg font-bold text-white">{news[0].name?.slice(0, 2) || "??"}</span>
+            </div>
+          )}
           <div className="flex-1">
             <div className="flex items-center justify-between">
               <span className="text-white text-sm font-medium truncate">{news[0].name}</span>
@@ -214,7 +232,13 @@ export function LiveUpdatesCard() {
       {currentType === 'whale' && whales.length > 0 && (
       <a className={`w-1/4 rounded-lg p-3 bg-[#3A216F] block cursor-pointer hover:opacity-95 ${pulse.whale ? 'jitter-on' : ''} fade-in`}>
         <div className="flex items-center">
-          <img src={whales[0].tokenLogo} alt="logo" className="w-10 h-10 rounded-full ring-2 ring-white/20 mr-3" />
+          {whales[0].tokenLogo ? (
+            <img src={whales[0].tokenLogo} alt="logo" className="w-10 h-10 rounded-full ring-2 ring-white/20 mr-3" />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center ring-2 ring-white/20 mr-3">
+              <span className="text-lg font-bold text-white">{whales[0].name?.slice(0, 2) || "??"}</span>
+            </div>
+          )}
           <div className="flex-1">
             <div className="flex items-center justify-between">
               <span className="text-white text-sm font-medium truncate">{whales[0].name}</span>

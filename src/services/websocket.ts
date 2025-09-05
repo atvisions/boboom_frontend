@@ -328,5 +328,11 @@ export const connectToUserBalance = (userAddress: string, messageHandler: Messag
   return websocketService.connect(`users/${userAddress}/balance/`, messageHandler);
 };
 
+// 新增：连接到 K 线 WebSocket（支持 limit 查询参数）
+export const connectToTokenCandles = (tokenAddress: string, interval: string, messageHandler: MessageHandler, limit: number = 100) => {
+  const endpoint = `tokens/${tokenAddress}/candles/${interval}/?limit=${limit}`;
+  return websocketService.connect(endpoint, messageHandler);
+};
+
 // 导出类型
 export type { MessageHandler, ErrorHandler, CloseHandler };

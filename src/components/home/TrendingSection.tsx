@@ -54,9 +54,12 @@ export function TrendingSection() {
 
   // 处理WebSocket代币列表数据
   const handleTokenListData = useCallback((data: any) => {
-    if (data.type === 'token_list') {
+    // 处理多种类型的WebSocket消息
+    if (data.type === 'token_list' || data.type === 'token_update') {
       const tokenList = data.data;
       if (Array.isArray(tokenList)) {
+        console.log('[TrendingSection] Received WebSocket update:', data.type, tokenList.length, 'tokens');
+
         // 取前4个作为热门代币
         const trendingTokens = tokenList.slice(0, 4).map((token: any) => ({
           ...token,
@@ -69,9 +72,10 @@ export function TrendingSection() {
           marketCap: token.marketCap || token.market_cap || '0',
           currentPrice: token.currentPrice || token.current_price || '0'
         }));
-        
+
+        console.log('[TrendingSection] Processed trending tokens:', trendingTokens.map(t => `${t.symbol}: ${t.graduationProgress}%`));
         setTokens(trendingTokens);
-        
+
         // 加载创作者信息
         const creatorAddresses = trendingTokens
           .map((token: any) => token.creator)
@@ -86,6 +90,12 @@ export function TrendingSection() {
               newCreators[creatorAddress] = creatorData;
             } catch (error) {
               console.error('Failed to load creator info for:', creatorAddress, error);
+              // 提供默认创建者信息，确保UI不会因为API错误而崩溃
+              newCreators[creatorAddress] = {
+                address: creatorAddress,
+                username: `${creatorAddress.slice(0, 6)}...${creatorAddress.slice(-4)}`,
+                avatar_url: '👤'
+              };
             }
           }
           
@@ -109,11 +119,13 @@ export function TrendingSection() {
     
     let connectionId: string | null = null;
     let isComponentMounted = true;
-    
+    let websocketConnected = false;
+    let refreshInterval: NodeJS.Timeout | null = null;
+
     // 备用API加载（如果WebSocket连接失败）
     const loadTrendingTokens = async () => {
       if (!isComponentMounted) return;
-      
+
       try {
         setLoading(true);
         const response = await tokenAPI.getTokens({
@@ -121,7 +133,7 @@ export function TrendingSection() {
           limit: 4,
           network: 'sepolia'
         });
-        
+
         if (response.success && isComponentMounted) {
           console.log('[TrendingSection] API response received:', response.data);
           // 处理API返回的数据，确保字段名一致
@@ -144,20 +156,20 @@ export function TrendingSection() {
             });
             return processed;
           });
-          
+
           console.log('[TrendingSection] Setting processed tokens:', processedTokens);
           setTokens(processedTokens);
-          
+
           // 加载创作者信息
           const creatorAddresses = response.data.tokens
             .map((token: any) => token.creator)
             .filter((creator: any) => creator && typeof creator === 'string');
-          
+
           const loadCreators = async () => {
             if (!isComponentMounted) return;
-            
+
             const newCreators: {[key: string]: any} = {};
-            
+
             for (const creatorAddress of creatorAddresses) {
               try {
                 const creatorData = await userAPI.getUser(creatorAddress.toLowerCase());
@@ -168,12 +180,12 @@ export function TrendingSection() {
                 console.error('Failed to load creator info for:', creatorAddress, error);
               }
             }
-            
+
             if (isComponentMounted) {
               setCreators(newCreators);
             }
           };
-          
+
           loadCreators();
         } else if (isComponentMounted) {
           setError('Failed to load trending tokens');
@@ -193,10 +205,33 @@ export function TrendingSection() {
 
     // 立即加载初始数据
     loadTrendingTokens();
-    
+
     // 连接WebSocket获取实时代币列表
     console.log('[TrendingSection] Attempting WebSocket connection...');
-    connectionId = websocketService.connect('tokens/', handleTokenListData);
+    connectionId = websocketService.connect('tokens/', (data) => {
+      websocketConnected = true;
+      // 清除定期刷新，因为WebSocket已连接
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+        console.log('[TrendingSection] WebSocket connected, clearing periodic refresh');
+      }
+      handleTokenListData(data);
+    });
+
+    // 设置WebSocket连接超时检测
+    const connectionTimeout = setTimeout(() => {
+      if (!websocketConnected && isComponentMounted) {
+        console.log('[TrendingSection] WebSocket connection timeout, starting periodic refresh');
+        // WebSocket连接失败，启动定期刷新作为备用
+        refreshInterval = setInterval(() => {
+          if (isComponentMounted && !websocketConnected) {
+            console.log('[TrendingSection] Periodic refresh triggered (WebSocket failed)');
+            loadTrendingTokens();
+          }
+        }, 30000); // 每30秒刷新一次
+      }
+    }, 5000); // 5秒后检测WebSocket是否连接成功
     
     // WebSocket连接状态检查 - 改进的连接检查机制
     const checkConnectionAndLoad = () => {
@@ -227,9 +262,19 @@ export function TrendingSection() {
     
     // 清理函数
     return () => {
+      console.log('[TrendingSection] Component unmounting, cleaning up...');
       isComponentMounted = false;
+
       if (connectionId) {
-        websocketService.removeMessageHandler(connectionId, handleTokenListData);
+        websocketService.disconnect(connectionId);
+      }
+
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+      }
+
+      if (connectionTimeout) {
+        clearTimeout(connectionTimeout);
       }
     };
   }, [isClient, handleTokenListData]);
@@ -447,9 +492,9 @@ export function TrendingSection() {
               <div className="relative p-6 flex flex-col items-center text-center h-full justify-center">
                 {/* 代币Logo - 圆形设计 */}
                 <div className="w-20 h-20 rounded-full mb-4 flex items-center justify-center overflow-hidden">
-                  {token.imageUrl ? (
+                  {token.image_url ? (
                     <img
-                      src={token.imageUrl}
+                      src={token.image_url}
                       alt={`${token.name} logo`}
                       className="w-16 h-16 object-contain rounded-full"
                     />
@@ -535,14 +580,14 @@ export function TrendingSection() {
                         <div className="w-6 h-6 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center overflow-hidden">
                           {(() => {
                             const creatorInfo = creators[token.creator];
-                            if (creatorInfo?.avatar_url) {
+                            if (creatorInfo?.avatar_url && creatorInfo.avatar_url.trim() !== '') {
                               if (creatorInfo.avatar_url.startsWith('/media/')) {
                                 return (
-                                  <Image 
+                                  <Image
                                     src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'}${creatorInfo.avatar_url}?t=${creatorInfo.updated_at || Date.now()}`}
-                                    alt="Creator avatar" 
-                                    width={24} 
-                                    height={24} 
+                                    alt="Creator avatar"
+                                    width={24}
+                                    height={24}
                                     className="w-6 h-6 rounded-full object-cover"
                                     unoptimized={true}
                                   />

@@ -4,19 +4,19 @@ interface TokenMetricsProps {
   token: any;
   okbPrice: number;
   showCurrentPrice?: boolean;
+  stats24h?: any; // 24h 统计数据
 }
 
-export function TokenMetrics({ token, okbPrice, showCurrentPrice = true }: TokenMetricsProps) {
+export function TokenMetrics({ token, okbPrice, showCurrentPrice = true, stats24h }: TokenMetricsProps) {
   // 计算价格相关数据
   const currentPrice = parseFloat(token.currentPrice || '0'); // 后端返回的已经是USD价格
   const athPrice = parseFloat(token.ath || '0'); // 后端返回的已经是USD价格
   const marketCap = parseFloat(token.marketCap || '0');
-  const volume24h = parseFloat(token.volume24h || '0');
   const athDrop = athPrice > 0 ? ((currentPrice - athPrice) / athPrice) * 100 : 0;
   const athProgress = athPrice > 0 ? Math.min((currentPrice / athPrice) * 100, 100) : 0;
 
-  // 根据是否显示当前价格决定列数 - 现在总是显示4列
-  const gridCols = 'md:grid-cols-2 lg:grid-cols-4';
+  // 根据是否显示当前价格决定列数 - 现在显示3列
+  const gridCols = showCurrentPrice ? 'md:grid-cols-2 lg:grid-cols-3' : 'md:grid-cols-1 lg:grid-cols-2';
 
   return (
     <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6">
@@ -29,16 +29,24 @@ export function TokenMetrics({ token, okbPrice, showCurrentPrice = true }: Token
               ${currentPrice.toFixed(6)}
             </div>
             <div className="flex items-center space-x-2">
-              {parseFloat(token.priceChange24h || '0') > 0 ? (
-                <TrendingUp className="h-4 w-4 text-green-400" />
-              ) : (
-                <TrendingDown className="h-4 w-4 text-red-400" />
-              )}
-              <span className={`text-sm font-medium ${
-                parseFloat(token.priceChange24h || '0') > 0 ? 'text-green-400' : 'text-red-400'
-              }`}>
-                {parseFloat(token.priceChange24h || '0') > 0 ? '+' : ''}{parseFloat(token.priceChange24h || '0').toFixed(2)}%
-              </span>
+              {(() => {
+                // 优先使用 stats24h 的数据，回退到 token 的数据
+                const priceChange = parseFloat(stats24h?.priceChange24h || token.priceChange24h || '0');
+                return (
+                  <>
+                    {priceChange > 0 ? (
+                      <TrendingUp className="h-4 w-4 text-green-400" />
+                    ) : (
+                      <TrendingDown className="h-4 w-4 text-red-400" />
+                    )}
+                    <span className={`text-sm font-medium ${
+                      priceChange > 0 ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {priceChange > 0 ? '+' : ''}{priceChange.toFixed(2)}%
+                    </span>
+                  </>
+                );
+              })()}
             </div>
           </div>
         )}
@@ -51,17 +59,6 @@ export function TokenMetrics({ token, okbPrice, showCurrentPrice = true }: Token
           </div>
           <div className="text-sm text-gray-400">
             {token.holderCount || 0} holders
-          </div>
-        </div>
-
-        {/* 24h Volume */}
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium text-gray-400">24h Volume</h3>
-          <div className="text-2xl font-bold text-white">
-            ${volume24h.toLocaleString()}
-          </div>
-          <div className="text-sm text-gray-400">
-            {token.transactionCount || 0} transactions
           </div>
         </div>
 

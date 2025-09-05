@@ -5,8 +5,7 @@ import { SearchHeader } from "@/components/common/SearchHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Copy, ExternalLink, Edit, Check, Star, X, Heart, TrendingUp, TrendingDown, Eye, MoreHorizontal, Rocket, UserPlus, UserMinus, BadgeCheck, ArrowLeft, Users } from "lucide-react";
-import { FaXTwitter, FaTelegram, FaDiscord } from "react-icons/fa6";
+import { Copy, ExternalLink, Edit, Check, Star, X, Heart, TrendingUp, TrendingDown, Eye, MoreHorizontal, Rocket, UserPlus, UserMinus, BadgeCheck, ArrowLeft } from "lucide-react";
 import { toast, toastMessages } from "@/components/ui/toast-notification";
 import { useDebounce } from "@/hooks/useDebounce";
 import { AvatarSelectorInline } from "@/components/ui/avatar-selector-inline";
@@ -29,8 +28,6 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
   // 获取要查看的用户地址（从URL参数或当前登录用户）
   const targetAddress = params?.address || address;
   const [isOwnProfile, setIsOwnProfile] = useState(false);
-
-
   
   // 用户数据
   const [userData, setUserData] = useState<any>(null);
@@ -46,16 +43,12 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [followingList, setFollowingList] = useState<any[]>([]);
-  const [followersList, setFollowersList] = useState<any[]>([]);
   
   // 编辑表单数据
   const [editForm, setEditForm] = useState({
     avatar: "",
     nickname: "",
-    bio: "",
-    twitter: "",
-    telegram: "",
-    discord: ""
+    bio: ""
   });
 
   const [isCopyLoading, debouncedHandleCopy] = useDebounce(() => {
@@ -82,10 +75,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
       await userAPI.updateUser(address, {
         username: editForm.nickname,
         bio: editForm.bio,
-        avatar_url: editForm.avatar,
-        twitter: editForm.twitter,
-        telegram: editForm.telegram,
-        discord: editForm.discord
+        avatar_url: editForm.avatar
       });
       setShowEditModal(false);
       toast.success(toastMessages.user.profileUpdated);
@@ -143,13 +133,13 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
   // 处理tab切换，更新URL参数并加载相应数据
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
-
+    
     // 更新URL参数
     if (isClient) {
       const url = new URL(window.location.href);
       url.searchParams.set('tab', tabId);
       window.history.replaceState({}, '', url.toString());
-
+      
       // 加载当前标签页的数据
       loadTabData(tabId);
     }
@@ -216,7 +206,6 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
       setFollowerCount(followersResponse.data.count);
       setFollowingCount(followingResponse.data.count);
       setFollowingList(followingResponse.data.following);
-      setFollowersList(followersResponse.data.followers);
       
       // 如果是查看其他用户的主页，检查当前用户是否关注了目标用户
       if (address && !isOwnProfile) {
@@ -231,59 +220,37 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
   // 加载用户基本数据
   const loadUserData = async () => {
     if (!targetAddress) return;
-
+    
     try {
-      // 加载基本用户数据、统计信息和推荐用户
-      const [userResponse, statsResponse, okbPriceResponse, suggestedResponse] = await Promise.all([
+      // 只加载基本用户数据和统计信息
+      const [userResponse, statsResponse, okbPriceResponse] = await Promise.all([
         userAPI.getUser(targetAddress),
         userAPI.getUserStats(targetAddress),
-        tokenAPI.getOKBPrice(),
-        followAPI.getSuggestedUsers(address || targetAddress)
+        tokenAPI.getOKBPrice()
       ]);
 
       setUserData(userResponse);
       setUserStats(statsResponse);
       setOkbPrice(parseFloat(okbPriceResponse.data.price));
-      setSuggestedUsers(suggestedResponse.data.suggested_users);
 
       // 更新编辑表单
       setEditForm({
         avatar: userResponse.avatar_url || "",
         nickname: userResponse.username || "",
-        bio: userResponse.bio || "",
-        twitter: userResponse.twitter || "",
-        telegram: userResponse.telegram || "",
-        discord: userResponse.discord || ""
+        bio: userResponse.bio || ""
       });
-
+      
       // 根据当前活动标签页加载相应数据
       loadTabData(activeTab);
     } catch (error) {
       console.error('Failed to load user data:', error);
     }
   };
-
-  // 强制刷新数据（清除缓存）
-  const forceRefresh = () => {
-    // 清除localStorage缓存
-    const cacheKeys = Object.keys(localStorage).filter(key =>
-      key.includes('user_tokens') || key.includes(targetAddress?.toLowerCase() || '')
-    );
-    cacheKeys.forEach(key => {
-
-      localStorage.removeItem(key);
-    });
-
-    // 重新加载当前标签页数据
-    loadTabData(activeTab);
-  };
-
+  
   // 根据标签页加载相应数据
   const loadTabData = async (tabId: string) => {
-    if (!targetAddress) {
-      return;
-    }
-
+    if (!targetAddress) return;
+    
     try {
       switch (tabId) {
         case 'overview':
@@ -296,19 +263,10 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
           setUserTokens(tokensForOverview);
           break;
           
-        case 'create':
+        case 'created':
           // 加载用户创建的代币
-          // 如果已经有数据，先不重新加载，直接使用现有数据
-          if (userTokens && userTokens.created && userTokens.created.length > 0) {
-            break;
-          }
-
-          try {
-            const tokensResponse = await userAPI.getUserTokens(targetAddress);
-            setUserTokens(tokensResponse);
-          } catch (error) {
-            console.error('Failed to load user tokens:', error);
-          }
+          const tokensResponse = await userAPI.getUserTokens(targetAddress);
+          setUserTokens(tokensResponse);
           break;
           
         case 'balances':
@@ -324,11 +282,9 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
           break;
           
         case 'following':
-          // Following 标签页不需要额外加载数据，推荐用户已在初始化时加载
-          break;
-
-        case 'followers':
-          // Followers 标签页不需要额外加载数据，粉丝列表已在初始化时加载
+          // 加载推荐用户
+          const suggestedResponse = await followAPI.getSuggestedUsers(address || targetAddress);
+          setSuggestedUsers(suggestedResponse.data.suggested_users);
           break;
       }
     } catch (error) {
@@ -435,8 +391,6 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
     }
   }, [targetAddress, isClient, activeTab]);
 
-
-
   // 如果钱包未连接，显示连接提示
   if (!address && !targetAddress) {
     return (
@@ -492,20 +446,19 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
 
 
   
-  // 处理API返回的数据结构：{created: [...], holding: [...]}
-  const createdTokens = (userTokens?.created || []).map((token: any, index: number) => {
+  const createdTokens = userTokens?.created?.map((token: any, index: number) => {
     // 前端转换OKB数量为USD
-    const okbVolume = parseFloat(token.volume24h || 0);
+    const okbVolume = parseFloat(token.volume24h);
     const volumeUSD = okbVolume * okbPrice;
+    
 
-
-
+    
     return {
       id: index + 1,
       name: token.name,
       symbol: token.symbol,
       logo: token.imageUrl || "/tokens/default.png",
-      marketCap: parseFloat(token.marketCap || 0).toFixed(4),
+      marketCap: parseFloat(token.marketCap).toFixed(4),
       volume: `$${volumeUSD.toFixed(2)}`,
       price: token.currentPrice,
       priceChange: "0%", // 暂时设为0%，后续可以从priceChange24h获取
@@ -567,8 +520,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
     { id: "balances", label: "Balances", icon: TrendingUp },
     { id: "create", label: "Created", icon: Rocket },
     { id: "favorites", label: "Favorites", icon: Star },
-    { id: "following", label: "Following", icon: UserPlus },
-    { id: "followers", label: "Followers", icon: Users }
+    { id: "following", label: "Following", icon: UserPlus }
   ];
 
   return (
@@ -631,79 +583,30 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                         </div>
                       )}
                     </div>
-
-                    {/* 钱包地址 */}
-                    <div className="flex items-center space-x-2 mb-3">
-                      <span className="text-gray-500 text-sm">{targetAddress?.slice(0, 6)}...{targetAddress?.slice(-4)}</span>
-                      <button
-                        onClick={handleCopy}
-                        disabled={isCopyLoading}
-                        className={`text-gray-400 hover:text-white transition-colors p-1 rounded ${isCopyLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      >
-                        {copied ? <Check className="h-3 w-3" /> : <Copy className={`h-3 w-3 ${isCopyLoading ? 'animate-pulse' : ''}`} />}
-                      </button>
-                    </div>
-
+                    
                     <p className="text-gray-400 mb-3">
                       {userData?.bio || "No bio yet"}
                     </p>
                     
-                    {/* 社交媒体链接 */}
-                    {(userData?.twitter || userData?.telegram || userData?.discord) && (
-                      <div className="flex items-center space-x-3 mb-3">
-                        {userData?.twitter && (
-                          <a 
-                            href={userData.twitter.startsWith('http') ? userData.twitter.replace('twitter.com', 'x.com') : `https://x.com/${userData.twitter.replace('@', '')}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-gray-400 hover:text-[#1DA1F2] transition-colors"
-                          >
-                            <FaXTwitter className="h-5 w-5" />
-                          </a>
-                        )}
-                        {userData?.telegram && (
-                          <a 
-                            href={userData.telegram.startsWith('http') ? userData.telegram : `https://t.me/${userData.telegram.replace('@', '')}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-gray-400 hover:text-[#0088cc] transition-colors"
-                          >
-                            <FaTelegram className="h-5 w-5" />
-                          </a>
-                        )}
-                        {userData?.discord && (
-                          userData.discord.startsWith('http') ? (
-                            <a 
-                              href={userData.discord} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-gray-400 hover:text-[#5865F2] transition-colors"
-                            >
-                              <FaDiscord className="h-5 w-5" />
-                            </a>
-                          ) : (
-                            <a 
-                              href="#" 
-                              onClick={(e) => {
-                                e.preventDefault();
-                                navigator.clipboard.writeText(userData.discord);
-                                toast.success('Discord username copied to clipboard');
-                              }}
-                              className="text-gray-400 hover:text-[#5865F2] transition-colors"
-                            >
-                              <FaDiscord className="h-5 w-5" />
-                            </a>
-                          )
-                        )}
-                      </div>
-                    )}
-                    
                     <div className="flex items-center space-x-4 text-sm text-gray-400">
                       <span><span className="text-[#70E000] font-bold">{userStats?.tokens_created || 0}</span> tokens created</span>
+                      <span>•</span>
+                      <span><span className="text-[#70E000] font-bold">{userStats?.reputation_score || 0}</span> reputation</span>
                       <span>•</span>
                       <span><span className="text-[#70E000] font-bold">{followerCount}</span> followers</span>
                       <span>•</span>
                       <span><span className="text-[#70E000] font-bold">{followingCount}</span> following</span>
+                      <span>•</span>
+                      <div className="flex items-center space-x-1">
+                        <span>{targetAddress?.slice(0, 6)}...{targetAddress?.slice(-4)}</span>
+                        <button
+                          onClick={handleCopy}
+                          disabled={isCopyLoading}
+                          className={`text-gray-400 hover:text-white transition-colors p-1 rounded ${isCopyLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          {copied ? <Check className="h-4 w-4" /> : <Copy className={`h-4 w-4 ${isCopyLoading ? 'animate-pulse' : ''}`} />}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -869,7 +772,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                           </div>
                         </div>
                       </div>
-                    )))
+                    ))
                     : (
                       <div className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded-lg">
                         <div className="flex items-center space-x-3">
@@ -925,12 +828,8 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                   </div>
                 )}
 
-                {activeTab === "create" && (
+                {activeTab === "created" && (
                   <div className="space-y-4">
-
-
-
-
                     {createdTokens && createdTokens.length > 0 ? (
                       createdTokens.map((token) => (
                       <div 
@@ -1125,81 +1024,6 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                     </div>
                   </div>
                 )}
-
-                {activeTab === "followers" && (
-                  <div className="space-y-4">
-                    <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6">
-                      <h3 className="text-lg font-semibold text-white mb-4">Followers ({followerCount})</h3>
-                      {followersList && followersList.length > 0 ? (
-                        <div className="space-y-4">
-                          {followersList.map((follower) => (
-                            <div key={follower.follower_id} className="flex items-center justify-between p-4 bg-[#1a1a1a] rounded-lg border border-[#232323]">
-                              <div
-                                className="flex items-center space-x-3 flex-1 cursor-pointer hover:bg-[#232323] rounded-lg p-2 transition-colors"
-                                onClick={() => router.push(`/profile/${follower.user.address}`)}
-                              >
-                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#70E000]/20 to-[#5BC000]/20 flex items-center justify-center">
-                                  {follower.user.avatar_url && follower.user.avatar_url.trim() !== '' ? (
-                                    follower.user.avatar_url.startsWith('/media/') ? (
-                                      <img
-                                        src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'}${follower.user.avatar_url}`}
-                                        alt="Avatar"
-                                        className="w-full h-full rounded-full object-cover"
-                                      />
-                                    ) : (
-                                      <span className="text-xl">{follower.user.avatar_url}</span>
-                                    )
-                                  ) : (
-                                    "👤"
-                                  )}
-                                </div>
-                                <div className="flex-1">
-                                  <div className="flex items-center space-x-2">
-                                    <h4 className="text-white font-medium">{follower.user.username}</h4>
-                                    {follower.user.is_verified && (
-                                      <div className="relative group/icon">
-                                        <div className="flex items-center justify-center cursor-help">
-                                          <BadgeCheck className="w-4 h-4 text-[#70E000]" />
-                                        </div>
-                                        {/* 悬停提示 */}
-                                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/90 text-white text-xs rounded-lg opacity-0 group-hover/icon:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                                          Verified Creator
-                                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black/90"></div>
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                  <p className="text-gray-400 text-sm">{follower.user.bio || "No bio"}</p>
-                                  <p className="text-gray-500 text-xs"><span className="text-[#70E000] font-bold">{follower.user.tokens_created}</span> tokens created</p>
-                                </div>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <span className="text-gray-400 text-sm">
-                                  {isClient ? new Date(follower.followed_at).toLocaleDateString() : follower.followed_at}
-                                </span>
-                                {/* 只有当前用户不是自己且是查看自己的profile时才显示关注按钮 */}
-                                {isOwnProfile && address && follower.user.address !== address && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleFollowToggle(follower.user.address);
-                                    }}
-                                    disabled={followLoading.has(follower.user.address)}
-                                    className="text-[#70E000] hover:text-[#5BC000] transition-colors p-1"
-                                  >
-                                    <UserPlus className="h-4 w-4" />
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-gray-400">No followers yet</p>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Right Sidebar */}
@@ -1333,42 +1157,6 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                   placeholder="Tell us about yourself"
                   rows={3}
                 />
-              </div>
-              
-              <div className="mt-4">
-                <h3 className="text-sm font-medium text-gray-300 mb-3">Social Media</h3>
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Twitter</label>
-                    <Input
-                      type="text"
-                      value={editForm.twitter || ""}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, twitter: e.target.value }))}
-                      className="bg-[#1a1a1a] border-[#232323] text-white"
-                      placeholder="@username"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Telegram</label>
-                    <Input
-                      type="text"
-                      value={editForm.telegram || ""}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, telegram: e.target.value }))}
-                      className="bg-[#1a1a1a] border-[#232323] text-white"
-                      placeholder="@username"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-400 mb-1">Discord</label>
-                    <Input
-                      type="text"
-                      value={editForm.discord || ""}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, discord: e.target.value }))}
-                      className="bg-[#1a1a1a] border-[#232323] text-white"
-                      placeholder="username#0000"
-                    />
-                  </div>
-                </div>
               </div>
 
               <div className="flex items-center justify-end space-x-3 pt-4">

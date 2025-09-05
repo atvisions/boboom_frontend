@@ -1,14 +1,13 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  Home, 
-  User, 
-  Trophy, 
-  Gift, 
-  Info
+import {
+  Home,
+  User,
+  Trophy,
+  Gift
 } from "lucide-react";
-import { FaXTwitter, FaInstagram, FaTelegram, FaDiscord } from "react-icons/fa6";
+import { FaXTwitter, FaTelegram, FaDiscord, FaGithub } from "react-icons/fa6";
 import { cn } from "@/lib/utils";
 import { useWalletAuth } from "@/hooks/useWalletAuth";
 
@@ -16,14 +15,13 @@ const navigation = [
   { name: "Home", href: "/", icon: Home },
   { name: "Ranking", href: "/ranking", icon: Trophy },
   { name: "Rewards", href: "/rewards", icon: Gift },
-  { name: "How it works", href: "/how-it-works", icon: Info },
 ];
 
 const socialLinks = [
   { name: "X", href: "#", icon: FaXTwitter },
-  { name: "Instagram", href: "#", icon: FaInstagram },
   { name: "Telegram", href: "#", icon: FaTelegram },
   { name: "Discord", href: "#", icon: FaDiscord },
+  { name: "GitHub", href: "#", icon: FaGithub },
 ];
 
 export function Sidebar() {

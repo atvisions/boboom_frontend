@@ -146,6 +146,12 @@ export function TokenGrid() {
               newCreators[creatorAddress] = creatorData;
             } catch (error) {
               console.error('Failed to load creator info for:', creatorAddress, error);
+              // 提供默认创建者信息，防止UI因API错误而崩溃
+              newCreators[creatorAddress] = {
+                address: creatorAddress,
+                username: `${creatorAddress.slice(0, 6)}...${creatorAddress.slice(-4)}`,
+                avatar_url: null
+              };
             }
           }
           
@@ -327,6 +333,12 @@ export function TokenGrid() {
                   newCreators[creatorAddress] = creatorData;
                 } catch (error) {
                   console.error('Failed to load creator info for:', creatorAddress, error);
+                  // 提供默认创建者信息，防止UI因API错误而崩溃
+                  newCreators[creatorAddress] = {
+                    address: creatorAddress,
+                    username: `${creatorAddress.slice(0, 6)}...${creatorAddress.slice(-4)}`,
+                    avatar_url: null
+                  };
                 }
               }
               
@@ -674,9 +686,9 @@ export function TokenGrid() {
               <div className="flex items-start space-x-4 mb-6">
                 {/* Logo - 左侧 */}
                 <div className="flex-shrink-0 w-16 h-16 rounded-2xl overflow-hidden bg-gradient-to-br from-[#1B1B1B] to-[#232323] flex items-center justify-center shadow-lg">
-                  {token.imageUrl ? (
+                  {token.image_url ? (
                     <Image 
-                      src={token.imageUrl} 
+                      src={token.image_url} 
                       alt={`${token.name} logo`} 
                       width={64} 
                       height={64} 
@@ -692,22 +704,9 @@ export function TokenGrid() {
                       unoptimized={true}
                     />
                   ) : (
-                    <Image 
-                      src={`/tokens/${token.symbol.toLowerCase()}.svg`}
-                      alt={`${token.name} logo`} 
-                      width={64} 
-                      height={64} 
-                      className="w-16 h-16 object-contain"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        const parent = target.parentElement;
-                        if (parent) {
-                          parent.innerHTML = `<span class="text-2xl font-bold text-white">${token.symbol.slice(0, 2)}</span>`;
-                        }
-                      }}
-                      unoptimized={true}
-                    />
+                    <div className="w-16 h-16 flex items-center justify-center bg-gray-800 rounded-full">
+                      <span className="text-2xl font-bold text-white">{token.symbol.slice(0, 2)}</span>
+                    </div>
                   )}
                 </div>
                 
@@ -749,14 +748,14 @@ export function TokenGrid() {
                         <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#70E000]/20 to-[#5BC000]/20 flex items-center justify-center overflow-hidden">
                           {(() => {
                             const creatorInfo = creators[token.creator];
-                            if (creatorInfo?.avatar_url) {
+                            if (creatorInfo?.avatar_url && creatorInfo.avatar_url.trim() !== '') {
                               if (creatorInfo.avatar_url.startsWith('/media/')) {
                                 return (
-                                  <Image 
+                                  <Image
                                     src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'}${creatorInfo.avatar_url}?t=${creatorInfo.updated_at || Date.now()}`}
-                                    alt="Creator avatar" 
-                                    width={20} 
-                                    height={20} 
+                                    alt="Creator avatar"
+                                    width={20}
+                                    height={20}
                                     className="w-5 h-5 rounded-full object-cover"
                                     unoptimized={true}
                                   />

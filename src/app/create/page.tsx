@@ -204,7 +204,7 @@ function CreateTokenForm() {
       }
       
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
-      const apiUrl = `${backendUrl}/api/tokens/latest-by-creator/${address?.toLowerCase()}/?tx_hash=${txHash}`;
+      const apiUrl = `${backendUrl}/api/tokens/latest-by-creator/${address?.toLowerCase()}/?network=sepolia&tx_hash=${txHash}`;
       console.log('API URL:', apiUrl);
       
       const response = await fetch(apiUrl, {

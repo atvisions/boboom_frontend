@@ -25,9 +25,14 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
         // 将后端的snake_case字段映射为前端期望的格式
         const mappedTransaction = {
           ...transaction,
+          type: transaction.type || transaction.transaction_type, // 确保type字段正确
           tokenAddress: transaction.token_address || transaction.tokenAddress,
           okbAmount: transaction.okb_amount || transaction.okbAmount,
-          blockNumber: transaction.block_number || transaction.blockNumber
+          tokenAmount: transaction.token_amount || transaction.tokenAmount,
+          amount: transaction.token_amount || transaction.amount, // 添加amount字段映射
+          blockNumber: transaction.block_number || transaction.blockNumber,
+          user_address: transaction.user_address,
+          transaction_hash: transaction.transaction_hash
         };
         
         setTransactions(prev => {
@@ -53,10 +58,16 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
         // 将后端的snake_case字段映射为前端期望的格式
         const mappedTransactions = (response.data || []).map((transaction: any) => ({
           ...transaction,
+          type: transaction.type || transaction.transaction_type, // 确保type字段正确
           tokenAddress: transaction.token_address || transaction.tokenAddress,
           okbAmount: transaction.okb_amount || transaction.okbAmount,
-          blockNumber: transaction.block_number || transaction.blockNumber
+          tokenAmount: transaction.token_amount || transaction.tokenAmount,
+          amount: transaction.token_amount || transaction.amount, // 添加amount字段映射
+          blockNumber: transaction.block_number || transaction.blockNumber,
+          user_address: transaction.user_address,
+          transaction_hash: transaction.transaction_hash
         }));
+        console.log('Mapped transactions:', mappedTransactions);
         setTransactions(mappedTransactions);
       } else {
         setError('Failed to load transactions');
@@ -203,7 +214,8 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
   };
 
   // 格式化地址
-  const formatAddress = (address: string) => {
+  const formatAddress = (address: string | undefined) => {
+    if (!address) return 'Unknown';
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
   };
 
@@ -301,40 +313,44 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
               <div className="flex items-center space-x-3">
                 {/* 交易类型图标 */}
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                  tx.type === 'BUY' 
-                    ? 'bg-green-500/20 text-green-400' 
-                    : 'bg-red-500/20 text-red-400'
+                  tx.type === 'BUY'
+                    ? 'bg-green-500/20 text-green-400'
+                    : tx.type === 'SELL'
+                    ? 'bg-red-500/20 text-red-400'
+                    : 'bg-blue-500/20 text-blue-400'
                 }`}>
                   {tx.type === 'BUY' ? (
                     <ArrowUp className="h-3 w-3" />
-                  ) : (
+                  ) : tx.type === 'SELL' ? (
                     <ArrowDown className="h-3 w-3" />
+                  ) : (
+                    <span className="text-xs">C</span>
                   )}
                 </div>
                 
                 {/* 用户地址和交易hash */}
                 <div className="flex flex-col space-y-1">
                   <span className="text-white font-mono text-sm">
-                    {formatAddress(tx.from)}
+                    {formatAddress(tx.user_address)}
                   </span>
-                  {tx.hash && (
+                  {tx.transaction_hash && (
                     <div className="flex items-center space-x-2 text-xs text-gray-400">
                       <span>Hash:</span>
                       <a
-                        href={`https://sepolia.etherscan.io/tx/${tx.hash.startsWith('0x') ? tx.hash : '0x' + tx.hash}`}
+                        href={`https://sepolia.etherscan.io/tx/${tx.transaction_hash.startsWith('0x') ? tx.transaction_hash : '0x' + tx.transaction_hash}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-[#70E000] hover:text-[#5BC000] transition-colors cursor-pointer"
                         title="Click to view on Etherscan"
                       >
-                        {tx.hash.startsWith('0x') ? tx.hash.slice(2, 10) : tx.hash.slice(0, 8)}...{tx.hash.slice(-6)}
+                        {tx.transaction_hash.startsWith('0x') ? tx.transaction_hash.slice(2, 10) : tx.transaction_hash.slice(0, 8)}...{tx.transaction_hash.slice(-6)}
                       </a>
                       <button
-                        onClick={() => copyToClipboard(tx.hash.startsWith('0x') ? tx.hash : '0x' + tx.hash)}
+                        onClick={() => copyToClipboard(tx.transaction_hash.startsWith('0x') ? tx.transaction_hash : '0x' + tx.transaction_hash)}
                         className="p-1 hover:bg-[#2a2a2a] rounded transition-colors"
                         title="Copy hash to clipboard"
                       >
-                        {copiedHash === tx.hash ? (
+                        {copiedHash === tx.transaction_hash ? (
                           <Check className="h-3 w-3 text-green-500" />
                         ) : (
                           <Copy className="h-3 w-3 text-gray-400 hover:text-[#70E000]" />
@@ -350,7 +366,8 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
                 {/* 金额和时间 */}
                 <div className="flex items-center space-x-4 text-sm">
                   <span className="text-white font-medium">
-                    {tx.type === 'BUY' ? '+' : '-'}{parseFloat(tx.amount).toFixed(6)}
+                    {tx.type === 'CREATE' ? 'Created' :
+                     `${tx.type === 'BUY' ? '+' : '-'}${parseFloat(tx.amount || tx.token_amount || '0').toFixed(6)}`}
                   </span>
                   <span className="text-gray-400">{formatTime(tx.timestamp)}</span>
                 </div>

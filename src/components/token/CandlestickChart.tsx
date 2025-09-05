@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, TrendingDown, Clock } from 'lucide-react';
 import { tokenAPI } from '@/services/api';
+import { connectToTokenCandles } from '@/services/websocket';
 
 // 动态导入 ApexCharts 以避免 SSR 问题
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
@@ -14,7 +15,7 @@ interface CandlestickChartProps {
 }
 
 export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
-  const [timeframe, setTimeframe] = useState('4h');
+  const [timeframe, setTimeframe] = useState('1h');
   const [priceType, setPriceType] = useState<'price' | 'mcap'>('mcap');
   const [currency, setCurrency] = useState<'USD' | 'OKB'>('USD');
   const [showTimeDropdown, setShowTimeDropdown] = useState(false);
@@ -23,6 +24,25 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
   const [volumeData, setVolumeData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [okbPrice, setOkbPrice] = useState<number>(177.6); // 默认OKB价格
+  const wsConnectionIdRef = useRef<string | null>(null);
+
+  // 后端支持的 interval 映射（将 UI timeframe 映射到后端可用的 interval）
+  const getBackendInterval = (tf: string): string => {
+    const t = tf.toLowerCase();
+    // 直接支持的时间间隔
+    if (['1m', '15m', '30m', '1h', '4h', '1d'].includes(t)) return t;
+    // 兼容其他可能的映射
+    const fallbackMap: Record<string, string> = {
+      '5m': '15m',
+      '2h': '1h',
+      '6h': '4h',
+      '12h': '4h',
+      '24h': '1d',
+      '1w': '1d',
+      '1mth': '1d'
+    };
+    return fallbackMap[t] || '1h';
+  };
 
   // 加载OKB价格
   useEffect(() => {
@@ -61,27 +81,18 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
     }
   }, [tokenAddress]);
 
-  // 加载蜡烛图数据
+  // 加载蜡烛图数据（REST 作为初始快照兜底）
   useEffect(() => {
     const loadCandlestickData = async () => {
       try {
-        // 根据timeframe确定interval
-        const intervalMap: { [key: string]: string } = {
-          '1h': '1h',
-          '4h': '4h', 
-          '1d': '1d',
-          '1w': '1d', // 暂时用1d代替
-          '1m': '1m'  // 修正：1m应该映射到1m
-        };
-        
-        const interval = intervalMap[timeframe] || '4h';
+        const interval = getBackendInterval(timeframe);
         const response = await tokenAPI.getTokenPriceHistory(tokenAddress, {
           interval: interval as any,
-          limit: 100,
+          limit: 200,
           network: 'sepolia'
         });
         
-        if (response.success && response.data.candles) {
+        if (response.success && response.data.candles && response.data.candles.length > 0) {
           // 转换数据格式为ApexCharts需要的格式，并根据货币进行转换
           const candles = response.data.candles.map((candle: any) => {
             let open, high, low, close;
@@ -108,17 +119,21 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
           
           const volumes = response.data.candles.map((candle: any) => ({
             x: new Date(candle.timestamp),
-            y: candle.volume || 0
+            y: parseFloat(candle.volume) || 0
           }));
           
           setCandlestickData(candles);
           setVolumeData(volumes);
+        } else {
+          // API成功但没有数据，显示空图表
+          setCandlestickData([]);
+          setVolumeData([]);
         }
       } catch (error) {
         console.error('Failed to load candlestick data:', error);
-        // 如果API调用失败，使用模拟数据作为备用
-        setCandlestickData(generateMockCandlestickData());
-        setVolumeData(generateMockVolumeData());
+        // 如果API调用失败，显示空图表
+        setCandlestickData([]);
+        setVolumeData([]);
       }
     };
 
@@ -127,49 +142,97 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
     }
   }, [tokenAddress, timeframe, currency, okbPrice]);
 
-  // 生成模拟K线数据（作为备用）
-  const generateMockCandlestickData = () => {
-    const data = [];
-    const now = Date.now();
-    const basePrice = 0.00027339;
-    
-    for (let i = 23; i >= 0; i--) {
-      const time = now - i * 60 * 60 * 1000;
-      const variation = (Math.random() - 0.5) * 0.0001; // 减少波动范围
-      const open = basePrice + variation;
-      const high = open + Math.random() * 0.00005; // 减少最高价波动
-      const low = open - Math.random() * 0.00005; // 减少最低价波动
-      const close = open + (Math.random() - 0.5) * 0.00008; // 减少收盘价波动
-      
-      data.push({
-        x: new Date(time),
-        y: [open, high, low, close]
-      });
-    }
-    return data;
-  };
+  // 接入 WebSocket 实时 K 线
+  useEffect(() => {
+    if (!tokenAddress) return;
 
-  // 生成模拟交易量数据
-  const generateMockVolumeData = () => {
-    const data = [];
-    const now = Date.now();
-    
-    // 减少数据点，每2小时一个数据点，避免过于密集
-    for (let i = 11; i >= 0; i--) {
-      const time = now - i * 2 * 60 * 60 * 1000;
-      const volume = Math.random() * 1000000 + 100000;
-      
-      data.push({
-        x: new Date(time),
-        y: volume
-      });
-    }
-    return data;
-  };
+    const interval = getBackendInterval(timeframe);
 
-  // 如果没有真实数据，使用模拟数据作为备用
-  const fallbackCandlestickData = generateMockCandlestickData();
-  const fallbackVolumeData = generateMockVolumeData();
+    // 断开已有连接
+    if (wsConnectionIdRef.current) {
+      // 通过服务内管理实现，连接ID变更时新 connect 会覆盖；此处仅记录ID
+      wsConnectionIdRef.current = null;
+    }
+
+    const handleMessage = (data: any) => {
+      try {
+        if (data?.type === 'candles_snapshot' && data.data?.candles) {
+          const transformed = data.data.candles.map((candle: any) => {
+            const x = new Date(candle.timestamp);
+            const factor = currency === 'OKB' ? 1 / okbPrice : 1;
+            return {
+              x,
+              y: [
+                (candle.open || 0) * factor,
+                (candle.high || 0) * factor,
+                (candle.low || 0) * factor,
+                (candle.close || 0) * factor
+              ]
+            };
+          });
+          const volumes = data.data.candles.map((candle: any) => ({
+            x: new Date(candle.timestamp),
+            y: parseFloat(candle.volume) || 0
+          }));
+          setCandlestickData(transformed);
+          setVolumeData(volumes);
+        } else if (data?.type === 'candles_update' && data.data?.candles) {
+          const updates = data.data.candles as any[];
+          const factor = currency === 'OKB' ? 1 / okbPrice : 1;
+          // 合并更新：按 timestamp 覆盖或追加
+          setCandlestickData(prev => {
+            const next = [...prev];
+            updates.forEach((c) => {
+              const ts = new Date(c.timestamp).getTime();
+              const idx = next.findIndex(item => new Date(item.x).getTime() === ts);
+              const newItem = {
+                x: new Date(c.timestamp),
+                y: [
+                  (c.open || Number(c.open_price) || 0) * factor,
+                  (c.high || Number(c.high_price) || 0) * factor,
+                  (c.low || Number(c.low_price) || 0) * factor,
+                  (c.close || Number(c.close_price) || 0) * factor
+                ]
+              };
+              if (idx >= 0) {
+                next[idx] = newItem;
+              } else {
+                next.push(newItem);
+              }
+            });
+            // 按时间排序
+            next.sort((a, b) => new Date(a.x).getTime() - new Date(b.x).getTime());
+            return next;
+          });
+          setVolumeData(prev => {
+            const next = [...prev];
+            updates.forEach((c) => {
+              const ts = new Date(c.timestamp).getTime();
+              const idx = next.findIndex(item => new Date(item.x).getTime() === ts);
+              const newItem = { x: new Date(c.timestamp), y: parseFloat(c.volume) || parseFloat(c.total_okb_volume) || 0 };
+              if (idx >= 0) next[idx] = newItem; else next.push(newItem);
+            });
+            next.sort((a, b) => new Date(a.x).getTime() - new Date(b.x).getTime());
+            return next;
+          });
+        }
+      } catch (e) {
+        console.error('Error handling candles message:', e);
+      }
+    };
+
+    const connId = connectToTokenCandles(tokenAddress, interval, handleMessage, 200);
+    wsConnectionIdRef.current = connId;
+
+    return () => {
+      // 连接的实际关闭由全局服务在页面卸载时统一处理；此处清理引用即可
+      wsConnectionIdRef.current = null;
+    };
+  }, [tokenAddress, timeframe, currency, okbPrice]);
+
+  // 使用真实数据，不再使用模拟数据
+  const displayCandlestickData = candlestickData;
+  const displayVolumeData = volumeData;
 
   // ApexCharts 配置
   const chartOptions = {
@@ -249,10 +312,10 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
               <span style="color: #9CA3AF;">H:</span> ${symbol}${high.toFixed(6)}
             </div>
             <div style="color: white; font-size: 12px; margin: 2px 0;">
-              <span style="color: #9CA3AF;">L:</span> $${low.toFixed(6)}
+              <span style="color: #9CA3AF;">L:</span> ${symbol}${low.toFixed(6)}
             </div>
             <div style="color: white; font-size: 12px; margin: 2px 0;">
-              <span style="color: #9CA3AF;">C:</span> $${close.toFixed(6)}
+              <span style="color: #9CA3AF;">C:</span> ${symbol}${close.toFixed(6)}
             </div>
           </div>
         `;
@@ -313,11 +376,17 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
           fontSize: '10px'
         },
         formatter: function(value: number) {
-          return (value / 1000000).toFixed(1) + 'M';
+          if (value >= 1000000) {
+            return (value / 1000000).toFixed(1) + 'M';
+          } else if (value >= 1000) {
+            return (value / 1000).toFixed(1) + 'K';
+          } else {
+            return value.toFixed(1);
+          }
         }
       },
       tickAmount: 3, // 只显示3个刻度，减少密度
-      max: 1200000 // 设置最大值，让图表更清晰
+      // 移除固定max值，让图表根据实际数据自动调整
     },
     plotOptions: {
       bar: {
@@ -370,19 +439,19 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
           <div className="flex items-center space-x-2">
             {/* 时间框架快捷按钮 */}
             <div className="flex items-center space-x-1 mr-2">
-              {['1H', '4H', '1D', '1W', '1M'].map((tf) => (
+              {['1m', '15m', '30m', '1h', '4h', '1d'].map((tf) => (
                 <Button
                   key={tf}
                   variant="outline"
                   size="sm"
-                  onClick={() => setTimeframe(tf.toLowerCase())}
+                  onClick={() => setTimeframe(tf)}
                   className={`border-gray-600 ${
-                    timeframe === tf.toLowerCase() 
-                      ? 'text-white bg-gray-600' 
+                    timeframe === tf
+                      ? 'text-white bg-gray-600'
                       : 'text-gray-400 hover:text-white'
                   }`}
                 >
-                  {tf}
+                  {tf.toUpperCase()}
                 </Button>
               ))}
             </div>
@@ -473,31 +542,49 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
       <div className="bg-[#1a1a1a] rounded-lg p-6">
         <div className="space-y-2">
           {/* K线图 */}
-          <Chart
-            options={chartOptions}
-            series={[
-              {
-                name: 'Price',
-                data: candlestickData.length > 0 ? candlestickData : fallbackCandlestickData
-              }
-            ]}
-            type="candlestick"
-            height={380}
-          />
+          {candlestickData.length > 0 ? (
+            <Chart
+              options={chartOptions}
+              series={[
+                {
+                  name: 'Price',
+                  data: candlestickData
+                }
+              ]}
+              type="candlestick"
+              height={380}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-[380px] text-gray-400">
+              <div className="text-center">
+                <div className="text-lg mb-2">📊</div>
+                <div>No chart data available</div>
+                <div className="text-sm text-gray-500 mt-1">
+                  Chart data will appear here when trading begins
+                </div>
+              </div>
+            </div>
+          )}
           
           {/* 交易量图 */}
           <div className="border-t border-gray-700 pt-2">
-            <Chart
-              options={volumeOptions}
-              series={[
-                {
-                  name: 'Volume',
-                  data: volumeData.length > 0 ? volumeData : fallbackVolumeData
-                }
-              ]}
-              type="bar"
-              height={80}
-            />
+            {volumeData.length > 0 ? (
+              <Chart
+                options={volumeOptions}
+                series={[
+                  {
+                    name: 'Volume',
+                    data: volumeData
+                  }
+                ]}
+                type="bar"
+                height={80}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-[80px] text-gray-500 text-sm">
+                No volume data
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -563,13 +650,15 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
               <div className="animate-pulse bg-gray-600 h-4 w-16 rounded"></div>
             ) : (
               (() => {
-                const volume = parseFloat(stats24h?.volume24h || '0');
-                if (volume >= 1000000) {
-                  return `$${(volume / 1000000).toFixed(1)}M`;
-                } else if (volume >= 1000) {
-                  return `$${(volume / 1000).toFixed(1)}K`;
+                const volumeOKB = parseFloat(stats24h?.volume24h || '0');
+                const volumeUSD = volumeOKB * okbPrice;
+
+                if (volumeUSD >= 1000000) {
+                  return `$${(volumeUSD / 1000000).toFixed(1)}M`;
+                } else if (volumeUSD >= 1000) {
+                  return `$${(volumeUSD / 1000).toFixed(1)}K`;
                 } else {
-                  return `$${volume.toFixed(2)}`;
+                  return `$${volumeUSD.toFixed(2)}`;
                 }
               })()
             )}

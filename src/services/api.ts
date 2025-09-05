@@ -98,7 +98,7 @@ async function apiRequest<T>(
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
         
         const response = await fetch(url, {
           ...config,
@@ -130,12 +130,30 @@ async function apiRequest<T>(
           continue;
         }
         
+        // 网络错误（Failed to fetch）且还有重试机会，则重试
+        if (((error instanceof TypeError && error.message.includes('fetch')) || 
+            (error instanceof Error && error.message.includes('network')) ||
+            (error instanceof Error && error.message.includes('Network')) ||
+            (error instanceof Error && error.message.includes('timeout')) ||
+            (error instanceof Error && error.message.includes('Timeout'))) && 
+            attempt < maxRetries) {
+          console.warn(`Network error: ${error.message}, retrying... (attempt ${attempt + 1}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, 2000 * (attempt + 1))); // 递增延迟
+          continue;
+        }
+        
         // 其他错误或重试次数用完
         break;
       }
     }
     
-    console.error('API request failed:', lastError);
+    console.error('API request failed:', {
+      url,
+      method: config.method || 'GET',
+      error: lastError?.message || 'Unknown error',
+      stack: lastError?.stack,
+      timestamp: new Date().toISOString()
+    });
     throw lastError;
   })();
 
@@ -228,12 +246,12 @@ export const userAPI = {
     }>(`/users/${address}/portfolio/`, {}, generateCacheKey('user_portfolio', address), 300000),
 
   // 获取用户代币
-  getUserTokens: (address: string, network: string = 'sepolia') => 
+  getUserTokens: (address: string, network: string = 'sepolia') =>
     apiRequest<{
       created: Array<any>;
       holding: Array<any>;
       network: string;
-    }>(`/users/${address}/tokens/?network=${network}`, {}, generateCacheKey('user_tokens', address, network), 300000),
+    }>(`/users/${address}/tokens/?network=${network}`, {}, generateCacheKey('user_tokens', address, network), 30000), // 减少缓存时间到30秒
 
   // 获取创作者排行榜
   getCreatorsRanking: (params: {
