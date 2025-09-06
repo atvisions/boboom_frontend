@@ -26,8 +26,14 @@ class WebSocketService {
 
   constructor() {
     // 从环境变量获取WebSocket服务器地址
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-    this.baseUrl = backendUrl.replace('http://', 'ws://').replace('https://', 'wss://') + '/ws';
+    const websocketUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL;
+    if (websocketUrl) {
+      this.baseUrl = websocketUrl;
+    } else {
+      // 回退到从后端URL构建
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      this.baseUrl = backendUrl.replace('http://', 'ws://').replace('https://', 'wss://') + '/ws';
+    }
   }
 
   /**

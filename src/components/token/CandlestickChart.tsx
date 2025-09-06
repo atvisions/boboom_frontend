@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, Clock } from 'lucide-react';
+import { TrendingUp, TrendingDown, Clock, RotateCcw } from 'lucide-react';
 import { tokenAPI } from '@/services/api';
 import { connectToTokenCandles } from '@/services/websocket';
 
@@ -25,6 +25,7 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
   const [loading, setLoading] = useState(true);
   const [okbPrice, setOkbPrice] = useState<number>(177.6); // 默认OKB价格
   const wsConnectionIdRef = useRef<string | null>(null);
+  const chartRef = useRef<any>(null);
 
   // 后端支持的 interval 映射（将 UI timeframe 映射到后端可用的 interval）
   const getBackendInterval = (tf: string): string => {
@@ -142,6 +143,33 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
     }
   }, [tokenAddress, timeframe, currency, okbPrice]);
 
+  // 重置图表缩放的函数
+  const resetChartZoom = () => {
+    if (chartRef.current && candlestickData.length > 0) {
+      try {
+        const displayRange = getDisplayRange();
+        if (displayRange.min && displayRange.max) {
+          chartRef.current.chart.zoomX(displayRange.min, displayRange.max);
+        } else {
+          // 如果没有特定范围，重置到全部数据
+          chartRef.current.chart.resetSeries();
+        }
+      } catch (error) {
+        console.log('Chart zoom reset failed:', error);
+      }
+    }
+  };
+
+  // 时间间隔切换时重置图表缩放
+  useEffect(() => {
+    if (chartRef.current && candlestickData.length > 0) {
+      // 延迟执行以确保图表已更新
+      setTimeout(() => {
+        resetChartZoom();
+      }, 100);
+    }
+  }, [timeframe, candlestickData]);
+
   // 接入 WebSocket 实时 K 线
   useEffect(() => {
     if (!tokenAddress) return;
@@ -234,6 +262,43 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
   const displayCandlestickData = candlestickData;
   const displayVolumeData = volumeData;
 
+  // 根据时间间隔计算合适的显示范围
+  const getDisplayRange = () => {
+    if (candlestickData.length === 0) return {};
+
+    const now = new Date().getTime();
+    let rangeMs: number;
+
+    // 根据时间间隔设置合适的显示范围
+    switch (timeframe) {
+      case '1m':
+        rangeMs = 2 * 60 * 60 * 1000; // 2小时
+        break;
+      case '15m':
+        rangeMs = 12 * 60 * 60 * 1000; // 12小时
+        break;
+      case '30m':
+        rangeMs = 24 * 60 * 60 * 1000; // 1天
+        break;
+      case '1h':
+        rangeMs = 3 * 24 * 60 * 60 * 1000; // 3天
+        break;
+      case '4h':
+        rangeMs = 7 * 24 * 60 * 60 * 1000; // 7天
+        break;
+      case '1d':
+        rangeMs = 30 * 24 * 60 * 60 * 1000; // 30天
+        break;
+      default:
+        rangeMs = 24 * 60 * 60 * 1000; // 默认1天
+    }
+
+    return {
+      min: now - rangeMs,
+      max: now
+    };
+  };
+
   // ApexCharts 配置
   const chartOptions = {
     chart: {
@@ -241,13 +306,21 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
       height: 400,
       background: '#1a1a1a',
       animations: {
-        enabled: false
+        enabled: true,
+        easing: 'easeinout',
+        speed: 300
       },
       toolbar: {
         show: false
       },
       zoom: {
-        enabled: true
+        enabled: true,
+        type: 'x' as const,
+        autoScaleYaxis: true
+      },
+      pan: {
+        enabled: true,
+        type: 'x' as const
       }
     },
     title: {
@@ -259,14 +332,22 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
       labels: {
         style: {
           colors: '#9CA3AF'
-        }
+        },
+        datetimeUTC: false,
+        format: timeframe === '1m' || timeframe === '15m' || timeframe === '30m'
+          ? 'HH:mm'
+          : timeframe === '1h' || timeframe === '4h'
+          ? 'MM/dd HH:mm'
+          : 'MM/dd'
       },
       axisBorder: {
         color: 'rgba(255, 255, 255, 0.1)'
       },
       axisTicks: {
         color: 'rgba(255, 255, 255, 0.1)'
-      }
+      },
+      // 自动调整显示范围
+      ...getDisplayRange()
     },
     yaxis: {
       tooltip: {
@@ -289,7 +370,10 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
             return symbol + value.toFixed(8);
           }
         }
-      }
+      },
+      // 自动缩放Y轴以适应可见数据
+      forceNiceScale: true,
+      decimalsInFloat: 8
     },
     tooltip: {
       enabled: true,
@@ -523,6 +607,17 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
               )}
             </div>
             
+            {/* 重置缩放按钮 */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={resetChartZoom}
+              className="border-gray-600 text-gray-400 hover:text-white"
+              title="重置图表缩放"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </Button>
+
             {/* 货币切换按钮 */}
             <Button
               variant="outline"
@@ -544,6 +639,7 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
           {/* K线图 */}
           {candlestickData.length > 0 ? (
             <Chart
+              ref={chartRef}
               options={chartOptions}
               series={[
                 {
