@@ -1,21 +1,29 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ArrowUp, ArrowDown, ExternalLink, Clock, Users, Crown, Medal, Award, ChevronDown, Copy, Check } from 'lucide-react';
+import { ArrowUp, ArrowDown, ExternalLink, Clock, Users, Crown, Medal, Award, ChevronDown, Copy, Check, BarChart3 } from 'lucide-react';
 import { tokenAPI } from '@/services/api';
 import websocketService from '@/services/websocket';
+import { TokenOverview } from './TokenOverview';
 
 interface TradesAndHoldersProps {
   tokenAddress: string;
+  token?: any;
+  okbPrice?: number;
 }
 
-export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
-  const [activeTab, setActiveTab] = useState<'trades' | 'holders'>('trades');
+export function TradesAndHolders({ tokenAddress, token, okbPrice }: TradesAndHoldersProps) {
+  const [activeTab, setActiveTab] = useState<'overview' | 'trades' | 'holders'>('overview');
   const [transactions, setTransactions] = useState<any[]>([]);
   const [holders, setHolders] = useState<any[]>([]);
-  const [displayedTrades, setDisplayedTrades] = useState<number>(20);
-  const [displayedHolders, setDisplayedHolders] = useState<number>(20);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [holdersPage, setHoldersPage] = useState<number>(1);
+  const [hasMoreTrades, setHasMoreTrades] = useState<boolean>(true);
+  const [hasMoreHolders, setHasMoreHolders] = useState<boolean>(true);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
+  const [totalTransactions, setTotalTransactions] = useState<number>(0);
+  const [totalHolders, setTotalHolders] = useState<number>(0);
 
   // 处理WebSocket交易数据
   const handleTransactionData = useCallback((data: any) => {
@@ -49,11 +57,16 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
     }
   }, [tokenAddress]);
 
-  // 备用API加载交易数据
-  const loadTransactions = async () => {
+  // 加载交易数据
+  const loadTransactions = async (page: number = 1, append: boolean = false) => {
     try {
-      setLoading(true);
-      const response = await tokenAPI.getTokenTransactions(tokenAddress, 'sepolia');
+      if (page === 1) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+
+      const response = await tokenAPI.getTokenTransactions(tokenAddress, 'sepolia', page, 10);
       if (response.success) {
         // 将后端的snake_case字段映射为前端期望的格式
         const mappedTransactions = (response.data || []).map((transaction: any) => ({
@@ -67,8 +80,18 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
           user_address: transaction.user_address,
           transaction_hash: transaction.transaction_hash
         }));
+
         console.log('Mapped transactions:', mappedTransactions);
-        setTransactions(mappedTransactions);
+
+        if (append) {
+          setTransactions(prev => [...prev, ...mappedTransactions]);
+        } else {
+          setTransactions(mappedTransactions);
+        }
+
+        setHasMoreTrades(response.hasMore);
+        setTotalTransactions(response.total);
+        setCurrentPage(page);
       } else {
         setError('Failed to load transactions');
       }
@@ -77,6 +100,7 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
       setError('Failed to load transactions');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -108,13 +132,26 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
     }
   }, [tokenAddress]);
 
-  // 备用API加载持有人数据
-  const loadHolders = async () => {
+  // 加载持有人数据
+  const loadHolders = async (page: number = 1, append: boolean = false) => {
     try {
-      setLoading(true);
-      const response = await tokenAPI.getTokenHolders(tokenAddress, 'sepolia');
+      if (page === 1) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+
+      const response = await tokenAPI.getTokenHolders(tokenAddress, 'sepolia', page, 10);
       if (response.success) {
-        setHolders(response.data || []);
+        if (append) {
+          setHolders(prev => [...prev, ...response.data || []]);
+        } else {
+          setHolders(response.data || []);
+        }
+
+        setHasMoreHolders(response.hasMore);
+        setTotalHolders(response.total);
+        setHoldersPage(page);
       } else {
         setError('Failed to load holders');
       }
@@ -123,6 +160,7 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
       setError('Failed to load holders');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
@@ -132,21 +170,30 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
     let holdersConnectionId: string | null = null;
 
     if (activeTab === 'trades') {
-      // 先加载初始交易数据
-      loadTransactions();
-      
+      // 重置状态并加载第一页交易数据
+      setCurrentPage(1);
+      setTransactions([]);
+      loadTransactions(1, false);
+
       // 连接交易WebSocket获取实时更新
       transactionConnectionId = websocketService.connect('transactions/', handleTransactionData);
-      
+
       console.log('Connected to transaction WebSocket for real-time updates');
-    } else {
-      // 先加载初始持有者数据
-      loadHolders();
-      
+    } else if (activeTab === 'holders') {
+      // 重置状态并加载第一页持有者数据
+      setHoldersPage(1);
+      setHolders([]);
+      loadHolders(1, false);
+
       // 连接持有者WebSocket获取实时更新
       holdersConnectionId = websocketService.connect(`tokens/${tokenAddress}/holders/`, handleHoldersData);
-      
+
       console.log('Connected to holders WebSocket for real-time updates');
+    } else if (activeTab === 'overview') {
+      // Overview tab 不需要额外的数据加载，因为数据通过 props 传递
+      // 直接设置loading为false
+      setLoading(false);
+      setError(null);
     }
 
     // 清理函数
@@ -176,12 +223,16 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
 
   // 加载更多交易
   const loadMoreTrades = () => {
-    setDisplayedTrades(prev => Math.min(prev + 20, transactions.length));
+    if (!loadingMore && hasMoreTrades) {
+      loadTransactions(currentPage + 1, true);
+    }
   };
 
   // 加载更多持有人
   const loadMoreHolders = () => {
-    setDisplayedHolders(prev => Math.min(prev + 20, holders.length));
+    if (!loadingMore && hasMoreHolders) {
+      loadHolders(holdersPage + 1, true);
+    }
   };
 
   // 获取排名图标
@@ -227,9 +278,7 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
     window.open(url, '_blank');
   };
 
-  // 检查是否还有更多数据可以加载
-  const hasMoreTrades = displayedTrades < transactions.length;
-  const hasMoreHolders = displayedHolders < holders.length;
+
 
   if (loading) {
     return (
@@ -268,6 +317,17 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
       <div className="flex items-center justify-between mb-6">
         <div className="flex space-x-1 bg-[#1a1a1a] rounded-lg p-1">
           <button
+            onClick={() => setActiveTab('overview')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              activeTab === 'overview'
+                ? 'bg-[#70E000] text-black'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <BarChart3 className="h-4 w-4 inline mr-2" />
+            Overview
+          </button>
+          <button
             onClick={() => setActiveTab('trades')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === 'trades'
@@ -290,21 +350,28 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
             Holders
           </button>
         </div>
-        
+
         {/* 右侧信息 */}
         <div className="text-gray-400 text-sm">
-          {activeTab === 'trades' ? (
-            <span>Showing {Math.min(displayedTrades, transactions.length)} of {transactions.length} transactions</span>
+          {activeTab === 'overview' ? (
+            <span>Token Information</span>
+          ) : activeTab === 'trades' ? (
+            <span>Showing {transactions.length} of {totalTransactions} transactions</span>
           ) : (
-            <span>Showing {Math.min(displayedHolders, holders.length)} of {holders.length} holders</span>
+            <span>Showing {holders.length} of {totalHolders} holders</span>
           )}
         </div>
       </div>
 
+      {/* Overview 内容 */}
+      {activeTab === 'overview' && (
+        <TokenOverview key={`${token?.address}-${Date.now()}`} token={token} okbPrice={okbPrice} />
+      )}
+
       {/* Trades 内容 */}
       {activeTab === 'trades' && (
         <div className="space-y-3">
-          {transactions.slice(0, displayedTrades).map((tx, index) => (
+          {transactions.map((tx, index) => (
             <div 
               key={tx.id || index}
               className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded-lg border border-[#232323] hover:border-[#70E000]/30 transition-all duration-200"
@@ -399,10 +466,20 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
             <div className="text-center pt-4">
               <button
                 onClick={loadMoreTrades}
-                className="px-6 py-3 bg-[#70E000] text-black rounded-lg hover:bg-[#5BC000] transition-colors font-medium flex items-center mx-auto space-x-2"
+                disabled={loadingMore}
+                className="px-6 py-3 bg-[#70E000] text-black rounded-lg hover:bg-[#5BC000] transition-colors font-medium flex items-center mx-auto space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span>Load More</span>
-                <ChevronDown className="h-4 w-4" />
+                {loadingMore ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black"></div>
+                    <span>Loading...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Load More</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </>
+                )}
               </button>
             </div>
           )}
@@ -412,7 +489,7 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
       {/* Holders 内容 */}
       {activeTab === 'holders' && (
         <div className="space-y-3">
-          {holders.slice(0, displayedHolders).map((holder, index) => (
+          {holders.map((holder, index) => (
             <div 
               key={holder.address}
               className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded-lg border border-[#232323] hover:border-[#70E000]/30 transition-all duration-200"
@@ -459,10 +536,20 @@ export function TradesAndHolders({ tokenAddress }: TradesAndHoldersProps) {
             <div className="text-center pt-4">
               <button
                 onClick={loadMoreHolders}
-                className="px-6 py-3 bg-[#70E000] text-black rounded-lg hover:bg-[#5BC000] transition-colors font-medium flex items-center mx-auto space-x-2"
+                disabled={loadingMore}
+                className="px-6 py-3 bg-[#70E000] text-black rounded-lg hover:bg-[#5BC000] transition-colors font-medium flex items-center mx-auto space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <span>Load More</span>
-                <ChevronDown className="h-4 w-4" />
+                {loadingMore ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black"></div>
+                    <span>Loading...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Load More</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </>
+                )}
               </button>
             </div>
           )}

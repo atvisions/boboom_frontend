@@ -33,6 +33,7 @@ export function TradingPanel({ token }: TradingPanelProps) {
   const [buyQuote, setBuyQuote] = useState<any>(null);
   const [sellQuote, setSellQuote] = useState<any>(null);
   const [currentPrice, setCurrentPrice] = useState<number>(0);
+  const [isInsufficientLiquidity, setIsInsufficientLiquidity] = useState<boolean>(false);
 
   const {
     okbBalance: okbBalanceChain,
@@ -78,23 +79,41 @@ export function TradingPanel({ token }: TradingPanelProps) {
       if (!amount || parseFloat(amount) <= 0 || !token?.address) {
         setBuyQuote(null);
         setSellQuote(null);
+        setIsInsufficientLiquidity(false);
         return;
       }
 
       try {
         if (activeTab === 'buy') {
           const quote = await getBuyQuote(token.address, parseFloat(amount));
-          setBuyQuote(quote);
-          setSellQuote(null);
+          if (quote) {
+            setBuyQuote(quote);
+            setSellQuote(null);
+            setIsInsufficientLiquidity(false);
+          } else {
+            // 报价失败，可能是流动性不足
+            setBuyQuote(null);
+            setSellQuote(null);
+            setIsInsufficientLiquidity(true);
+          }
         } else {
           const quote = await getSellQuote(token.address, parseFloat(amount));
-          setSellQuote(quote);
-          setBuyQuote(null);
+          if (quote) {
+            setSellQuote(quote);
+            setBuyQuote(null);
+            setIsInsufficientLiquidity(false);
+          } else {
+            // 报价失败，可能是流动性不足
+            setBuyQuote(null);
+            setSellQuote(null);
+            setIsInsufficientLiquidity(true);
+          }
         }
       } catch (error) {
         console.error('Failed to fetch quote:', error);
         setBuyQuote(null);
         setSellQuote(null);
+        setIsInsufficientLiquidity(true);
       }
     };
 
@@ -108,6 +127,7 @@ export function TradingPanel({ token }: TradingPanelProps) {
     setBuyQuote(null);
     setSellQuote(null);
     setAmount(''); // 清空输入框
+    setIsInsufficientLiquidity(false); // 重置流动性状态
   }, [activeTab]);
 
   // 监听授权成功，自动执行买入
@@ -424,14 +444,9 @@ export function TradingPanel({ token }: TradingPanelProps) {
     }
   };
 
-  // 快速金额按钮 - 根据买卖模式显示不同选项
+  // 快速金额按钮 - 买卖模式都显示百分比选项
   const getQuickAmounts = () => {
-    if (activeTab === 'buy') {
-      return ['0.1', '0.5', '1', 'Max'];
-    } else {
-      // 卖出模式：显示百分比
-      return ['10%', '25%', '50%', 'Max'];
-    }
+    return ['10%', '25%', '50%', 'Max'];
   };
 
   const quickAmounts = getQuickAmounts();
@@ -554,19 +569,19 @@ export function TradingPanel({ token }: TradingPanelProps) {
               <>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Estimated {token.symbol}:</span>
-                  <span className="text-white font-medium">
+                  <span className="text-white font-medium text-right">
                     {buyQuote ? buyQuote.tokensOut.toFixed(6) : 'Calculating...'} {token.symbol}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Fee:</span>
-                  <span className="text-yellow-500">
+                  <span className="text-yellow-500 text-right">
                     {buyQuote ? buyQuote.fee.toFixed(6) : '0.000000'} OKB
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Price Impact:</span>
-                  <span className="text-green-500">
+                  <span className="text-green-500 text-right">
                     {buyQuote ? `${calculatePriceImpact().toFixed(2)}%` : '~0.00%'}
                   </span>
                 </div>
@@ -575,19 +590,19 @@ export function TradingPanel({ token }: TradingPanelProps) {
               <>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Estimated OKB:</span>
-                  <span className="text-white font-medium">
+                  <span className="text-white font-medium text-right">
                     {sellQuote ? sellQuote.okbOut.toFixed(6) : 'Calculating...'} OKB
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Fee:</span>
-                  <span className="text-yellow-500">
+                  <span className="text-yellow-500 text-right">
                     {sellQuote ? sellQuote.fee.toFixed(6) : '0.000000'} OKB
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-400">Price Impact:</span>
-                  <span className="text-red-500">
+                  <span className="text-red-500 text-right">
                     {sellQuote ? `${calculatePriceImpact().toFixed(2)}%` : '~0.00%'}
                   </span>
                 </div>
@@ -602,7 +617,7 @@ export function TradingPanel({ token }: TradingPanelProps) {
       {/* 交易按钮 */}
       <Button
         onClick={activeTab === 'buy' ? handleBuy : handleSell}
-        disabled={isLoading || isCreatePending || isCreateConfirming || isApprovalPending || isApprovalConfirming || isRefreshingBalances || !amount || parseFloat(amount) <= 0}
+        disabled={isLoading || isCreatePending || isCreateConfirming || isApprovalPending || isApprovalConfirming || isRefreshingBalances || !amount || parseFloat(amount) <= 0 || isInsufficientLiquidity}
         className={`w-full py-3 font-medium ${
           activeTab === 'buy'
             ? 'bg-[#70E000] text-black hover:bg-[#5BC000]'
@@ -620,11 +635,13 @@ export function TradingPanel({ token }: TradingPanelProps) {
         ) : (
           <ArrowDown className="h-4 w-4 mr-2" />
         )}
-        {isLoading || isCreatePending || isCreateConfirming || isApprovalPending || isApprovalConfirming || isRefreshingBalances
-          ? 'Processing...'
-          : activeTab === 'buy' && parseFloat(amount || '0') >= okbAllowanceBondingCurve
-            ? 'Approve OKB'
-            : `${activeTab === 'buy' ? 'Buy' : 'Sell'} ${token.symbol}`
+        {isInsufficientLiquidity
+          ? 'Insufficient Liquidity'
+          : isLoading || isCreatePending || isCreateConfirming || isApprovalPending || isApprovalConfirming || isRefreshingBalances
+            ? 'Processing...'
+            : activeTab === 'buy' && parseFloat(amount || '0') >= okbAllowanceBondingCurve
+              ? 'Approve OKB'
+              : `${activeTab === 'buy' ? 'Buy' : 'Sell'} ${token.symbol}`
         }
       </Button>
     </div>

@@ -11,7 +11,7 @@ import { TradesAndHolders } from '@/components/token/Trades';
 import { BondingCurveProgress } from '@/components/token/BondingCurveProgress';
 import { CandlestickChart } from '@/components/token/CandlestickChart';
 
-import { tokenAPI, userAPI } from '@/services/api';
+import { tokenAPI, userAPI, clearApiCache } from '@/services/api';
 import { useWalletAuth } from '@/hooks/useWalletAuth';
 import { toast } from '@/components/ui/toast-notification';
 import websocketService from '@/services/websocket';
@@ -124,27 +124,47 @@ export default function TokenDetailPage() {
   useEffect(() => {
     if (!isClient || !tokenAddress) return;
 
+    // 清除浏览器缓存
+    if (typeof window !== 'undefined') {
+      // 清除可能的localStorage缓存
+      const cacheKeys = Object.keys(localStorage).filter(key =>
+        key.includes('token_') || key.includes(tokenAddress)
+      );
+      cacheKeys.forEach(key => localStorage.removeItem(key));
+    }
+
     // 连接WebSocket获取实时代币详情
     const connectionId = websocketService.connect(`tokens/${tokenAddress}/`, handleTokenDetailData);
     
     // 备用API加载（如果WebSocket连接失败）
     const loadTokenDetails = async () => {
       try {
+        console.log('[TokenDetailPage] Starting to load token details for:', tokenAddress);
+
+        // 清除相关缓存
+        clearApiCache('token_details');
+        clearApiCache('token_24h_stats');
+
         setLoading(true);
         const [detailResponse, statsResponse] = await Promise.all([
           tokenAPI.getTokenDetails(tokenAddress, 'sepolia'),
           tokenAPI.getToken24hStats(tokenAddress, 'sepolia')
         ]);
-        
+
+        console.log('[TokenDetailPage] API responses:', { detailResponse, statsResponse });
+
         if (detailResponse.success) {
           const tokenData = detailResponse.data;
           const statsData = statsResponse.success ? statsResponse.data : { high24h: '0', low24h: '0' };
+
+          console.log('[TokenDetailPage] Token data received:', tokenData);
+          console.log('[TokenDetailPage] Stats data received:', statsData);
 
           // 保存 24h 统计数据
           setStats24h(statsData);
           
           // 将后端的snake_case字段映射为前端期望的camelCase
-          setToken({
+          const mappedToken = {
             ...tokenData,
             // 基本信息字段映射
             imageUrl: tokenData.image_url || tokenData.imageUrl,
@@ -169,7 +189,9 @@ export default function TokenDetailPage() {
             isActive: tokenData.is_active || tokenData.isActive,
             createdAt: tokenData.created_at || tokenData.createdAt || new Date().toISOString(),
             updatedAt: tokenData.updated_at || tokenData.updatedAt
-          });
+          };
+
+          setToken(mappedToken);
         } else {
           setError('Failed to load token details');
         }
@@ -292,8 +314,8 @@ export default function TokenDetailPage() {
                   </div>
                 </div>
                 
-                {/* Trades和Holders组件 */}
-                <TradesAndHolders tokenAddress={tokenAddress} />
+                {/* Trades和Holders组件（包含Overview Tab） */}
+                <TradesAndHolders tokenAddress={tokenAddress} token={token} okbPrice={okbPrice} />
               </div>
               
               {/* 右侧面板 - 占据1.5列 */}

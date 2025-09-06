@@ -546,11 +546,11 @@ export const tokenAPI = {
     }>(`/tokens/${address}/?network=${network}`, {}, generateCacheKey('token_detail', address, network), 0),
 
   // 获取代币详情（新接口）
-  getTokenDetails: (address: string, network: string = 'sepolia') => 
+  getTokenDetails: (address: string, network: string = 'sepolia') =>
     apiRequest<{
       success: boolean;
       data: any;
-    }>(`/tokens/${address}/?network=${network}`, {}, generateCacheKey('token_details', address, network), 0),
+    }>(`/tokens/${address}/?network=${network}&_t=${Date.now()}`, {}, `token_details_${address}_${network}_${Date.now()}`, 0),
 
   // 获取代币24小时统计数据
   getToken24hStats: (address: string, network: string = 'sepolia') => 
@@ -567,7 +567,7 @@ export const tokenAPI = {
     }>(`/tokens/${address}/24h-stats/?network=${network}`, {}, generateCacheKey('token_24h_stats', address, network), 60000), // 1分钟缓存
 
   // 获取代币交易记录
-  getTokenTransactions: (address: string, network: string = 'sepolia') =>
+  getTokenTransactions: (address: string, network: string = 'sepolia', page: number = 1, pageSize: number = 10) =>
     apiRequest<{
       success: boolean;
       data: Array<any>;
@@ -575,10 +575,10 @@ export const tokenAPI = {
       pageSize: number;
       total: number;
       hasMore: boolean;
-    }>(`/tokens/${address}/transactions?network=${network}`, {}, generateCacheKey('token_transactions', address, network), 30000), // 30秒缓存
+    }>(`/tokens/${address}/transactions?network=${network}&page=${page}&page_size=${pageSize}`, {}, generateCacheKey('token_transactions', address, network, page, pageSize), 30000), // 30秒缓存
 
   // 获取代币持有人
-  getTokenHolders: (address: string, network: string = 'sepolia') =>
+  getTokenHolders: (address: string, network: string = 'sepolia', page: number = 1, pageSize: number = 10) =>
     apiRequest<{
       success: boolean;
       data: Array<any>;
@@ -586,7 +586,7 @@ export const tokenAPI = {
       pageSize: number;
       total: number;
       hasMore: boolean;
-    }>(`/tokens/${address}/holders?network=${network}`, {}, generateCacheKey('token_holders', address, network), 300000),
+    }>(`/tokens/${address}/holders?network=${network}&page=${page}&page_size=${pageSize}`, {}, generateCacheKey('token_holders', address, network, page, pageSize), 300000),
 
   // 获取代币图表数据
   getTokenChartData: (address: string, timeframe: string, network: string = 'sepolia') =>
@@ -668,3 +668,6 @@ export const api = {
 };
 
 export default api;
+
+// 导出清除缓存函数
+export const clearApiCache = clearCache;

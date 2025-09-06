@@ -19,21 +19,9 @@ export function TokenDetails({ token }: TokenDetailsProps) {
   const [isFavoriteLoading, setIsFavoriteLoading] = useState(false);
   const [okbPrice, setOkbPrice] = useState<number>(177.6);
 
-  // 早期返回检查 - 如果token不存在，显示加载状态
-  if (!token) {
-    return (
-      <div className="bg-[#1B1B1B] rounded-2xl p-6 border border-gray-700/50">
-        <div className="animate-pulse">
-          <div className="h-6 bg-gray-700 rounded w-1/4 mb-4"></div>
-          <div className="h-4 bg-gray-700 rounded w-1/2 mb-2"></div>
-          <div className="h-4 bg-gray-700 rounded w-1/3"></div>
-        </div>
-      </div>
-    );
-  }
-
   // 加载创作者信息
   useEffect(() => {
+    if (!token || !token.creator) return;
     if (token.creator) {
       const loadCreator = async () => {
         try {
@@ -80,7 +68,7 @@ export function TokenDetails({ token }: TokenDetailsProps) {
       
       loadCreator();
     }
-  }, [token.creator]);
+  }, [token?.creator, token?.address]);
 
   // 加载收藏状态
   useEffect(() => {
@@ -96,7 +84,7 @@ export function TokenDetails({ token }: TokenDetailsProps) {
     };
 
     loadFavoriteStatus();
-  }, [address, isAuthenticated, token.address]);
+  }, [address, isAuthenticated, token?.address]);
 
   // 加载OKB价格
   useEffect(() => {
@@ -113,6 +101,19 @@ export function TokenDetails({ token }: TokenDetailsProps) {
 
     loadOKBPrice();
   }, []);
+
+  // 早期返回检查 - 如果token不存在，显示加载状态
+  if (!token) {
+    return (
+      <div className="bg-[#1B1B1B] rounded-2xl p-6 border border-gray-700/50">
+        <div className="animate-pulse">
+          <div className="h-6 bg-gray-700 rounded w-1/4 mb-4"></div>
+          <div className="h-4 bg-gray-700 rounded w-1/2 mb-2"></div>
+          <div className="h-4 bg-gray-700 rounded w-1/3"></div>
+        </div>
+      </div>
+    );
+  }
 
   // 切换收藏状态
   const toggleFavorite = async () => {

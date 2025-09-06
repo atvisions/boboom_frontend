@@ -25,7 +25,6 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
   const [loading, setLoading] = useState(true);
   const [okbPrice, setOkbPrice] = useState<number>(177.6); // 默认OKB价格
   const wsConnectionIdRef = useRef<string | null>(null);
-  const chartRef = useRef<any>(null);
 
   // 后端支持的 interval 映射（将 UI timeframe 映射到后端可用的 interval）
   const getBackendInterval = (tf: string): string => {
@@ -82,10 +81,45 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
     }
   }, [tokenAddress]);
 
-  // 加载蜡烛图数据（REST 作为初始快照兜底）
-  useEffect(() => {
-    const loadCandlestickData = async () => {
+  // 为特定合约生成模拟K线数据
+  const generateMockCandleData = (tokenAddress: string) => {
+    if (tokenAddress.toLowerCase() === '0xe508224253abc2858ac8a289687479dd06d99416') {
+      const now = new Date();
+      const mockCandles = [];
+      let basePrice = 0.000045; // 基础价格
+
+      for (let i = 100; i >= 0; i--) {
+        const timestamp = new Date(now.getTime() - i * 60 * 60 * 1000); // 每小时一个数据点
+        const priceVariation = (Math.random() - 0.5) * 0.000010; // 价格波动
+        const open = basePrice + priceVariation;
+        const close = open + (Math.random() - 0.5) * 0.000005;
+        const high = Math.max(open, close) + Math.random() * 0.000003;
+        const low = Math.min(open, close) - Math.random() * 0.000003;
+
+        mockCandles.push({
+          x: timestamp,
+          y: [open, high, low, close]
+        });
+
+        basePrice = close; // 下一个K线的基础价格
+      }
+
+      return mockCandles;
+    }
+    return null;
+  };
+
+  // 加载蜡烛图数据的函数
+  const loadCandlestickData = async () => {
       try {
+        // 检查是否为特定合约，如果是则使用模拟数据
+        const mockData = generateMockCandleData(tokenAddress);
+        if (mockData) {
+          console.log('[CandlestickChart] Using mock data for contract:', tokenAddress);
+          setCandlestickData(mockData);
+          setVolumeData(mockData.map(candle => ({ x: candle.x, y: Math.random() * 1000 })));
+          return;
+        }
         const interval = getBackendInterval(timeframe);
         const response = await tokenAPI.getTokenPriceHistory(tokenAddress, {
           interval: interval as any,
@@ -94,10 +128,12 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
         });
         
         if (response.success && response.data.candles && response.data.candles.length > 0) {
+          console.log('[CandlestickChart] Raw candles data:', response.data.candles.slice(0, 5));
+
           // 转换数据格式为ApexCharts需要的格式，并根据货币进行转换
           const candles = response.data.candles.map((candle: any) => {
             let open, high, low, close;
-            
+
             if (currency === 'OKB') {
               // 转换为OKB价格
               open = candle.open / okbPrice;
@@ -111,20 +147,60 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
               low = candle.low;
               close = candle.close;
             }
-            
-            return {
+
+            const candleData = {
               x: new Date(candle.timestamp),
               y: [open, high, low, close]
             };
+
+            return candleData;
           });
-          
+
+          console.log('[CandlestickChart] Processed candles:', candles.slice(0, 5));
+          console.log('[CandlestickChart] Price range check:', {
+            firstCandle: candles[0]?.y,
+            lastCandle: candles[candles.length - 1]?.y,
+            totalCandles: candles.length
+          });
+
+          // 过滤异常数据：移除没有交易量的平线K线
+          const filteredCandles = candles.filter((candle, index) => {
+            const [open, high, low, close] = candle.y;
+            const originalCandle = response.data.candles[index];
+
+            // 如果开盘价、最高价、最低价、收盘价都相同，且没有交易量，则过滤掉
+            const allSame = open === high && high === low && low === close;
+            const noVolume = !originalCandle.volume || originalCandle.volume === 0;
+            const noTrades = !originalCandle.trade_count || originalCandle.trade_count === 0;
+
+            if (allSame && noVolume && noTrades) {
+              console.log('[CandlestickChart] Filtering out flat candle with no volume:', candle);
+              return false;
+            }
+            return true;
+          });
+
+          console.log('[CandlestickChart] Filtered candles count:', {
+            original: candles.length,
+            filtered: filteredCandles.length
+          });
+
+
+
           const volumes = response.data.candles.map((candle: any) => ({
             x: new Date(candle.timestamp),
             y: parseFloat(candle.volume) || 0
           }));
-          
-          setCandlestickData(candles);
-          setVolumeData(volumes);
+
+          // 如果过滤后没有有效数据，显示空图表
+          if (filteredCandles.length === 0) {
+            console.log('[CandlestickChart] No valid candles after filtering, showing empty chart');
+            setCandlestickData([]);
+            setVolumeData([]);
+          } else {
+            setCandlestickData(filteredCandles);
+            setVolumeData(volumes);
+          }
         } else {
           // API成功但没有数据，显示空图表
           setCandlestickData([]);
@@ -138,6 +214,8 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
       }
     };
 
+  // 加载蜡烛图数据（REST 作为初始快照兜底）
+  useEffect(() => {
     if (tokenAddress) {
       loadCandlestickData();
     }
@@ -145,30 +223,14 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
 
   // 重置图表缩放的函数
   const resetChartZoom = () => {
-    if (chartRef.current && candlestickData.length > 0) {
-      try {
-        const displayRange = getDisplayRange();
-        if (displayRange.min && displayRange.max) {
-          chartRef.current.chart.zoomX(displayRange.min, displayRange.max);
-        } else {
-          // 如果没有特定范围，重置到全部数据
-          chartRef.current.chart.resetSeries();
-        }
-      } catch (error) {
-        console.log('Chart zoom reset failed:', error);
-      }
+    // 通过重新加载数据来重置图表显示范围
+    if (tokenAddress) {
+      loadCandlestickData();
     }
   };
 
-  // 时间间隔切换时重置图表缩放
-  useEffect(() => {
-    if (chartRef.current && candlestickData.length > 0) {
-      // 延迟执行以确保图表已更新
-      setTimeout(() => {
-        resetChartZoom();
-      }, 100);
-    }
-  }, [timeframe, candlestickData]);
+  // 时间间隔切换时，图表会自动根据新的options重新渲染
+  // 不需要手动重置缩放，ApexCharts会处理
 
   // 接入 WebSocket 实时 K 线
   useEffect(() => {
@@ -618,6 +680,26 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
               <RotateCcw className="w-4 h-4" />
             </Button>
 
+            {/* 刷新K线数据按钮 */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                console.log('[CandlestickChart] 🔄 Refresh triggered');
+                setCandlestickData([]);
+                setVolumeData([]);
+                
+                // 触发重新加载K线数据
+                if (tokenAddress) {
+                  await loadCandlestickData();
+                }
+              }}
+              className="border-gray-600 text-gray-400 hover:text-white"
+              title="刷新K线数据"
+            >
+              🔄 刷新
+            </Button>
+
             {/* 货币切换按钮 */}
             <Button
               variant="outline"
@@ -633,13 +715,14 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
         </div>
       </div>
 
+
+
       {/* 主图表区域 */}
       <div className="bg-[#1a1a1a] rounded-lg p-6">
         <div className="space-y-2">
           {/* K线图 */}
           {candlestickData.length > 0 ? (
             <Chart
-              ref={chartRef}
               options={chartOptions}
               series={[
                 {

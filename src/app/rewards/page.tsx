@@ -23,7 +23,7 @@ export default function RewardsPage() {
                   Rewards Coming Soon
                 </h1>
                 <p className="text-gray-400 text-lg max-w-2xl mx-auto leading-relaxed">
-                  We're working on an exciting rewards system that will revolutionize how you create, 
+                  We&apos;re working on an exciting rewards system that will revolutionize how you create,
                   trade, and earn on our platform. Stay tuned for updates!
                 </p>
               </div>

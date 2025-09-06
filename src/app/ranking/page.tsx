@@ -436,7 +436,10 @@ export default function RankingPage() {
                                 console.log(`Failed to load image for ${token.name}:`, token.imageUrl);
                                 // 隐藏图片，显示文字
                                 e.currentTarget.style.display = 'none';
-                                e.currentTarget.nextElementSibling.style.display = 'block';
+                                const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
+                                if (nextElement) {
+                                  nextElement.style.display = 'block';
+                                }
                               }}
                             />
                           ) : null}
