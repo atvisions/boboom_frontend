@@ -134,6 +134,50 @@
 /* Ensure jitter and fade run together if both classes exist */
 .jitter-on.fade-in { animation: superJitter 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55), fadeInUp 0.35s ease; }
 
+/* 卡片切换动画 */
+@keyframes cardSlideIn {
+  from { 
+    opacity: 0; 
+    transform: translateX(20px) scale(0.95); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateX(0) scale(1); 
+  }
+}
+
+@keyframes cardSlideOut {
+  from { 
+    opacity: 1; 
+    transform: translateX(0) scale(1); 
+  }
+  to { 
+    opacity: 0; 
+    transform: translateX(-20px) scale(0.95); 
+  }
+}
+
+.card-slide-in { animation: cardSlideIn 0.3s ease-out; }
+.card-slide-out { animation: cardSlideOut 0.3s ease-in; }
+
+/* 增强的脉冲动画 */
+@keyframes enhancedPulse {
+  0% { 
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+  }
+  50% { 
+    transform: scale(1.05);
+    box-shadow: 0 0 20px 5px rgba(34, 197, 94, 0.6);
+  }
+  100% { 
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+  }
+}
+
+.enhanced-pulse { animation: enhancedPulse 0.6s ease-in-out; }
+
 /* 现代卡片动画效果 */
 @keyframes cardGlow {
   0% { 

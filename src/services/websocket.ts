@@ -31,7 +31,7 @@ class WebSocketService {
       this.baseUrl = websocketUrl;
     } else {
       // WebSocket运行在8001端口，与Django API的8000端口分离
-      this.baseUrl = 'ws://localhost:8001/ws';
+      this.baseUrl = 'ws://127.0.0.1:8001/ws';
     }
   }
 
@@ -93,34 +93,42 @@ class WebSocketService {
       connection.ws = ws;
 
       ws.onopen = () => {
-        console.log(`WebSocket connected: ${connection.url}`);
+        console.log(`✅ WebSocket connected: ${connection.url}`);
         connection.isConnecting = false;
         connection.reconnectAttempts = 0;
-        
+
         // 发送心跳
         this.sendHeartbeat(connectionId);
+
+        // 请求初始数据
+        setTimeout(() => {
+          console.log(`📤 Sending request_update to: ${connection.url}`);
+          this.send(connectionId, { type: 'request_update' });
+        }, 500); // 增加延迟，确保连接稳定
       };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          
+          console.log(`📥 WebSocket message received from ${connection.url}:`, data.type, data);
+
           // 处理心跳响应
           if (data.type === 'pong') {
-            console.log(`Heartbeat response received from ${connection.url}`);
+            console.log(`💓 Heartbeat response received from ${connection.url}`);
             return;
           }
 
           // 调用所有消息处理器
+          console.log(`🔄 Calling ${connection.messageHandlers.size} message handlers for ${connection.url}`);
           connection.messageHandlers.forEach(handler => {
             try {
               handler(data);
             } catch (error) {
-              console.error('Error in message handler:', error);
+              console.error('❌ Error in message handler:', error);
             }
           });
         } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
+          console.error('❌ Error parsing WebSocket message:', error, event.data);
         }
       };
 

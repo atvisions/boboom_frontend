@@ -2,38 +2,174 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Sparkles, TrendingUp, TrendingDown, Zap } from "lucide-react";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 import websocketService from "@/services/websocket";
+import { userAPI } from "@/services/api";
 import { formatDistanceToNow } from "date-fns";
 
-type BuySellItem = { avatar: string; wallet: string; tokenLogo: string; tokenAddr: string; side: "Buy" | "Sell"; amount: string; coinName: string; tokenAmount: string };
-type NewTokenItem = { tokenLogo: string; name: string; address: string; createdAgo: string };
-type WhaleItem = { tokenLogo: string; name: string; address: string; amount: string };
+type BuySellItem = { avatar: string; wallet: string; tokenLogo: string; tokenAddr: string; tokenAddress: string; userAddress: string; side: "Buy" | "Sell"; amount: string; coinName: string; tokenAmount: string };
+type NewTokenItem = { tokenLogo: string; name: string; address: string; fullAddress: string; createdAgo: string; creatorAddress: string };
+type WhaleItem = { tokenLogo: string; name: string; address: string; fullAddress: string; userAddress: string; amount: string };
 
-// 默认数据
-const defaultBuys: BuySellItem[] = [
-  { avatar: "🧑‍🚀", wallet: "0x3F4E...A7B8", tokenLogo: "", tokenAddr: "0xC02a...6Cc2", side: "Buy", amount: "$12,340", coinName: "ShibaBNB", tokenAmount: "0.04 BNB" },
-];
-
-const defaultSells: BuySellItem[] = [
-  { avatar: "🧑‍🎨", wallet: "0x9C1D...E5F6", tokenLogo: "", tokenAddr: "0xD0gE...0012", side: "Sell", amount: "$2,980", coinName: "ShibaBNB", tokenAmount: "0.12 BNB" },
-];
-
-const defaultNewTokens: NewTokenItem[] = [
-  { tokenLogo: "", name: "GeoToken", address: "0xGE0...1234", createdAgo: "24m ago" },
-];
-
-const defaultWhaleTrades: WhaleItem[] = [
-  { tokenLogo: "", name: "Kawaii", address: "0xKaW...9876", amount: "$512,430" },
-];
+// 移除默认数据，只显示真实的WebSocket数据
 
 export function LiveUpdatesCard() {
+  const router = useRouter();
+
+  // 调试：组件加载时立即打印日志
+  console.log('🎯 LiveUpdatesCard component loaded!');
+  console.log('🎯 LiveUpdatesCard: About to define useEffect...');
+
+  // WebSocket连接必须在useEffect中执行（客户端）
+  console.log('🚀 Component loaded - service available:', !!websocketService);
+  console.log('🚀 typeof window:', typeof window);
+
+  // 测试useEffect是否执行
+  useEffect(() => {
+    console.log('🔥 SIMPLE useEffect EXECUTED! This should always show!');
+    console.log('🔥 Window available:', typeof window !== 'undefined');
+    console.log('🔥 WebSocket service:', !!websocketService);
+
+    if (typeof window !== 'undefined' && websocketService) {
+      console.log('🔥 Attempting WebSocket connection...');
+
+      const testConnection = websocketService.connect(
+        'transactions/',
+        (data) => {
+          console.log('🎉 RECEIVED WebSocket data:', data);
+          if (data.type === 'transaction_list') {
+            console.log('📊 Initial transaction list received');
+            handleTransactionData(data);
+          } else if (data.type === 'transaction') {
+            console.log('🎯 NEW TRANSACTION received:', data.data?.transaction_hash);
+            handleTransactionData(data);
+          }
+        },
+        (error) => {
+          console.error('❌ WebSocket error:', error);
+        },
+        () => {
+          console.log('🔌 WebSocket closed');
+        }
+      );
+
+      console.log('🔥 WebSocket connection ID:', testConnection);
+
+      return () => {
+        console.log('🧹 Cleaning up WebSocket connection');
+        if (testConnection) {
+          websocketService.disconnect(testConnection);
+        }
+      };
+    }
+  }, []);
+
+  // 加载状态
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasRealData, setHasRealData] = useState(false);
+  
   // WebSocket实时数据状态
-  const [buys, setBuys] = useState(defaultBuys);
-  const [sells, setSells] = useState(defaultSells);
-  const [news, setNews] = useState(defaultNewTokens);
-  const [whales, setWhales] = useState(defaultWhaleTrades);
+  const [buys, setBuys] = useState<BuySellItem[]>([]);
+  const [sells, setSells] = useState<BuySellItem[]>([]);
+  const [news, setNews] = useState<NewTokenItem[]>([]);
+  const [whales, setWhales] = useState<WhaleItem[]>([]);
   const [pulse, setPulse] = useState({ buy: false, sell: false, news: false, whale: false });
+  const [userAvatars, setUserAvatars] = useState<{[key: string]: any}>({}); // 存储用户头像信息
   const [connectionIds, setConnectionIds] = useState<string[]>([]);
+  
+  // 动画状态
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  // 加载用户头像信息
+  const loadUserAvatar = useCallback(async (userAddress: string) => {
+    // 使用函数式更新来避免依赖 userAvatars 状态
+    setUserAvatars(prev => {
+      if (prev[userAddress]) return prev; // 已经加载过了
+
+      // 异步加载用户数据
+      userAPI.getUser(userAddress.toLowerCase())
+        .then(userData => {
+          setUserAvatars(current => ({
+            ...current,
+            [userAddress]: userData
+          }));
+        })
+        .catch(error => {
+          console.error('Failed to load user avatar for:', userAddress, error);
+          // 提供默认用户信息
+          setUserAvatars(current => ({
+            ...current,
+            [userAddress]: {
+              address: userAddress,
+              username: `${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`,
+              avatar_url: '👤'
+            }
+          }));
+        });
+
+      return prev; // 返回当前状态，不做改变
+    });
+  }, []); // 移除 userAvatars 依赖
+
+  // 渲染用户头像
+  const renderUserAvatar = (userAddress: string) => {
+    const userInfo = userAvatars[userAddress];
+
+    const handleUserClick = (e: React.MouseEvent) => {
+      e.stopPropagation(); // 阻止事件冒泡到卡片点击
+      // 跳转到用户主页
+      window.open(`/profile/${userAddress}`, '_blank');
+    };
+
+    const avatarContent = () => {
+      if (!userInfo) {
+        return <span className="text-sm">👤</span>;
+      }
+
+      if (userInfo.avatar_url && userInfo.avatar_url.trim() !== '') {
+        if (userInfo.avatar_url.startsWith('/media/')) {
+          return (
+            <Image
+              src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'}${userInfo.avatar_url}?t=${userInfo.updated_at || Date.now()}`}
+              alt="User avatar"
+              width={32}
+              height={32}
+              className="w-8 h-8 rounded-full object-cover"
+              unoptimized={true}
+            />
+          );
+        } else {
+          try {
+            if (userInfo.avatar_url.includes('\\u')) {
+              return <span className="text-sm">{JSON.parse(`"${userInfo.avatar_url}"`)}</span>;
+            }
+            if (userInfo.avatar_url.startsWith('\\u')) {
+              return <span className="text-sm">{String.fromCodePoint(parseInt(userInfo.avatar_url.slice(2), 16))}</span>;
+            }
+            return <span className="text-sm">{userInfo.avatar_url}</span>;
+          } catch (e) {
+            return <span className="text-sm">{userInfo.avatar_url}</span>;
+          }
+        }
+      }
+      return <span className="text-sm">👤</span>;
+    };
+
+    return (
+      <div
+        className="cursor-pointer hover:scale-110 transition-transform duration-200 relative group"
+        onClick={handleUserClick}
+        title={`查看用户 ${formatWallet(userAddress)} 的主页`}
+      >
+        {avatarContent()}
+        {/* 悬停提示 */}
+        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+          查看用户主页
+        </div>
+      </div>
+    );
+  };
 
   // 格式化钱包地址
   const formatWallet = (address: string) => {
@@ -47,117 +183,376 @@ export function LiveUpdatesCard() {
     return avatars[Math.floor(Math.random() * avatars.length)];
   };
 
+  // 处理卡片点击跳转
+  const handleCardClick = (tokenAddress: string) => {
+    if (tokenAddress && tokenAddress !== "Unknown") {
+      router.push(`/token/${tokenAddress}`);
+    }
+  };
+
+  // 触发动画效果
+  const triggerAnimation = (type: 'buy' | 'sell' | 'news' | 'whale') => {
+    setIsAnimating(true);
+    setPulse({ 
+      buy: type === "buy", 
+      sell: type === "sell", 
+      news: type === "news", 
+      whale: type === "whale" 
+    });
+    
+    // 设置动画效果
+    const rand = (min: number, max: number) => (Math.random() * (max - min) + min).toFixed(2) + "px";
+    document.documentElement.style.setProperty('--jx', rand(-20, 20));
+    
+    setTimeout(() => {
+      setPulse({ buy: false, sell: false, news: false, whale: false });
+      setIsAnimating(false);
+    }, 400);
+  };
+
   // 处理交易数据
   const handleTransactionData = useCallback((data: any) => {
+    console.log('LiveUpdatesCard: Received transaction data:', data);
+    console.log('LiveUpdatesCard: Data type:', typeof data, 'Keys:', Object.keys(data || {}));
+
     if (data.type === 'transaction') {
+      // 单个交易更新
       const transaction = data.data;
       const item: BuySellItem = {
         avatar: getRandomAvatar(),
         wallet: formatWallet(transaction.user_address),
-        tokenLogo: "", // 不使用默认logo，避免404错误
+        tokenLogo: transaction.token_image_url || "", // 使用后端提供的代币logo
         tokenAddr: formatWallet(transaction.token_address),
-        side: transaction.transaction_type === 'buy' ? 'Buy' : 'Sell',
-        amount: `$${parseFloat(transaction.okb_amount || '0').toFixed(2)}`,
+        tokenAddress: transaction.token_address, // 保存完整的代币地址用于跳转
+        userAddress: transaction.user_address, // 保存完整的用户地址用于头像加载
+        side: transaction.transaction_type === 'BUY' ? 'Buy' : 'Sell',
+        amount: `$${parseFloat(transaction.usd_amount || transaction.okb_amount || '0').toFixed(2)}`,
         coinName: transaction.token_symbol || 'Unknown',
         tokenAmount: `${parseFloat(transaction.token_amount || '0').toFixed(4)} ${transaction.token_symbol || ''}`
       };
 
       if (item.side === 'Buy') {
-        setBuys([item]);
-        setPulse({ buy: true, sell: false, news: false, whale: false });
+        setBuys([item]); // 只显示最新的买入交易
+        triggerAnimation('buy');
       } else {
-        setSells([item]);
-        setPulse({ buy: false, sell: true, news: false, whale: false });
+        setSells([item]); // 只显示最新的卖出交易
+        triggerAnimation('sell');
       }
+      
+      // 加载用户头像信息
+      loadUserAvatar(transaction.user_address);
+      
+      // 标记已收到真实数据
+      console.log('LiveUpdatesCard: Setting hasRealData to true and isLoading to false (single transaction)');
+      setHasRealData(true);
+      setIsLoading(false);
+    } else if (data.type === 'transaction_list') {
+      // 初始交易列表数据
+      const transactions = data.data || [];
+      console.log('LiveUpdatesCard: Processing transaction list:', transactions.length, 'transactions');
+      
+      if (transactions.length > 0) {
+        // 分别处理买入和卖出交易
+        const buyTransactions = transactions.filter(t => t.transaction_type === 'BUY');
+        const sellTransactions = transactions.filter(t => t.transaction_type === 'SELL');
 
-      // 设置动画效果
-      const rand = (min: number, max: number) => (Math.random() * (max - min) + min).toFixed(2) + "px";
-      document.documentElement.style.setProperty('--jx', rand(-20, 20));
-      setTimeout(() => setPulse({ buy: false, sell: false, news: false, whale: false }), 400);
+        console.log('LiveUpdatesCard: Buy transactions:', buyTransactions.length);
+        console.log('LiveUpdatesCard: Sell transactions:', sellTransactions.length);
+
+        // 处理买入交易
+        if (buyTransactions.length > 0) {
+          const latestBuy = buyTransactions[0];
+          const buyItem: BuySellItem = {
+            avatar: getRandomAvatar(),
+            wallet: formatWallet(latestBuy.user_address),
+            tokenLogo: latestBuy.token_image_url || "",
+            tokenAddr: formatWallet(latestBuy.token_address),
+            tokenAddress: latestBuy.token_address,
+            userAddress: latestBuy.user_address,
+            side: 'Buy',
+            amount: `$${parseFloat(latestBuy.usd_amount || latestBuy.okb_amount || '0').toFixed(2)}`,
+            coinName: latestBuy.token_symbol || 'Unknown',
+            tokenAmount: `${parseFloat(latestBuy.token_amount || '0').toFixed(4)} ${latestBuy.token_symbol || ''}`
+          };
+          setBuys([buyItem]);
+          loadUserAvatar(latestBuy.user_address);
+        }
+        
+        // 处理卖出交易
+        if (sellTransactions.length > 0) {
+          const latestSell = sellTransactions[0];
+          const sellItem: BuySellItem = {
+            avatar: getRandomAvatar(),
+            wallet: formatWallet(latestSell.user_address),
+            tokenLogo: latestSell.token_image_url || "",
+            tokenAddr: formatWallet(latestSell.token_address),
+            tokenAddress: latestSell.token_address,
+            userAddress: latestSell.user_address,
+            side: 'Sell',
+            amount: `$${parseFloat(latestSell.usd_amount || latestSell.okb_amount || '0').toFixed(2)}`,
+            coinName: latestSell.token_symbol || 'Unknown',
+            tokenAmount: `${parseFloat(latestSell.token_amount || '0').toFixed(4)} ${latestSell.token_symbol || ''}`
+          };
+          setSells([sellItem]);
+          loadUserAvatar(latestSell.user_address);
+        }
+        
+        // 标记已收到真实数据
+        console.log('LiveUpdatesCard: Setting hasRealData to true and isLoading to false (transaction list)');
+        setHasRealData(true);
+        setIsLoading(false);
+      }
     }
-  }, []);
+  }, [loadUserAvatar]);
 
   // 处理新代币数据
   const handleNewTokenData = useCallback((data: any) => {
+    console.log('LiveUpdatesCard: Received new token data:', data);
     if (data.type === 'new_token') {
+      // 单个新代币更新
       const tokenData = data.data;
       const item: NewTokenItem = {
-        tokenLogo: "", // 不使用默认logo，避免404错误
+        tokenLogo: tokenData.image_url || "", // 使用后端提供的代币logo
         name: tokenData.name || 'New Token',
         address: formatWallet(tokenData.address),
-        createdAgo: formatDistanceToNow(new Date(tokenData.created_at || Date.now()), { addSuffix: true })
+        fullAddress: tokenData.address, // 保存完整的代币地址用于跳转
+        createdAgo: formatDistanceToNow(new Date(tokenData.created_at || Date.now()), { addSuffix: true }),
+        creatorAddress: tokenData.creator || '' // 保存创建者地址
       };
 
       setNews([item]);
-      setPulse({ buy: false, sell: false, news: true, whale: false });
+      triggerAnimation('news');
 
-      // 设置动画效果
-      const rand = (min: number, max: number) => (Math.random() * (max - min) + min).toFixed(2) + "px";
-      document.documentElement.style.setProperty('--jx', rand(-20, 20));
-      setTimeout(() => setPulse({ buy: false, sell: false, news: false, whale: false }), 400);
+      // 加载创建者头像信息
+      if (item.creatorAddress) {
+        loadUserAvatar(item.creatorAddress);
+      }
+
+      // 标记已收到真实数据
+      setHasRealData(true);
+      setIsLoading(false);
+    } else if (data.type === 'new_token_list') {
+      // 初始新代币列表数据
+      const tokens = data.data || [];
+      if (tokens.length > 0) {
+        // 取最新的代币作为显示
+        const latestToken = tokens[0];
+        const item: NewTokenItem = {
+          tokenLogo: latestToken.image_url || "", // 使用后端提供的代币logo
+          name: latestToken.name || 'New Token',
+          address: formatWallet(latestToken.address),
+          fullAddress: latestToken.address, // 保存完整的代币地址用于跳转
+          createdAgo: formatDistanceToNow(new Date(latestToken.created_at || Date.now()), { addSuffix: true }),
+          creatorAddress: latestToken.creator || '' // 保存创建者地址
+        };
+        setNews([item]);
+
+        // 加载创建者头像信息
+        if (item.creatorAddress) {
+          loadUserAvatar(item.creatorAddress);
+        }
+
+        // 标记已收到真实数据
+        setHasRealData(true);
+        setIsLoading(false);
+      }
     }
   }, []);
 
   // 处理巨鲸交易数据
   const handleWhaleTradeData = useCallback((data: any) => {
+    console.log('LiveUpdatesCard: Received whale trade data:', data);
     if (data.type === 'whale_transaction') {
+      // 单个巨鲸交易更新
       const transaction = data.data;
       const item: WhaleItem = {
-        tokenLogo: "", // 不使用默认logo，避免404错误
+        tokenLogo: transaction.token_image_url || "", // 使用后端提供的代币logo
         name: transaction.token_symbol || 'Whale Token',
         address: formatWallet(transaction.token_address),
-        amount: `$${parseFloat(transaction.okb_amount || '0').toFixed(2)}`
+        fullAddress: transaction.token_address, // 保存完整的代币地址用于跳转
+        userAddress: transaction.user_address, // 保存完整的用户地址用于头像加载
+        amount: `$${parseFloat(transaction.usd_amount || transaction.okb_amount || '0').toFixed(2)}`
       };
 
       setWhales([item]);
-      setPulse({ buy: false, sell: false, news: false, whale: true });
+      triggerAnimation('whale');
+      
+      // 加载用户头像信息
+      loadUserAvatar(transaction.user_address);
+      
+      // 标记已收到真实数据
+      if (!hasRealData) {
+        setHasRealData(true);
+        setIsLoading(false);
+      }
+    } else if (data.type === 'whale_transaction_list') {
+      // 初始巨鲸交易列表数据
+      const transactions = data.data || [];
+      if (transactions.length > 0) {
+        // 取最新的巨鲸交易作为显示
+        const latestTransaction = transactions[0];
+        const item: WhaleItem = {
+          tokenLogo: latestTransaction.token_image_url || "", // 使用后端提供的代币logo
+          name: latestTransaction.token_symbol || 'Whale Token',
+          address: formatWallet(latestTransaction.token_address),
+          fullAddress: latestTransaction.token_address, // 保存完整的代币地址用于跳转
+          userAddress: latestTransaction.user_address, // 保存完整的用户地址用于头像加载
+          amount: `$${parseFloat(latestTransaction.usd_amount || latestTransaction.okb_amount || '0').toFixed(2)}`
+        };
+        setWhales([item]);
 
-      // 设置动画效果
-      const rand = (min: number, max: number) => (Math.random() * (max - min) + min).toFixed(2) + "px";
-      document.documentElement.style.setProperty('--jx', rand(-20, 20));
-      setTimeout(() => setPulse({ buy: false, sell: false, news: false, whale: false }), 400);
+        // 加载用户头像信息
+        loadUserAvatar(latestTransaction.user_address);
+
+        // 标记已收到真实数据
+        setHasRealData(true);
+        setIsLoading(false);
+      }
     }
-  }, []);
+  }, [loadUserAvatar]);
 
   useEffect(() => {
     // 连接到WebSocket端点
-    const transactionConnectionId = websocketService.connect('transactions/', handleTransactionData);
-    const newTokenConnectionId = websocketService.connect('tokens/new/', handleNewTokenData);
-    const whaleConnectionId = websocketService.connect('transactions/whale/', handleWhaleTradeData);
+    console.log('🚀 LiveUpdatesCard: useEffect triggered, connecting to WebSocket endpoints...');
+    console.log('🚀 LiveUpdatesCard: WebSocket service:', websocketService);
+    console.log('🚀 LiveUpdatesCard: Current time:', new Date().toISOString());
 
-    setConnectionIds([transactionConnectionId, newTokenConnectionId, whaleConnectionId]);
+    let isComponentMounted = true;
+    let connectionIds: string[] = [];
 
-    // 如果没有实时数据，保持原有的模拟数据更新逻辑作为备用
-    const fallbackInterval = setInterval(() => {
-      // 检查是否有活跃的WebSocket连接
-      const hasActiveConnections = [transactionConnectionId, newTokenConnectionId, whaleConnectionId]
-        .some(id => websocketService.isConnected(id));
-      
-      if (!hasActiveConnections) {
-        // 如果没有活跃连接，使用模拟数据更新
-        const types: ("buy" | "sell" | "news" | "whale")[] = ["buy", "sell", "news", "whale"];
-        const randomType = types[Math.floor(Math.random() * types.length)];
-        
-        const rand = (min: number, max: number) => (Math.random() * (max - min) + min).toFixed(2) + "px";
-        document.documentElement.style.setProperty('--jx', rand(-20, 20));
-        setPulse({ 
-          buy: randomType === "buy", 
-          sell: randomType === "sell", 
-          news: randomType === "news", 
-          whale: randomType === "whale" 
-        });
-        setTimeout(() => setPulse({ buy: false, sell: false, news: false, whale: false }), 400);
+    // 内部处理函数，避免依赖项问题
+    const internalHandleTransactionData = (data: any) => {
+      if (!isComponentMounted) return;
+      handleTransactionData(data);
+    };
+
+    const internalHandleNewTokenData = (data: any) => {
+      if (!isComponentMounted) return;
+      handleNewTokenData(data);
+    };
+
+    const internalHandleWhaleTradeData = (data: any) => {
+      if (!isComponentMounted) return;
+      handleWhaleTradeData(data);
+    };
+
+    // 直接连接，不使用延迟
+    console.log('🚀 LiveUpdatesCard: Starting WebSocket connections...');
+
+    const transactionConnectionId = websocketService.connect(
+      'transactions/',
+      internalHandleTransactionData,
+      (error) => {
+        console.error('LiveUpdatesCard: Transaction WebSocket error:', error);
+      },
+      () => {
+        console.log('LiveUpdatesCard: Transaction WebSocket closed');
       }
-    }, 3000);
+    );
+
+    const newTokenConnectionId = websocketService.connect(
+      'tokens/new/',
+      internalHandleNewTokenData,
+      (error) => {
+        console.error('LiveUpdatesCard: New token WebSocket error:', error);
+      },
+      () => {
+        console.log('LiveUpdatesCard: New token WebSocket closed');
+      }
+    );
+
+    const whaleConnectionId = websocketService.connect(
+      'transactions/whale/',
+      internalHandleWhaleTradeData,
+      (error) => {
+        console.error('LiveUpdatesCard: Whale WebSocket error:', error);
+      },
+      () => {
+        console.log('LiveUpdatesCard: Whale WebSocket closed');
+      }
+    );
+
+    connectionIds = [transactionConnectionId, newTokenConnectionId, whaleConnectionId];
+
+    console.log('🚀 LiveUpdatesCard: WebSocket connection IDs:', {
+      transaction: transactionConnectionId,
+      newToken: newTokenConnectionId,
+      whale: whaleConnectionId
+    });
+
+    if (isComponentMounted) {
+      setConnectionIds(connectionIds);
+    }
+
+    // 设置超时，如果10秒内没有收到真实数据，则停止加载状态
+    const fallbackTimeout = setTimeout(() => {
+      if (isComponentMounted && !hasRealData) {
+        console.log('WebSocket连接超时，停止加载状态');
+        setIsLoading(false);
+      }
+    }, 10000);
 
     // 清理函数
     return () => {
-      clearInterval(fallbackInterval);
-      websocketService.disconnect(transactionConnectionId);
-      websocketService.disconnect(newTokenConnectionId);
-      websocketService.disconnect(whaleConnectionId);
+      isComponentMounted = false;
+      clearTimeout(fallbackTimeout);
+
+      // 断开所有连接
+      connectionIds.forEach(id => {
+        if (id) {
+          websocketService.disconnect(id);
+        }
+      });
     };
-  }, [handleTransactionData, handleNewTokenData, handleWhaleTradeData]);
+  }, []); // 移除依赖项，避免useEffect重复执行
+
+  // 如果没有真实数据或者所有数据都为空，显示骨架图
+  console.log('🔍 LiveUpdatesCard: Render check - hasRealData:', hasRealData, 'buys:', buys.length, 'sells:', sells.length, 'news:', news.length, 'whales:', whales.length);
+  console.log('🔍 LiveUpdatesCard: Component is rendering at', new Date().toISOString());
+
+  if (buys.length === 0 && sells.length === 0 && news.length === 0 && whales.length === 0) {
+    return (
+      <div className="relative overflow-hidden">
+        {/* 背景装饰 */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse"></div>
+        
+        <div className="flex gap-6 py-6 px-2 overflow-x-auto">
+          {/* 加载骨架屏 */}
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="relative w-80 rounded-2xl p-6 bg-gradient-to-br from-gray-800/40 via-gray-700/30 to-gray-800/50 backdrop-blur-sm border border-gray-600/20 flex-shrink-0 animate-pulse">
+              {/* 顶部状态指示器骨架 */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-gray-600/50 rounded-full"></div>
+                  <div className="h-3 bg-gray-600/50 rounded w-16"></div>
+                </div>
+                <div className="w-5 h-5 bg-gray-600/50 rounded"></div>
+              </div>
+
+              <div className="flex items-center space-x-4">
+                {/* 左侧代币图标骨架（主要显示） */}
+                <div className="relative">
+                  <div className="w-16 h-16 rounded-2xl bg-gray-600/50"></div>
+                  {/* 操作人头像覆盖层骨架（右下角） */}
+                  <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gray-700/50 border-2 border-gray-600/50"></div>
+                </div>
+
+                {/* 右侧信息区域骨架 */}
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="h-4 bg-gray-600/50 rounded w-20"></div>
+                    <div className="h-6 bg-gray-600/50 rounded-full w-16"></div>
+                  </div>
+                  <div className="h-4 bg-gray-600/50 rounded w-24"></div>
+                  <div className="h-3 bg-gray-600/50 rounded w-16"></div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative overflow-hidden">
@@ -167,9 +562,17 @@ export function LiveUpdatesCard() {
       <div className="flex gap-6 py-6 px-2 overflow-x-auto">
         {/* 买入卡片 */}
         {buys.length > 0 && (
-        <div className={`relative w-80 rounded-2xl p-6 bg-gradient-to-br from-emerald-900/40 via-emerald-800/30 to-green-900/50 backdrop-blur-sm border border-emerald-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${pulse.buy ? 'jitter-on' : ''} fade-in group flex-shrink-0`}>
+        <div 
+          className={`relative w-80 rounded-2xl p-6 bg-gradient-to-br from-emerald-900/40 via-emerald-800/30 to-green-900/50 backdrop-blur-sm border border-emerald-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${pulse.buy ? 'jitter-on' : ''} ${isAnimating && pulse.buy ? 'animate-pulse' : ''} fade-in group flex-shrink-0`}
+          onClick={() => handleCardClick(buys[0].tokenAddress)}
+        >
           {/* 发光效果 */}
           <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-400/20 to-green-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          
+          {/* 点击提示 */}
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+          </div>
           
           {/* 顶部状态指示器 */}
           <div className="flex items-center justify-between mb-4">
@@ -181,14 +584,30 @@ export function LiveUpdatesCard() {
           </div>
 
           <div className="flex items-center space-x-4">
-            {/* 左侧头像和代币图标 */}
+            {/* 左侧代币图标（主要显示） */}
             <div className="relative">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center ring-4 ring-emerald-400/30 shadow-lg">
-                <span className="text-2xl">{buys[0].avatar}</span>
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center ring-4 ring-emerald-400/30 shadow-lg overflow-hidden">
+                {buys[0].tokenLogo ? (
+                  <img 
+                    src={buys[0].tokenLogo} 
+                    alt={buys[0].coinName}
+                    className="w-full h-full object-cover rounded-2xl"
+                    onError={(e) => {
+                      // 如果图片加载失败，显示代币名称
+                      const target = e.currentTarget as HTMLImageElement;
+                      const nextElement = target.nextElementSibling as HTMLElement;
+                      target.style.display = 'none';
+                      if (nextElement) nextElement.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                <span className="text-2xl font-bold text-white" style={{ display: buys[0].tokenLogo ? 'none' : 'flex' }}>
+                  {buys[0].coinName?.slice(0, 2) || "??"}
+                </span>
               </div>
-              {/* 代币图标覆盖层 */}
-              <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gray-800 border-2 border-emerald-400 flex items-center justify-center">
-                <span className="text-xs font-bold text-white">{buys[0].coinName?.slice(0, 2) || "??"}</span>
+              {/* 操作人头像覆盖层（右下角） */}
+              <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gray-800 border-2 border-emerald-400 flex items-center justify-center overflow-hidden">
+                {renderUserAvatar(buys[0].userAddress)}
               </div>
             </div>
 
@@ -208,9 +627,17 @@ export function LiveUpdatesCard() {
 
         {/* 卖出卡片 */}
         {sells.length > 0 && (
-        <div className={`relative w-80 rounded-2xl p-6 bg-gradient-to-br from-red-900/40 via-red-800/30 to-rose-900/50 backdrop-blur-sm border border-red-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${pulse.sell ? 'jitter-on' : ''} fade-in group flex-shrink-0`}>
+        <div 
+          className={`relative w-80 rounded-2xl p-6 bg-gradient-to-br from-red-900/40 via-red-800/30 to-rose-900/50 backdrop-blur-sm border border-red-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${pulse.sell ? 'jitter-on' : ''} ${isAnimating && pulse.sell ? 'animate-pulse' : ''} fade-in group flex-shrink-0`}
+          onClick={() => handleCardClick(sells[0].tokenAddress)}
+        >
           {/* 发光效果 */}
           <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-red-400/20 to-rose-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          
+          {/* 点击提示 */}
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
+          </div>
           
           {/* 顶部状态指示器 */}
           <div className="flex items-center justify-between mb-4">
@@ -222,14 +649,30 @@ export function LiveUpdatesCard() {
           </div>
 
           <div className="flex items-center space-x-4">
-            {/* 左侧头像和代币图标 */}
+            {/* 左侧代币图标（主要显示） */}
             <div className="relative">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center ring-4 ring-red-400/30 shadow-lg">
-                <span className="text-2xl">{sells[0].avatar}</span>
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center ring-4 ring-red-400/30 shadow-lg overflow-hidden">
+                {sells[0].tokenLogo ? (
+                  <img 
+                    src={sells[0].tokenLogo} 
+                    alt={sells[0].coinName}
+                    className="w-full h-full object-cover rounded-2xl"
+                    onError={(e) => {
+                      // 如果图片加载失败，显示代币名称
+                      const target = e.currentTarget as HTMLImageElement;
+                      const nextElement = target.nextElementSibling as HTMLElement;
+                      target.style.display = 'none';
+                      if (nextElement) nextElement.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                <span className="text-2xl font-bold text-white" style={{ display: sells[0].tokenLogo ? 'none' : 'flex' }}>
+                  {sells[0].coinName?.slice(0, 2) || "??"}
+                </span>
               </div>
-              {/* 代币图标覆盖层 */}
-              <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gray-800 border-2 border-red-400 flex items-center justify-center">
-                <span className="text-xs font-bold text-white">{sells[0].coinName?.slice(0, 2) || "??"}</span>
+              {/* 操作人头像覆盖层（右下角） */}
+              <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gray-800 border-2 border-red-400 flex items-center justify-center overflow-hidden">
+                {renderUserAvatar(sells[0].userAddress)}
               </div>
             </div>
 
@@ -249,9 +692,17 @@ export function LiveUpdatesCard() {
 
         {/* 新代币卡片 */}
         {news.length > 0 && (
-        <div className={`relative w-80 rounded-2xl p-6 bg-gradient-to-br from-blue-900/40 via-indigo-800/30 to-purple-900/50 backdrop-blur-sm border border-blue-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${pulse.news ? 'jitter-on' : ''} fade-in group flex-shrink-0`}>
+        <div 
+          className={`relative w-80 rounded-2xl p-6 bg-gradient-to-br from-blue-900/40 via-indigo-800/30 to-purple-900/50 backdrop-blur-sm border border-blue-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${pulse.news ? 'jitter-on' : ''} ${isAnimating && pulse.news ? 'animate-pulse' : ''} fade-in group flex-shrink-0`}
+          onClick={() => handleCardClick(news[0].fullAddress)}
+        >
           {/* 发光效果 */}
           <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-400/20 to-indigo-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          
+          {/* 点击提示 */}
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+          </div>
           
           {/* 顶部状态指示器 */}
           <div className="flex items-center justify-between mb-4">
@@ -263,14 +714,30 @@ export function LiveUpdatesCard() {
           </div>
 
           <div className="flex items-center space-x-4">
-            {/* 左侧图标 */}
+            {/* 左侧代币图标（主要显示） */}
             <div className="relative">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center ring-4 ring-blue-400/30 shadow-lg">
-                <Sparkles className="w-8 h-8 text-white" />
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center ring-4 ring-blue-400/30 shadow-lg overflow-hidden">
+                {news[0].tokenLogo ? (
+                  <img 
+                    src={news[0].tokenLogo} 
+                    alt={news[0].name}
+                    className="w-full h-full object-cover rounded-2xl"
+                    onError={(e) => {
+                      // 如果图片加载失败，显示代币名称
+                      const target = e.currentTarget as HTMLImageElement;
+                      const nextElement = target.nextElementSibling as HTMLElement;
+                      target.style.display = 'none';
+                      if (nextElement) nextElement.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                <span className="text-2xl font-bold text-white" style={{ display: news[0].tokenLogo ? 'none' : 'flex' }}>
+                  {news[0].name?.slice(0, 2) || "??"}
+                </span>
               </div>
-              {/* 新代币标识 */}
-              <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gray-800 border-2 border-blue-400 flex items-center justify-center">
-                <span className="text-xs font-bold text-white">NEW</span>
+              {/* 创建者头像覆盖层（右下角） */}
+              <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gray-800 border-2 border-blue-400 flex items-center justify-center overflow-hidden">
+                {news[0].creatorAddress ? renderUserAvatar(news[0].creatorAddress) : <span className="text-xs font-bold text-white">NEW</span>}
               </div>
             </div>
 
@@ -290,9 +757,17 @@ export function LiveUpdatesCard() {
 
         {/* 巨鲸交易卡片 */}
         {whales.length > 0 && (
-        <div className={`relative w-80 rounded-2xl p-6 bg-gradient-to-br from-purple-900/40 via-violet-800/30 to-fuchsia-900/50 backdrop-blur-sm border border-purple-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${pulse.whale ? 'jitter-on' : ''} fade-in group flex-shrink-0`}>
+        <div 
+          className={`relative w-80 rounded-2xl p-6 bg-gradient-to-br from-purple-900/40 via-violet-800/30 to-fuchsia-900/50 backdrop-blur-sm border border-purple-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${pulse.whale ? 'jitter-on' : ''} ${isAnimating && pulse.whale ? 'animate-pulse' : ''} fade-in group flex-shrink-0`}
+          onClick={() => handleCardClick(whales[0].fullAddress)}
+        >
           {/* 发光效果 */}
           <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-purple-400/20 to-violet-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          
+          {/* 点击提示 */}
+          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+          </div>
           
           {/* 顶部状态指示器 */}
           <div className="flex items-center justify-between mb-4">
@@ -304,14 +779,30 @@ export function LiveUpdatesCard() {
           </div>
 
           <div className="flex items-center space-x-4">
-            {/* 左侧图标 */}
+            {/* 左侧代币图标（主要显示） */}
             <div className="relative">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center ring-4 ring-purple-400/30 shadow-lg">
-                <Sparkles className="w-8 h-8 text-white" />
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center ring-4 ring-purple-400/30 shadow-lg overflow-hidden">
+                {whales[0].tokenLogo ? (
+                  <img 
+                    src={whales[0].tokenLogo} 
+                    alt={whales[0].name}
+                    className="w-full h-full object-cover rounded-2xl"
+                    onError={(e) => {
+                      // 如果图片加载失败，显示代币名称
+                      const target = e.currentTarget as HTMLImageElement;
+                      const nextElement = target.nextElementSibling as HTMLElement;
+                      target.style.display = 'none';
+                      if (nextElement) nextElement.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                <span className="text-2xl font-bold text-white" style={{ display: whales[0].tokenLogo ? 'none' : 'flex' }}>
+                  {whales[0].name?.slice(0, 2) || "??"}
+                </span>
               </div>
-              {/* 巨鲸标识 */}
-              <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gray-800 border-2 border-purple-400 flex items-center justify-center">
-                <span className="text-xs font-bold text-white">🐋</span>
+              {/* 操作人头像覆盖层（右下角） */}
+              <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gray-800 border-2 border-purple-400 flex items-center justify-center overflow-hidden">
+                {renderUserAvatar(whales[0].userAddress)}
               </div>
             </div>
 
