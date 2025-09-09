@@ -538,6 +538,33 @@ export const tokenAPI = {
     }>(`/tokens/top-mc/?${searchParams.toString()}`, {}, generateCacheKey('top_mc_tokens', encodeURIComponent(searchParams.toString())), 5000);
   },
 
+  // 获取已毕业代币列表 - 专用于Graduated TAB
+  getGraduatedTokens: (params: {
+    page?: number;
+    limit?: number;
+    network?: string;
+  } = {}) => {
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) {
+        searchParams.append(key, String(value));
+      }
+    });
+    
+    return apiRequest<{
+      success: boolean;
+      data: {
+        tokens: Array<any>;
+        pagination: {
+          page: number;
+          limit: number;
+          total: number;
+          pages: number;
+        };
+      };
+    }>(`/tokens/graduated/?${searchParams.toString()}`, {}, generateCacheKey('graduated_tokens', encodeURIComponent(searchParams.toString())), 5000);
+  },
+
   // 获取代币详情
   getTokenDetail: (address: string, network: string = 'sepolia') => 
     apiRequest<{

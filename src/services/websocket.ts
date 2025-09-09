@@ -30,9 +30,8 @@ class WebSocketService {
     if (websocketUrl) {
       this.baseUrl = websocketUrl;
     } else {
-      // 回退到从后端URL构建
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-      this.baseUrl = backendUrl.replace('http://', 'ws://').replace('https://', 'wss://') + '/ws';
+      // WebSocket运行在8001端口，与Django API的8000端口分离
+      this.baseUrl = 'ws://localhost:8001/ws';
     }
   }
 

@@ -13,6 +13,9 @@ const config: Config = {
         'exo2': ['var(--font-exo2)', 'sans-serif'],
         'inter': ['var(--font-inter)', 'sans-serif'],
       },
+      gridTemplateColumns: {
+        '13': 'repeat(13, minmax(0, 1fr))',
+      },
     },
   },
   plugins: [],

@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { ChevronDown, ToggleLeft, TrendingUp, Clock, Zap, Star, Shield, BadgeCheck } from "lucide-react";
+import { ChevronDown, TrendingUp, Clock, Zap, Star, Shield, BadgeCheck, Grid3X3, List, Filter, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { toast, toastMessages } from "@/components/ui/toast-notification";
@@ -27,7 +27,8 @@ const getTimeAgo = (dateString: string) => {
 const sortOptions = [
   { name: "Newest", value: "newest", icon: Clock },
   { name: "Near Graduation", value: "curved", icon: Zap },
-  { name: "Top MC", value: "top-mc", icon: TrendingUp }
+  { name: "Top MC", value: "top-mc", icon: TrendingUp },
+  { name: "Graduated", value: "graduated", icon: Shield }
 ];
 
 export function TokenGrid() {
@@ -36,8 +37,17 @@ export function TokenGrid() {
   
   // 状态初始化
   const [selectedSort, setSelectedSort] = useState("top-mc");
-  const [animationEnabled, setAnimationEnabled] = useState(true);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [showFilter, setShowFilter] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  
+  // 筛选状态
+  const [filters, setFilters] = useState({
+    mcapMin: "",
+    mcapMax: "",
+    volumeMin: "",
+    volumeMax: ""
+  });
   
   // 在客户端渲染后从localStorage读取持久化设置
   useEffect(() => {
@@ -49,9 +59,9 @@ export function TokenGrid() {
         console.log('Set selectedSort to:', savedSort);
       }
       
-      const savedAnimation = localStorage.getItem('tokenGridAnimation');
-      if (savedAnimation !== null) {
-        setAnimationEnabled(savedAnimation !== 'false');
+      const savedViewMode = localStorage.getItem('tokenGridViewMode');
+      if (savedViewMode) {
+        setViewMode(savedViewMode as "grid" | "list");
       }
       
       setIsInitialized(true);
@@ -209,6 +219,9 @@ export function TokenGrid() {
             case 'top-mc':
               endpoint = 'tokens/top-mc/';
               break;
+            case 'graduated':
+              endpoint = 'tokens/graduated/';
+              break;
             default:
               endpoint = 'tokens/newest/';
               break;
@@ -265,6 +278,9 @@ export function TokenGrid() {
             case 'top-mc':
               response = await tokenAPI.getTopMCTokens(apiParams);
               break;
+            case 'graduated':
+              response = await tokenAPI.getGraduatedTokens(apiParams);
+              break;
             default:
               response = await tokenAPI.getNewestTokens(apiParams);
               break;
@@ -278,14 +294,18 @@ export function TokenGrid() {
             const processedTokens = response.data.tokens.map((token: any) => {
               const processed = {
                 ...token,
-                // API返回的是驼峰命名，确保数据类型正确
-                graduationProgress: parseFloat(token.graduationProgress || '0'),
-                volume24h: token.volume24h || '0',
-                marketCap: token.marketCap || '0',
-                currentPrice: token.currentPrice || '0',
-                imageUrl: token.imageUrl || '',
-                createdAt: token.createdAt || new Date().toISOString(),
-                isVerified: token.isVerified || false
+                // 映射下划线字段名到驼峰格式
+                graduationProgress: parseFloat(token.graduation_progress || token.graduationProgress || '0'),
+                volume24h: token.volume_24h || token.volume24h || '0',
+                marketCap: token.market_cap || token.marketCap || '0',
+                currentPrice: token.current_price || token.currentPrice || '0',
+                imageUrl: token.image_url || token.imageUrl || '',
+                createdAt: token.created_at || token.createdAt || new Date().toISOString(),
+                isVerified: token.is_verified || token.isVerified || false,
+                holderCount: token.holder_count || token.holderCount || 0,
+                change24h: token.change_24h || token.change24h || '0',
+                transactionCount: token.transaction_count || token.transactionCount || 0,
+                ath: token.ath || '0'
               };
               console.log(`[TokenGrid] Processing token ${token.symbol}:`, {
                 original: token.graduationProgress,
@@ -509,13 +529,47 @@ export function TokenGrid() {
     }
   };
 
-  // 保存动画设置到localStorage
-  const handleAnimationToggle = () => {
-    const newValue = !animationEnabled;
-    setAnimationEnabled(newValue);
+  // 保存视图模式设置到localStorage
+  const handleViewModeChange = (mode: "grid" | "list") => {
+    setViewMode(mode);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('tokenGridAnimation', newValue.toString());
+      localStorage.setItem('tokenGridViewMode', mode);
     }
+  };
+
+  // 筛选功能
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      mcapMin: "",
+      mcapMax: "",
+      volumeMin: "",
+      volumeMax: ""
+    });
+  };
+
+  const applyFilters = () => {
+    // 这里可以添加筛选逻辑
+    setShowFilter(false);
+  };
+
+  // 格式化数字显示
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toFixed(2);
+  };
+
+  // 格式化价格变化
+  const formatPriceChange = (change: number) => {
+    const sign = change >= 0 ? '+' : '';
+    return `${sign}${change.toFixed(2)}%`;
   };
 
   const toggleFavorite = (tokenAddress: string, tokenName: string) => {
@@ -537,24 +591,7 @@ export function TokenGrid() {
         </div>
 
         {/* 筛选和排序控件 */}
-        <div className="flex items-center space-x-6">
-          {/* Animation 开关 */}
-          <div className="flex items-center space-x-3 bg-[#1a1a1a] rounded-xl px-4 py-2">
-            <span className="text-sm text-gray-300 font-medium">Animation</span>
-            <button
-              onClick={handleAnimationToggle}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#70E000] focus:ring-offset-2 focus:ring-offset-[#0E0E0E] ${
-                animationEnabled ? 'bg-[#70E000] shadow-lg' : 'bg-[#232323]'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-all duration-300 shadow-sm ${
-                  animationEnabled ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
-
+        <div className="flex items-center space-x-4 relative">
           {/* 排序按钮 */}
           <div className="flex space-x-2 bg-[#1a1a1a] rounded-xl p-1">
             {sortOptions.map((option) => {
@@ -576,8 +613,159 @@ export function TokenGrid() {
               );
             })}
           </div>
+
+          {/* 筛选按钮 */}
+          <div className="relative">
+            <Button
+              variant="outline"
+              className="bg-[#1a1a1a] border-gray-700 text-gray-300 hover:text-white hover:bg-[#232323]"
+              onClick={() => setShowFilter(!showFilter)}
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              Filter
+            </Button>
+            
+            {/* 筛选面板 */}
+            {showFilter && (
+              <>
+                {/* 背景遮罩 */}
+                <div 
+                  className="fixed inset-0 bg-black/50 z-[9998]"
+                  onClick={() => setShowFilter(false)}
+                />
+                {/* 弹窗内容 */}
+                <div className="absolute top-full right-0 mt-2 bg-[#1a1a1a] border border-gray-700 rounded-xl p-6 z-[9999] min-w-[400px] shadow-2xl">
+                  <div className="space-y-6">
+                    {/* 市值筛选 */}
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <label className="text-sm font-medium text-white">Mcap</label>
+                        <span className="text-xs text-gray-400">$1.0K - $50.0M+</span>
+                      </div>
+                      
+                      {/* 滑块 */}
+                      <div className="relative mb-4">
+                        <div className="h-2 bg-gray-700 rounded-full">
+                          <div className="h-2 bg-[#70E000] rounded-full w-full"></div>
+                        </div>
+                        <div className="absolute top-0 left-0 w-4 h-4 bg-[#70E000] rounded-full transform -translate-y-1 cursor-pointer"></div>
+                        <div className="absolute top-0 right-0 w-4 h-4 bg-[#70E000] rounded-full transform -translate-y-1 cursor-pointer"></div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">Minimum</label>
+                          <input
+                            type="text"
+                            placeholder="e.g., 10k, 1m"
+                            value={filters.mcapMin}
+                            onChange={(e) => handleFilterChange('mcapMin', e.target.value)}
+                            className="w-full px-3 py-2 bg-[#232323] border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-[#70E000]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">Maximum</label>
+                          <input
+                            type="text"
+                            placeholder="e.g., 10k, 1m"
+                            value={filters.mcapMax}
+                            onChange={(e) => handleFilterChange('mcapMax', e.target.value)}
+                            className="w-full px-3 py-2 bg-[#232323] border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-[#70E000]"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 24小时交易量筛选 */}
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <label className="text-sm font-medium text-white">24h Vol</label>
+                        <span className="text-xs text-gray-400">$0 - $500.0K+</span>
+                      </div>
+                      
+                      {/* 滑块 */}
+                      <div className="relative mb-4">
+                        <div className="h-2 bg-gray-700 rounded-full">
+                          <div className="h-2 bg-[#70E000] rounded-full w-full"></div>
+                        </div>
+                        <div className="absolute top-0 left-0 w-4 h-4 bg-[#70E000] rounded-full transform -translate-y-1 cursor-pointer"></div>
+                        <div className="absolute top-0 right-0 w-4 h-4 bg-[#70E000] rounded-full transform -translate-y-1 cursor-pointer"></div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">Minimum</label>
+                          <input
+                            type="text"
+                            placeholder="e.g., 5k, 100k"
+                            value={filters.volumeMin}
+                            onChange={(e) => handleFilterChange('volumeMin', e.target.value)}
+                            className="w-full px-3 py-2 bg-[#232323] border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-[#70E000]"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-400 mb-1">Maximum</label>
+                          <input
+                            type="text"
+                            placeholder="e.g., 5k, 100k"
+                            value={filters.volumeMax}
+                            onChange={(e) => handleFilterChange('volumeMax', e.target.value)}
+                            className="w-full px-3 py-2 bg-[#232323] border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-[#70E000]"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 操作按钮 */}
+                  <div className="flex justify-between mt-6">
+                    <Button
+                      variant="outline"
+                      onClick={clearFilters}
+                      className="bg-transparent border-gray-600 text-gray-300 hover:text-white hover:bg-gray-700 px-6"
+                    >
+                      Clear
+                    </Button>
+                    <Button
+                      onClick={applyFilters}
+                      className="bg-[#70E000] text-black hover:bg-[#5BC500] px-6"
+                    >
+                      Apply
+                    </Button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* 视图模式切换 */}
+          <div className="flex space-x-1 bg-[#1a1a1a] rounded-xl p-1">
+            <Button
+              variant={viewMode === "grid" ? "default" : "outline"}
+              className={`px-3 py-2 rounded-lg transition-all duration-200 ${
+                viewMode === "grid"
+                  ? "bg-[#70E000] text-black hover:bg-[#70E000]/90 shadow-lg"
+                  : "bg-transparent text-gray-400 hover:text-white hover:bg-[#232323] border-0"
+              }`}
+              onClick={() => handleViewModeChange("grid")}
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "list" ? "default" : "outline"}
+              className={`px-3 py-2 rounded-lg transition-all duration-200 ${
+                viewMode === "list"
+                  ? "bg-[#70E000] text-black hover:bg-[#70E000]/90 shadow-lg"
+                  : "bg-transparent text-gray-400 hover:text-white hover:bg-[#232323] border-0"
+              }`}
+              onClick={() => handleViewModeChange("list")}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
+
 
       {/* 代币网格 - 响应式布局 */}
       {/* 移除刷新状态指示器，避免抖动 */}
@@ -656,7 +844,135 @@ export function TokenGrid() {
             Retry
           </button>
         </div>
+      ) : viewMode === "list" ? (
+        // 列表视图
+        <div className="bg-[#1a1a1a] rounded-xl border border-gray-700 overflow-hidden">
+          {/* 列表头部 */}
+          <div className="grid grid-cols-13 gap-2 px-4 py-4 bg-[#232323] border-b border-gray-700 text-sm font-medium text-gray-300">
+            <div className="col-span-1">#</div>
+            <div className="col-span-2">COIN</div>
+            <div className="col-span-1">GRAPH</div>
+            <div className="col-span-1">MCAP</div>
+            <div className="col-span-1">ATH</div>
+            <div className="col-span-1">AGE</div>
+            <div className="col-span-1">TXNS</div>
+            <div className="col-span-1">24H VOL</div>
+            <div className="col-span-1">TRADERS</div>
+            <div className="col-span-1">5M</div>
+            <div className="col-span-1">1H</div>
+            <div className="col-span-1">24H</div>
+            <div className="col-span-1 text-center">收藏</div>
+          </div>
+          
+          {/* 列表内容 */}
+          {tokens.map((token, index) => (
+            <div
+              key={token.address}
+              className="grid grid-cols-13 gap-2 px-4 py-4 border-b border-gray-800 hover:bg-[#232323]/50 transition-colors cursor-pointer"
+              onClick={() => router.push(`/token/${token.address}`)}
+            >
+              {/* 排名 */}
+              <div className="col-span-1 flex items-center text-gray-400 text-sm">
+                #{index + 1}
+              </div>
+              
+              {/* 代币信息 */}
+              <div className="col-span-2 flex items-center space-x-2">
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center overflow-hidden">
+                  {token.imageUrl ? (
+                    <img
+                      src={token.imageUrl}
+                      alt={`${token.name} logo`}
+                      className="w-5 h-5 object-contain rounded-full"
+                    />
+                  ) : (
+                    <div className="text-xs font-bold text-white">{token.symbol.slice(0, 2)}</div>
+                  )}
+                </div>
+                <div>
+                  <div className="text-white font-medium text-sm truncate">{token.name}</div>
+                  <div className="text-gray-400 text-xs">{token.symbol}</div>
+                </div>
+              </div>
+              
+              {/* 图表占位 */}
+              <div className="col-span-1 flex items-center">
+                <div className="w-12 h-6 bg-gradient-to-r from-green-500/20 to-green-500/40 rounded flex items-center justify-center">
+                  <div className="w-8 h-3 bg-green-500/30 rounded-sm"></div>
+                </div>
+              </div>
+              
+              {/* 市值 */}
+              <div className="col-span-1 flex items-center text-white text-sm">
+                ${formatNumber(parseFloat(token.marketCap || '0'))}
+              </div>
+              
+              {/* ATH */}
+              <div className="col-span-1 flex items-center text-white text-sm">
+                ${formatNumber(parseFloat(token.ath || '0'))}
+              </div>
+              
+              {/* 年龄 */}
+              <div className="col-span-1 flex items-center text-gray-400 text-sm">
+                {getTimeAgo(token.createdAt)}
+              </div>
+              
+              {/* 交易数 */}
+              <div className="col-span-1 flex items-center text-gray-400 text-sm">
+                {token.transactionCount || '-'}
+              </div>
+              
+              {/* 24小时交易量 */}
+              <div className="col-span-1 flex items-center text-gray-400 text-sm">
+                ${formatNumber(parseFloat(token.volume24h || '0') * okbPrice)}
+              </div>
+              
+              {/* 交易者数 */}
+              <div className="col-span-1 flex items-center text-gray-400 text-sm">
+                {token.holderCount || '-'}
+              </div>
+              
+              {/* 5分钟变化 */}
+              <div className="col-span-1 flex items-center text-sm">
+                <span className="text-gray-400">-</span>
+              </div>
+              
+              {/* 1小时变化 */}
+              <div className="col-span-1 flex items-center text-sm">
+                <span className="text-gray-400">-</span>
+              </div>
+              
+              {/* 24小时变化 */}
+              <div className="col-span-1 flex items-center text-sm">
+                <span className={parseFloat(token.change24h || '0') >= 0 ? 'text-green-400' : 'text-red-400'}>
+                  {formatPriceChange(parseFloat(token.change24h || '0'))}
+                </span>
+              </div>
+              
+              {/* 收藏按钮 */}
+              <div className="col-span-1 flex items-center justify-center">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFavorite(token.address, token.name);
+                  }}
+                  disabled={isFavoriteLoading}
+                  className={`p-1.5 rounded-full transition-all duration-200 ${
+                    favorites.has(token.address)
+                      ? 'bg-[#70E000] text-black'
+                      : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                  } ${isFavoriteLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <Star 
+                    className={`h-4 w-4 ${favorites.has(token.address) ? 'fill-current' : ''}`}
+                  />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       ) : (
+        // 网格视图
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
           {tokens.map((token, index) => (
             <div
