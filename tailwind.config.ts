@@ -10,6 +10,8 @@ const config: Config = {
     extend: {
       fontFamily: {
         'hubot-sans': ['var(--font-hubot-sans)', 'sans-serif'],
+        'exo2': ['var(--font-exo2)', 'sans-serif'],
+        'inter': ['var(--font-inter)', 'sans-serif'],
       },
     },
   },

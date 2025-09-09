@@ -134,3 +134,136 @@
 /* Ensure jitter and fade run together if both classes exist */
 .jitter-on.fade-in { animation: superJitter 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55), fadeInUp 0.35s ease; }
 
+/* 现代卡片动画效果 */
+@keyframes cardGlow {
+  0% { 
+    box-shadow: 0 0 0 0 rgba(112, 224, 0, 0.4);
+    transform: scale(1);
+  }
+  50% { 
+    box-shadow: 0 0 30px 10px rgba(112, 224, 0, 0.6);
+    transform: scale(1.02);
+  }
+  100% { 
+    box-shadow: 0 0 0 0 rgba(112, 224, 0, 0.4);
+    transform: scale(1);
+  }
+}
+
+@keyframes cardGlowRed {
+  0% { 
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+    transform: scale(1);
+  }
+  50% { 
+    box-shadow: 0 0 30px 10px rgba(239, 68, 68, 0.6);
+    transform: scale(1.02);
+  }
+  100% { 
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+    transform: scale(1);
+  }
+}
+
+@keyframes cardGlowBlue {
+  0% { 
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+    transform: scale(1);
+  }
+  50% { 
+    box-shadow: 0 0 30px 10px rgba(59, 130, 246, 0.6);
+    transform: scale(1.02);
+  }
+  100% { 
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+    transform: scale(1);
+  }
+}
+
+@keyframes cardGlowPurple {
+  0% { 
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4);
+    transform: scale(1);
+  }
+  50% { 
+    box-shadow: 0 0 30px 10px rgba(139, 92, 246, 0.6);
+    transform: scale(1.02);
+  }
+  100% { 
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4);
+    transform: scale(1);
+  }
+}
+
+/* 增强的抖动动画 */
+@keyframes enhancedJitter {
+  0% { 
+    transform: translateX(0) scale(1) rotate(0deg); 
+    box-shadow: 0 0 0 0 rgba(112, 224, 0, 0);
+  }
+  10% { 
+    transform: translateX(var(--jx, 15px)) scale(1.08) rotate(2deg); 
+    box-shadow: 0 0 25px 12px rgba(112, 224, 0, 0.5);
+  }
+  20% { 
+    transform: translateX(calc(var(--jx, 15px) * -0.8)) scale(1.12) rotate(-1.5deg); 
+    box-shadow: 0 0 35px 18px rgba(112, 224, 0, 0.7);
+  }
+  30% { 
+    transform: translateX(calc(var(--jx, 15px) * 0.6)) scale(1.1) rotate(1deg); 
+    box-shadow: 0 0 40px 22px rgba(112, 224, 0, 0.8);
+  }
+  40% { 
+    transform: translateX(calc(var(--jx, 15px) * -0.4)) scale(1.06) rotate(-0.5deg); 
+    box-shadow: 0 0 30px 15px rgba(112, 224, 0, 0.6);
+  }
+  50% { 
+    transform: translateX(calc(var(--jx, 15px) * 0.2)) scale(1.03) rotate(0.2deg); 
+    box-shadow: 0 0 20px 10px rgba(112, 224, 0, 0.4);
+  }
+  60% { 
+    transform: translateX(calc(var(--jx, 15px) * -0.1)) scale(1.01) rotate(-0.1deg); 
+    box-shadow: 0 0 15px 8px rgba(112, 224, 0, 0.3);
+  }
+  70% { 
+    transform: translateX(calc(var(--jx, 15px) * 0.05)) scale(1.005) rotate(0.05deg); 
+    box-shadow: 0 0 10px 5px rgba(112, 224, 0, 0.2);
+  }
+  100% { 
+    transform: translateX(0) scale(1) rotate(0deg); 
+    box-shadow: 0 0 0 0 rgba(112, 224, 0, 0);
+  }
+}
+
+/* 浮动动画 */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* 脉冲发光效果 */
+.animate-glow-green {
+  animation: cardGlow 2s ease-in-out infinite;
+}
+
+.animate-glow-red {
+  animation: cardGlowRed 2s ease-in-out infinite;
+}
+
+.animate-glow-blue {
+  animation: cardGlowBlue 2s ease-in-out infinite;
+}
+
+.animate-glow-purple {
+  animation: cardGlowPurple 2s ease-in-out infinite;
+}
+
+/* 增强的抖动效果 */
+.jitter-on { 
+  animation: enhancedJitter 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55); 
+}
+

@@ -456,19 +456,11 @@ export function TrendingSection() {
           {tokens.map((token) => (
             <div
               key={token.address}
-              className="relative rounded-lg overflow-hidden group w-full max-w-[350px] h-[343px] mx-auto bg-transparent cursor-pointer"
+              className="relative rounded-2xl overflow-hidden group w-full max-w-[380px] h-[420px] mx-auto bg-gradient-to-br from-gray-900/80 to-gray-800/60 backdrop-blur-sm border border-gray-700/50 cursor-pointer hover:border-[#70E000]/30 hover:shadow-[0_0_30px_rgba(112,224,0,0.1)] transition-all duration-300"
               onClick={() => router.push(`/token/${token.address}`)}
             >
-              {/* 背景图 */}
-              <div className="absolute inset-0">
-                <Image
-                  src="/Futuristic.png"
-                  alt="Futuristic background"
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 1024px) 100vw, (max-width: 1280px) 50vw, (max-width: 1536px) 33vw, 25vw"
-                />
-              </div>
+              {/* 顶部装饰条 */}
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#70E000] via-yellow-400 to-orange-500"></div>
 
               {/* 收藏按钮 - 右上角 */}
               <button
@@ -477,10 +469,10 @@ export function TrendingSection() {
                   toggleFavorite(token.address, token.name);
                 }}
                 disabled={isFavoriteLoading}
-                className={`absolute top-4 right-4 z-10 p-2 rounded-full transition-colors ${
+                className={`absolute top-4 right-4 z-10 p-2.5 rounded-full transition-all duration-300 ${
                   favorites.has(token.address)
-                    ? 'bg-[#70E000] text-black'
-                    : 'bg-black/20 backdrop-blur-sm hover:bg-black/40 text-white'
+                    ? 'bg-[#70E000] text-black shadow-lg shadow-[#70E000]/30'
+                    : 'bg-black/30 backdrop-blur-sm hover:bg-[#70E000]/20 text-white hover:text-[#70E000]'
                 } ${isFavoriteLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <Star 
@@ -488,128 +480,144 @@ export function TrendingSection() {
                 />
               </button>
 
-              {/* 内容 */}
-              <div className="relative p-6 flex flex-col items-center text-center h-full justify-center">
-                {/* 代币Logo - 圆形设计 */}
-                <div className="w-20 h-20 rounded-full mb-4 flex items-center justify-center overflow-hidden">
-                  {token.image_url ? (
-                    <img
-                      src={token.image_url}
-                      alt={`${token.name} logo`}
-                      className="w-16 h-16 object-contain rounded-full"
-                    />
-                  ) : (
-                    <div className="text-3xl font-bold text-white">{token.symbol.slice(0, 2)}</div>
-                  )}
-                </div>
+              {/* 内容区域 */}
+              <div className="relative p-6 flex flex-col h-full">
+                {/* 头部区域 - Logo和名称 */}
+                <div className="flex items-center space-x-4 mb-6">
+                  {/* 代币Logo */}
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center overflow-hidden border-2 border-gray-600/50 shadow-lg">
+                    {token.image_url ? (
+                      <img
+                        src={token.image_url}
+                        alt={`${token.name} logo`}
+                        className="w-12 h-12 object-contain rounded-xl"
+                      />
+                    ) : (
+                      <div className="text-2xl font-bold text-white">{token.symbol.slice(0, 2)}</div>
+                    )}
+                  </div>
 
-                {/* 代币名称和验证标识 */}
-                <div className="flex items-center justify-center space-x-2 mb-3">
-                  <h3 className="text-2xl font-bold text-white">{token.name}</h3>
-                  {token.isVerified && (
-                    <div className="relative group/icon">
-                      <div className="flex items-center justify-center cursor-help">
-                        <BadgeCheck className="w-5 h-5 text-blue-400" />
-                      </div>
-                      {/* 悬停提示 */}
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/90 text-white text-xs rounded-lg opacity-0 group-hover/icon:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                        Verified Token
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black/90"></div>
-                      </div>
+                  {/* 代币名称和验证标识 */}
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <h3 className="text-xl font-bold text-white truncate">{token.name}</h3>
+                      {token.isVerified && (
+                        <div className="relative group/icon">
+                          <BadgeCheck className="w-5 h-5 text-blue-400" />
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/90 text-white text-xs rounded-lg opacity-0 group-hover/icon:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                            Verified Token
+                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black/90"></div>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
+                    <p className="text-gray-400 text-sm font-mono">{token.symbol}</p>
+                  </div>
                 </div>
 
                 {/* 代币简介 */}
                 {token.description && (
-                  <div className="mb-4 px-2">
-                    <p className="text-gray-300 text-sm leading-relaxed line-clamp-1">
+                  <div className="mb-6">
+                    <p className="text-gray-300 text-sm leading-relaxed line-clamp-2">
                       {token.description}
                     </p>
                   </div>
                 )}
 
-                {/* 市场数据 */}
-                <div className="space-y-3 mb-4 w-full">
-                  {/* Progress显示在进度条上方 */}
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-300 text-sm">Progress</span>
-                    <span className="text-[#70E000] font-bold text-sm">
+                {/* 毕业进度区域 */}
+                <div className="mb-6">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-gray-300 text-sm font-medium">Graduation Progress</span>
+                    <span className="text-[#70E000] font-bold text-lg">
                       {token.graduationProgress.toFixed(1)}%
                     </span>
                   </div>
-
+                  
                   {/* 进度条 */}
-                  <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden">
+                  <div className="w-full h-4 bg-gray-700/50 rounded-full overflow-hidden border border-gray-600/30">
                     <div 
-                      className="bg-gradient-to-r from-yellow-400 to-orange-500 h-3 rounded-full transition-all duration-500"
+                      className="bg-gradient-to-r from-[#70E000] via-yellow-400 to-orange-500 h-4 rounded-full transition-all duration-1000 shadow-lg"
                       style={{ width: `${token.graduationProgress}%` }}
                     ></div>
                   </div>
-
-                  {/* 24h Volume */}
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-300 text-sm">24h Volume</span>
-                    <span className="text-white font-bold text-sm">
-                      ${(() => {
-                        const volume = parseFloat(token.volume24h || '0');
-                        const volumeInUSD = volume * okbPrice;
-                        // 如果交易量小于0.01美元，显示为$0.00
-                        return volumeInUSD < 0.01 ? '0.00' : volumeInUSD.toFixed(2);
-                      })()}
-                    </span>
+                  
+                  {/* 进度信息 */}
+                  <div className="flex justify-between items-center mt-2 text-xs text-gray-400">
+                    <span>OKB Collected: {parseFloat(token.okbCollected || '0').toFixed(2)}</span>
+                    <span>Target: {parseFloat(token.graduationThreshold || '200').toFixed(0)}</span>
                   </div>
                 </div>
 
-                                  {/* 创建者信息和社交媒体图标 - 左右分布 */}
-                  <div className="flex items-center justify-between w-full">
-                    {/* 创建者信息 - 靠左 */}
-                    <div className="flex items-center space-x-2">
-                      <button 
-                        className="flex items-center space-x-2 hover:bg-white/10 rounded-lg px-2 py-1 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const creatorAddress = typeof token.creator === 'string' 
-                            ? token.creator 
-                            : token.creator?.address;
-                          if (creatorAddress) {
-                            router.push(`/profile/${creatorAddress}`);
-                          }
-                        }}
-                      >
-                        <div className="w-6 h-6 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center overflow-hidden">
-                          {(() => {
-                            const creatorInfo = creators[token.creator];
-                            if (creatorInfo?.avatar_url && creatorInfo.avatar_url.trim() !== '') {
-                              if (creatorInfo.avatar_url.startsWith('/media/')) {
-                                return (
-                                  <Image
-                                    src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'}${creatorInfo.avatar_url}?t=${creatorInfo.updated_at || Date.now()}`}
-                                    alt="Creator avatar"
-                                    width={24}
-                                    height={24}
-                                    className="w-6 h-6 rounded-full object-cover"
-                                    unoptimized={true}
-                                  />
-                                );
-                              } else {
-                                try {
-                                  if (creatorInfo.avatar_url.includes('\\u')) {
-                                    return <span className="text-sm">{JSON.parse(`"${creatorInfo.avatar_url}"`)}</span>;
-                                  }
-                                  if (creatorInfo.avatar_url.startsWith('\\u')) {
-                                    return <span className="text-sm">{String.fromCodePoint(parseInt(creatorInfo.avatar_url.slice(2), 16))}</span>;
-                                  }
-                                  return <span className="text-sm">{creatorInfo.avatar_url}</span>;
-                                } catch (e) {
-                                  return <span className="text-sm">{creatorInfo.avatar_url}</span>;
+                {/* 市场数据 */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="bg-gray-800/50 rounded-xl p-3 border border-gray-700/30">
+                    <div className="text-gray-400 text-xs mb-1">24h Volume</div>
+                    <div className="text-white font-bold text-sm">
+                      ${(() => {
+                        const volume = parseFloat(token.volume24h || '0');
+                        const volumeInUSD = volume * okbPrice;
+                        return volumeInUSD < 0.01 ? '0.00' : volumeInUSD.toFixed(2);
+                      })()}
+                    </div>
+                  </div>
+                  <div className="bg-gray-800/50 rounded-xl p-3 border border-gray-700/30">
+                    <div className="text-gray-400 text-xs mb-1">Market Cap</div>
+                    <div className="text-white font-bold text-sm">
+                      ${parseFloat(token.marketCap || '0').toFixed(2)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 底部区域 - 创建者信息和社交媒体 */}
+                <div className="mt-auto">
+                  {/* 创建者信息 */}
+                  <div className="flex items-center justify-between mb-4">
+                    <button 
+                      className="flex items-center space-x-3 hover:bg-white/5 rounded-xl px-3 py-2 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const creatorAddress = typeof token.creator === 'string' 
+                          ? token.creator 
+                          : token.creator?.address;
+                        if (creatorAddress) {
+                          router.push(`/profile/${creatorAddress}/`);
+                        }
+                      }}
+                    >
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-600 to-gray-700 flex items-center justify-center overflow-hidden border border-gray-500/50">
+                        {(() => {
+                          const creatorInfo = creators[token.creator];
+                          if (creatorInfo?.avatar_url && creatorInfo.avatar_url.trim() !== '') {
+                            if (creatorInfo.avatar_url.startsWith('/media/')) {
+                              return (
+                                <Image
+                                  src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'}${creatorInfo.avatar_url}?t=${creatorInfo.updated_at || Date.now()}`}
+                                  alt="Creator avatar"
+                                  width={32}
+                                  height={32}
+                                  className="w-8 h-8 rounded-full object-cover"
+                                  unoptimized={true}
+                                />
+                              );
+                            } else {
+                              try {
+                                if (creatorInfo.avatar_url.includes('\\u')) {
+                                  return <span className="text-sm">{JSON.parse(`"${creatorInfo.avatar_url}"`)}</span>;
                                 }
+                                if (creatorInfo.avatar_url.startsWith('\\u')) {
+                                  return <span className="text-sm">{String.fromCodePoint(parseInt(creatorInfo.avatar_url.slice(2), 16))}</span>;
+                                }
+                                return <span className="text-sm">{creatorInfo.avatar_url}</span>;
+                              } catch (e) {
+                                return <span className="text-sm">{creatorInfo.avatar_url}</span>;
                               }
                             }
-                            return <span className="text-sm">👤</span>;
-                          })()}
-                        </div>
-                        <span className="text-gray-300 text-sm font-mono">
+                          }
+                          return <span className="text-sm">👤</span>;
+                        })()}
+                      </div>
+                      <div className="text-left">
+                        <div className="text-white text-sm font-medium">
                           {(() => {
                             const creatorInfo = creators[token.creator];
                             if (creatorInfo?.username) {
@@ -623,45 +631,48 @@ export function TrendingSection() {
                             }
                             return 'Unknown';
                           })()}
-                        </span>
-                      </button>
-                      <span className="text-gray-300 text-xs">•</span>
-                      <span className="text-gray-300 text-xs">
-                        {getTimeAgo(token.createdAt)}
-                      </span>
-                    </div>
+                        </div>
+                        <div className="text-gray-400 text-xs">
+                          {getTimeAgo(token.createdAt)}
+                        </div>
+                      </div>
+                    </button>
+                  </div>
 
-                  {/* 社交媒体图标 - 靠右 */}
-                  <div className="flex space-x-2">
-                    {token.twitter && (
+                  {/* 社交媒体图标 */}
+                  <div className="flex items-center justify-center space-x-3">
+                    {token.twitter && token.twitter.trim() && (
                       <a 
                         href={token.twitter}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-1.5 rounded-full hover:bg-[#70E000] transition-colors"
+                        className="p-2 rounded-full bg-gray-800/50 hover:bg-[#70E000] hover:text-black transition-all duration-300 border border-gray-700/30"
                         onClick={(e) => e.stopPropagation()}
+                        title="Twitter"
                       >
                         <FaXTwitter className="h-4 w-4 text-white" />
                       </a>
                     )}
-                    {token.telegram && (
+                    {token.telegram && token.telegram.trim() && (
                       <a 
                         href={token.telegram}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-1.5 rounded-full hover:bg-[#70E000] transition-colors"
+                        className="p-2 rounded-full bg-gray-800/50 hover:bg-[#70E000] hover:text-black transition-all duration-300 border border-gray-700/30"
                         onClick={(e) => e.stopPropagation()}
+                        title="Telegram"
                       >
                         <FaTelegram className="h-4 w-4 text-white" />
                       </a>
                     )}
-                    {token.website && (
+                    {token.website && token.website.trim() && (
                       <a 
                         href={token.website}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-1.5 rounded-full hover:bg-[#70E000] transition-colors"
+                        className="p-2 rounded-full bg-gray-800/50 hover:bg-[#70E000] hover:text-black transition-all duration-300 border border-gray-700/30"
                         onClick={(e) => e.stopPropagation()}
+                        title="Website"
                       >
                         <FaGlobe className="h-4 w-4 text-white" />
                       </a>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ArrowUpRight, ArrowDownRight, Sparkles, Landmark } from "lucide-react";
+import { Sparkles, TrendingUp, TrendingDown, Zap } from "lucide-react";
 import websocketService from "@/services/websocket";
 import { formatDistanceToNow } from "date-fns";
 
@@ -33,7 +33,6 @@ export function LiveUpdatesCard() {
   const [news, setNews] = useState(defaultNewTokens);
   const [whales, setWhales] = useState(defaultWhaleTrades);
   const [pulse, setPulse] = useState({ buy: false, sell: false, news: false, whale: false });
-  const [currentType, setCurrentType] = useState<"buy" | "sell" | "news" | "whale">("buy");
   const [connectionIds, setConnectionIds] = useState<string[]>([]);
 
   // 格式化钱包地址
@@ -65,11 +64,9 @@ export function LiveUpdatesCard() {
 
       if (item.side === 'Buy') {
         setBuys([item]);
-        setCurrentType('buy');
         setPulse({ buy: true, sell: false, news: false, whale: false });
       } else {
         setSells([item]);
-        setCurrentType('sell');
         setPulse({ buy: false, sell: true, news: false, whale: false });
       }
 
@@ -92,7 +89,6 @@ export function LiveUpdatesCard() {
       };
 
       setNews([item]);
-      setCurrentType('news');
       setPulse({ buy: false, sell: false, news: true, whale: false });
 
       // 设置动画效果
@@ -114,7 +110,6 @@ export function LiveUpdatesCard() {
       };
 
       setWhales([item]);
-      setCurrentType('whale');
       setPulse({ buy: false, sell: false, news: false, whale: true });
 
       // 设置动画效果
@@ -139,10 +134,9 @@ export function LiveUpdatesCard() {
         .some(id => websocketService.isConnected(id));
       
       if (!hasActiveConnections) {
-        // 如果没有活跃连接，使用模拟数据
+        // 如果没有活跃连接，使用模拟数据更新
         const types: ("buy" | "sell" | "news" | "whale")[] = ["buy", "sell", "news", "whale"];
         const randomType = types[Math.floor(Math.random() * types.length)];
-        setCurrentType(randomType);
         
         const rand = (min: number, max: number) => (Math.random() * (max - min) + min).toFixed(2) + "px";
         document.documentElement.style.setProperty('--jx', rand(-20, 20));
@@ -166,88 +160,175 @@ export function LiveUpdatesCard() {
   }, [handleTransactionData, handleNewTokenData, handleWhaleTradeData]);
 
   return (
-    <div className="flex gap-4 py-4">
-      {currentType === 'buy' && buys.length > 0 && (
-      <a className={`w-1/4 rounded-lg p-3 bg-[#1F6F2E] block cursor-pointer hover:opacity-95 ${pulse.buy ? 'jitter-on' : ''} fade-in`}>
-        <div className="flex items-center">
-          {/* 左侧圆形logo */}
-          {buys[0].tokenLogo ? (
-            <img src={buys[0].tokenLogo} alt="logo" className="w-10 h-10 rounded-full ring-2 ring-white/20 mr-3" />
-          ) : (
-            <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center ring-2 ring-white/20 mr-3">
-              <span className="text-lg font-bold text-white">{buys[0].coinName?.slice(0, 2) || "??"}</span>
+    <div className="relative overflow-hidden">
+      {/* 背景装饰 */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse"></div>
+      
+      <div className="flex gap-6 py-6 px-2 overflow-x-auto">
+        {/* 买入卡片 */}
+        {buys.length > 0 && (
+        <div className={`relative w-80 rounded-2xl p-6 bg-gradient-to-br from-emerald-900/40 via-emerald-800/30 to-green-900/50 backdrop-blur-sm border border-emerald-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${pulse.buy ? 'jitter-on' : ''} fade-in group flex-shrink-0`}>
+          {/* 发光效果 */}
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-400/20 to-green-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          
+          {/* 顶部状态指示器 */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></div>
+              <span className="text-emerald-300 text-xs font-medium uppercase tracking-wider">Live Buy</span>
             </div>
-          )}
-          {/* 右侧文字区域 */}
-          <div className="flex-1">
-            <div className="flex items-center justify-between">
-              <span className="text-white text-sm font-medium truncate">{buys[0].wallet}</span>
-              <span className="bg-[#70E000] text-black text-[11px] font-semibold px-3 py-1 rounded-md">Bought</span>
-            </div>
-            <div className="text-white/90 text-sm mt-1 truncate">{buys[0].tokenAmount} Of {buys[0].coinName}</div>
+            <TrendingUp className="w-5 h-5 text-emerald-400 animate-bounce" />
           </div>
-        </div>
-      </a>)}
 
-      {currentType === 'sell' && sells.length > 0 && (
-      <a className={`w-1/4 rounded-lg p-3 bg-[#6F1F1F] block cursor-pointer hover:opacity-95 ${pulse.sell ? 'jitter-on' : ''} fade-in`}>
-        <div className="flex items-center">
-          {sells[0].tokenLogo ? (
-            <img src={sells[0].tokenLogo} alt="logo" className="w-10 h-10 rounded-full ring-2 ring-white/20 mr-3" />
-          ) : (
-            <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center ring-2 ring-white/20 mr-3">
-              <span className="text-lg font-bold text-white">{sells[0].coinName?.slice(0, 2) || "??"}</span>
+          <div className="flex items-center space-x-4">
+            {/* 左侧头像和代币图标 */}
+            <div className="relative">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center ring-4 ring-emerald-400/30 shadow-lg">
+                <span className="text-2xl">{buys[0].avatar}</span>
+              </div>
+              {/* 代币图标覆盖层 */}
+              <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gray-800 border-2 border-emerald-400 flex items-center justify-center">
+                <span className="text-xs font-bold text-white">{buys[0].coinName?.slice(0, 2) || "??"}</span>
+              </div>
             </div>
-          )}
-          <div className="flex-1">
-            <div className="flex items-center justify-between">
-              <span className="text-white text-sm font-medium truncate">{sells[0].wallet}</span>
-              <span className="bg-red-500 text-white text-[11px] font-semibold px-3 py-1 rounded-md">Sold</span>
-            </div>
-            <div className="text-white/90 text-sm mt-1 truncate">{sells[0].tokenAmount} Of {sells[0].coinName}</div>
-          </div>
-        </div>
-      </a>)}
 
-      {currentType === 'news' && news.length > 0 && (
-      <a className={`w-1/4 rounded-lg p-3 bg-[#173B6C] block cursor-pointer hover:opacity-95 ${pulse.news ? 'jitter-on' : ''} fade-in`}>
-        <div className="flex items-center">
-          {news[0].tokenLogo ? (
-            <img src={news[0].tokenLogo} alt="logo" className="w-10 h-10 rounded-full ring-2 ring-white/20 mr-3" />
-          ) : (
-            <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center ring-2 ring-white/20 mr-3">
-              <span className="text-lg font-bold text-white">{news[0].name?.slice(0, 2) || "??"}</span>
+            {/* 右侧信息区域 */}
+            <div className="flex-1 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-white font-semibold text-sm truncate">{buys[0].wallet}</span>
+                <div className="bg-emerald-500 text-black text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+                  BOUGHT
+                </div>
+              </div>
+              <div className="text-emerald-200 text-sm font-medium">{buys[0].tokenAmount}</div>
+              <div className="text-white/70 text-xs">{buys[0].coinName}</div>
             </div>
-          )}
-          <div className="flex-1">
-            <div className="flex items-center justify-between">
-              <span className="text-white text-sm font-medium truncate">{news[0].name}</span>
-              <span className="bg-blue-500 text-white text-[11px] font-semibold px-3 py-1 rounded-md">New</span>
-            </div>
-            <div className="text-white/90 text-sm mt-1 truncate">{news[0].address} • {news[0].createdAgo}</div>
           </div>
-        </div>
-      </a>)}
+        </div>)}
 
-      {currentType === 'whale' && whales.length > 0 && (
-      <a className={`w-1/4 rounded-lg p-3 bg-[#3A216F] block cursor-pointer hover:opacity-95 ${pulse.whale ? 'jitter-on' : ''} fade-in`}>
-        <div className="flex items-center">
-          {whales[0].tokenLogo ? (
-            <img src={whales[0].tokenLogo} alt="logo" className="w-10 h-10 rounded-full ring-2 ring-white/20 mr-3" />
-          ) : (
-            <div className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center ring-2 ring-white/20 mr-3">
-              <span className="text-lg font-bold text-white">{whales[0].name?.slice(0, 2) || "??"}</span>
+        {/* 卖出卡片 */}
+        {sells.length > 0 && (
+        <div className={`relative w-80 rounded-2xl p-6 bg-gradient-to-br from-red-900/40 via-red-800/30 to-rose-900/50 backdrop-blur-sm border border-red-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${pulse.sell ? 'jitter-on' : ''} fade-in group flex-shrink-0`}>
+          {/* 发光效果 */}
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-red-400/20 to-rose-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          
+          {/* 顶部状态指示器 */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse"></div>
+              <span className="text-red-300 text-xs font-medium uppercase tracking-wider">Live Sell</span>
             </div>
-          )}
-          <div className="flex-1">
-            <div className="flex items-center justify-between">
-              <span className="text-white text-sm font-medium truncate">{whales[0].name}</span>
-              <span className="bg-purple-500 text-white text-[11px] font-semibold px-3 py-1 rounded-md">Whale</span>
-            </div>
-            <div className="text-white/90 text-sm mt-1 truncate">{whales[0].address} • {whales[0].amount}</div>
+            <TrendingDown className="w-5 h-5 text-red-400 animate-bounce" />
           </div>
-        </div>
-      </a>)}
+
+          <div className="flex items-center space-x-4">
+            {/* 左侧头像和代币图标 */}
+            <div className="relative">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center ring-4 ring-red-400/30 shadow-lg">
+                <span className="text-2xl">{sells[0].avatar}</span>
+              </div>
+              {/* 代币图标覆盖层 */}
+              <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gray-800 border-2 border-red-400 flex items-center justify-center">
+                <span className="text-xs font-bold text-white">{sells[0].coinName?.slice(0, 2) || "??"}</span>
+              </div>
+            </div>
+
+            {/* 右侧信息区域 */}
+            <div className="flex-1 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-white font-semibold text-sm truncate">{sells[0].wallet}</span>
+                <div className="bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+                  SOLD
+                </div>
+              </div>
+              <div className="text-red-200 text-sm font-medium">{sells[0].tokenAmount}</div>
+              <div className="text-white/70 text-xs">{sells[0].coinName}</div>
+            </div>
+          </div>
+        </div>)}
+
+        {/* 新代币卡片 */}
+        {news.length > 0 && (
+        <div className={`relative w-80 rounded-2xl p-6 bg-gradient-to-br from-blue-900/40 via-indigo-800/30 to-purple-900/50 backdrop-blur-sm border border-blue-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${pulse.news ? 'jitter-on' : ''} fade-in group flex-shrink-0`}>
+          {/* 发光效果 */}
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-400/20 to-indigo-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          
+          {/* 顶部状态指示器 */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+              <span className="text-blue-300 text-xs font-medium uppercase tracking-wider">New Token</span>
+            </div>
+            <Zap className="w-5 h-5 text-blue-400 animate-bounce" />
+          </div>
+
+          <div className="flex items-center space-x-4">
+            {/* 左侧图标 */}
+            <div className="relative">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center ring-4 ring-blue-400/30 shadow-lg">
+                <Sparkles className="w-8 h-8 text-white" />
+              </div>
+              {/* 新代币标识 */}
+              <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gray-800 border-2 border-blue-400 flex items-center justify-center">
+                <span className="text-xs font-bold text-white">NEW</span>
+              </div>
+            </div>
+
+            {/* 右侧信息区域 */}
+            <div className="flex-1 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-white font-semibold text-sm truncate">{news[0].name}</span>
+                <div className="bg-blue-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+                  LAUNCHED
+                </div>
+              </div>
+              <div className="text-blue-200 text-sm font-medium">{news[0].address}</div>
+              <div className="text-white/70 text-xs">{news[0].createdAgo}</div>
+            </div>
+          </div>
+        </div>)}
+
+        {/* 巨鲸交易卡片 */}
+        {whales.length > 0 && (
+        <div className={`relative w-80 rounded-2xl p-6 bg-gradient-to-br from-purple-900/40 via-violet-800/30 to-fuchsia-900/50 backdrop-blur-sm border border-purple-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${pulse.whale ? 'jitter-on' : ''} fade-in group flex-shrink-0`}>
+          {/* 发光效果 */}
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-purple-400/20 to-violet-400/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          
+          {/* 顶部状态指示器 */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+              <span className="text-purple-300 text-xs font-medium uppercase tracking-wider">Whale Alert</span>
+            </div>
+            <Zap className="w-5 h-5 text-purple-400 animate-bounce" />
+          </div>
+
+          <div className="flex items-center space-x-4">
+            {/* 左侧图标 */}
+            <div className="relative">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center ring-4 ring-purple-400/30 shadow-lg">
+                <Sparkles className="w-8 h-8 text-white" />
+              </div>
+              {/* 巨鲸标识 */}
+              <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gray-800 border-2 border-purple-400 flex items-center justify-center">
+                <span className="text-xs font-bold text-white">🐋</span>
+              </div>
+            </div>
+
+            {/* 右侧信息区域 */}
+            <div className="flex-1 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-white font-semibold text-sm truncate">{whales[0].name}</span>
+                <div className="bg-purple-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+                  WHALE
+                </div>
+              </div>
+              <div className="text-purple-200 text-sm font-medium">{whales[0].amount}</div>
+              <div className="text-white/70 text-xs">{whales[0].address}</div>
+            </div>
+          </div>
+        </div>)}
+      </div>
     </div>
   );
 }

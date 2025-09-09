@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   Home,
@@ -13,8 +14,8 @@ import { useWalletAuth } from "@/hooks/useWalletAuth";
 
 const navigation = [
   { name: "Home", href: "/", icon: Home },
-  { name: "Ranking", href: "/ranking", icon: Trophy },
-  { name: "Rewards", href: "/rewards", icon: Gift },
+  { name: "Ranking", href: "/ranking/", icon: Trophy },
+  { name: "Rewards", href: "/rewards/", icon: Gift },
 ];
 
 const socialLinks = [
@@ -32,12 +33,16 @@ export function Sidebar() {
     <div className="w-64 fixed left-0 top-0 h-screen bg-[#151515] flex flex-col z-10">
       {/* 品牌标志 */}
       <div className="p-6">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-[#70E000] rounded-lg flex items-center justify-center">
-            <span className="text-black font-bold text-lg">A</span>
-          </div>
-          <span className="text-[#70E000] font-bold text-xl">BOBOOM</span>
-        </div>
+        <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity duration-200">
+          <Image
+            src="/logo.png"
+            alt="BOBOOM Logo"
+            width={32}
+            height={32}
+            className="w-8 h-8"
+          />
+          <span className="text-white text-xl font-bold font-inter">BOBOOM</span>
+        </Link>
       </div>
 
       {/* 导航菜单 */}
@@ -50,14 +55,23 @@ export function Sidebar() {
                 <Link
                   href={item.href}
                   className={cn(
-                    "flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors font-medium",
+                    "flex items-center space-x-3 px-4 py-3 rounded-lg font-medium",
                     isActive
-                      ? "bg-[#70E000] text-black"
-                      : "text-gray-300 hover:text-white hover:bg-gray-800/50"
+                      ? "text-[#70E000] bg-[#70E000]/10 border-l-4 border-[#70E000]"
+                      : "text-gray-400 hover:text-[#70E000] hover:bg-gray-800/30"
                   )}
                 >
-                  <item.icon className="h-5 w-5" />
-                  <span>{item.name}</span>
+                  <item.icon className={cn(
+                    "h-5 w-5",
+                    isActive 
+                      ? "text-[#70E000]" 
+                      : "text-gray-400"
+                  )} />
+                  <span className={cn(
+                    isActive 
+                      ? "font-semibold text-[#70E000]" 
+                      : "font-medium text-gray-400"
+                  )}>{item.name}</span>
                 </Link>
               </li>
             );
@@ -66,16 +80,25 @@ export function Sidebar() {
           {/* Profile 链接 - 需要用户地址 */}
           <li>
             <Link
-              href={isClient && address ? `/profile/${address}` : "/profile"}
+              href={isClient && address ? `/profile/${address}/` : "/profile/"}
               className={cn(
-                "flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors font-medium",
+                "flex items-center space-x-3 px-4 py-3 rounded-lg font-medium",
                 pathname.startsWith("/profile")
-                  ? "bg-[#70E000] text-black"
-                  : "text-gray-300 hover:text-white hover:bg-gray-800/50"
+                  ? "text-[#70E000] bg-[#70E000]/10 border-l-4 border-[#70E000]"
+                  : "text-gray-400 hover:text-[#70E000] hover:bg-gray-800/30"
               )}
             >
-              <User className="h-5 w-5" />
-              <span>Profile</span>
+              <User className={cn(
+                "h-5 w-5",
+                pathname.startsWith("/profile") 
+                  ? "text-[#70E000]" 
+                  : "text-gray-400"
+              )} />
+              <span className={cn(
+                pathname.startsWith("/profile") 
+                  ? "font-semibold text-[#70E000]" 
+                  : "font-medium text-gray-400"
+              )}>Profile</span>
             </Link>
           </li>
         </ul>

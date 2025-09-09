@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Roboto_Mono } from "next/font/google";
+import { Inter, Roboto_Mono, Exo_2 } from "next/font/google";
 import localFont from 'next/font/local';
 import "./globals.css";
 import '@rainbow-me/rainbowkit/styles.css';
@@ -17,6 +17,14 @@ const robotoMono = Roboto_Mono({
   variable: "--font-roboto-mono",
   display: 'swap',
 });
+
+const exo2 = Exo_2({
+  subsets: ["latin"],
+  weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
+  variable: "--font-exo2",
+  display: 'swap',
+});
+
 
 const hubotSans = localFont({
   src: [
@@ -45,6 +53,11 @@ export const metadata: Metadata = {
   description: "Create, trade, and incubate the next generation of meme coins. Innovative blockchain-based launchpad platform.",
   keywords: ["launchpad", "meme coin", "blockchain", "crypto", "token launch"],
   authors: [{ name: "BoBoom Team" }],
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export const viewport = {
@@ -55,7 +68,7 @@ export const viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
-      <body className={`${hubotSans.variable} font-hubot-sans antialiased min-h-screen bg-background text-foreground`}>
+      <body className={`${hubotSans.variable} ${exo2.variable} ${inter.variable} font-inter antialiased min-h-screen bg-background text-foreground`}>
         <Providers>
           {children}
         </Providers>
