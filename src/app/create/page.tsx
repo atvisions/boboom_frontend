@@ -116,21 +116,44 @@ function CreateTokenForm() {
     try {
       let finalImageUrl = formData.imageUrl;
       if (uploadedImage) {
-        try { finalImageUrl = await uploadImageToServer(uploadedImage); }
-        catch (uploadError) { console.error('Image upload failed:', uploadError); toast.error('Image upload failed, using default image'); finalImageUrl = "/tokens/default.png"; }
+        try {
+          finalImageUrl = await uploadImageToServer(uploadedImage);
+          console.log('✅ Image uploaded successfully:', finalImageUrl);
+        }
+        catch (uploadError) {
+          console.error('❌ Image upload failed:', uploadError);
+          toast.error('Image upload failed, please try again');
+          return; // 停止创建流程，要求用户重新上传
+        }
       }
-      if (!finalImageUrl) finalImageUrl = "/tokens/default.png";
+      if (!finalImageUrl) {
+        toast.error('Please upload an image or provide an image URL');
+        return;
+      }
+
+      // 处理社交媒体链接，确保格式正确
+      const processUrl = (url: string, defaultValue: string = '') => {
+        if (!url || url.trim() === '') return defaultValue;
+        const trimmed = url.trim();
+        // 如果没有协议，添加https://
+        if (trimmed && !trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+          return `https://${trimmed}`;
+        }
+        return trimmed;
+      };
 
       const tokenData: ModalTokenData = {
         name: formData.tokenName,
         symbol: formData.tokenSymbol,
-        description: formData.description,
+        description: formData.description || formData.tokenName, // 如果没有描述，使用代币名称
         imageUrl: finalImageUrl,
-        website: formData.website,
-        twitter: formData.twitter,
-        telegram: formData.telegram,
+        website: processUrl(formData.website),
+        twitter: processUrl(formData.twitter),
+        telegram: processUrl(formData.telegram),
         initialPurchase
       };
+
+      console.log('🎯 Token data prepared:', tokenData);
 
       // 记录开始创建新代币的时间戳，用于验证交易哈希的有效性
       console.log('Starting new token creation flow for:', tokenData.name);
@@ -204,7 +227,7 @@ function CreateTokenForm() {
       }
       
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
-      const apiUrl = `${backendUrl}/api/tokens/latest-by-creator/${address?.toLowerCase()}/?network=sepolia&tx_hash=${txHash}`;
+      const apiUrl = `${backendUrl}/api/tokens/creators/${address?.toLowerCase()}/latest-token/?network=sepolia&tx_hash=${txHash}`;
       console.log('API URL:', apiUrl);
       
       const response = await fetch(apiUrl, {

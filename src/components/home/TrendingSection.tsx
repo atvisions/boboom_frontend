@@ -73,7 +73,7 @@ export function TrendingSection() {
           currentPrice: token.currentPrice || token.current_price || '0'
         }));
 
-        console.log('[TrendingSection] Processed trending tokens:', trendingTokens.map(t => `${t.symbol}: ${t.graduationProgress}%`));
+        console.log('[TrendingSection] Processed trending tokens:', trendingTokens.map(t => `${t.symbol}: ${t.graduationProgress}% - Image: ${t.imageUrl}`));
         setTokens(trendingTokens);
 
         // 加载创作者信息
@@ -145,14 +145,17 @@ export function TrendingSection() {
               volume24h: token.volume24h || '0',
               marketCap: token.marketCap || '0',
               currentPrice: token.currentPrice || '0',
-              imageUrl: token.imageUrl || '',
+              imageUrl: token.imageUrl || token.image_url || '',
               createdAt: token.createdAt || new Date().toISOString(),
               isVerified: token.isVerified || false
             };
             console.log(`[TrendingSection] Processing token ${token.symbol}:`, {
               original: token.graduationProgress,
               processed: processed.graduationProgress,
-              type: typeof processed.graduationProgress
+              type: typeof processed.graduationProgress,
+              imageUrl: processed.imageUrl,
+              originalImageUrl: token.imageUrl,
+              originalImageUrlUnderscore: token.image_url
             });
             return processed;
           });
@@ -206,9 +209,9 @@ export function TrendingSection() {
     // 立即加载初始数据
     loadTrendingTokens();
 
-    // 连接WebSocket获取实时代币列表
+    // 连接WebSocket获取实时热门代币列表
     console.log('[TrendingSection] Attempting WebSocket connection...');
-    connectionId = websocketService.connect('tokens/', (data) => {
+    connectionId = websocketService.connect('tokens/trending/', (data) => {
       websocketConnected = true;
       // 清除定期刷新，因为WebSocket已连接
       if (refreshInterval) {
@@ -486,11 +489,20 @@ export function TrendingSection() {
                 <div className="flex items-center space-x-4 mb-6">
                   {/* 代币Logo */}
                   <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center overflow-hidden border-2 border-gray-600/50 shadow-lg">
-                    {token.image_url ? (
+                    {token.imageUrl ? (
                       <img
-                        src={token.image_url}
+                        src={token.imageUrl}
                         alt={`${token.name} logo`}
                         className="w-12 h-12 object-contain rounded-xl"
+                        onError={(e) => {
+                          // 图片加载失败时显示代币符号
+                          const target = e.currentTarget as HTMLImageElement;
+                          const parent = target.parentElement;
+                          if (parent) {
+                            target.style.display = 'none';
+                            parent.innerHTML = `<div class="text-2xl font-bold text-white">${token.symbol.slice(0, 2)}</div>`;
+                          }
+                        }}
                       />
                     ) : (
                       <div className="text-2xl font-bold text-white">{token.symbol.slice(0, 2)}</div>

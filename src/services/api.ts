@@ -566,21 +566,21 @@ export const tokenAPI = {
   },
 
   // 获取代币详情
-  getTokenDetail: (address: string, network: string = 'sepolia') => 
+  getTokenDetail: (address: string, network: string = 'sepolia') =>
     apiRequest<{
       success: boolean;
       data: any;
-    }>(`/tokens/${address}/?network=${network}`, {}, generateCacheKey('token_detail', address, network), 0),
+    }>(`/tokens/tokens/${address}/?network=${network}`, {}, generateCacheKey('token_detail', address, network), 0),
 
   // 获取代币详情（新接口）
   getTokenDetails: (address: string, network: string = 'sepolia') =>
     apiRequest<{
       success: boolean;
       data: any;
-    }>(`/tokens/${address}/?network=${network}&_t=${Date.now()}`, {}, `token_details_${address}_${network}_${Date.now()}`, 0),
+    }>(`/tokens/tokens/${address}/?network=${network}&_t=${Date.now()}`, {}, `token_details_${address}_${network}_${Date.now()}`, 0),
 
   // 获取代币24小时统计数据
-  getToken24hStats: (address: string, network: string = 'sepolia') => 
+  getToken24hStats: (address: string, network: string = 'sepolia') =>
     apiRequest<{
       success: boolean;
       data: {
@@ -591,7 +591,7 @@ export const tokenAPI = {
         volume24h: string;
         updatedAt: string;
       };
-    }>(`/tokens/${address}/24h-stats/?network=${network}`, {}, generateCacheKey('token_24h_stats', address, network), 60000), // 1分钟缓存
+    }>(`/tokens/tokens/${address}/24h-stats/?network=${network}`, {}, generateCacheKey('token_24h_stats', address, network), 60000), // 1分钟缓存
 
   // 获取代币交易记录
   getTokenTransactions: (address: string, network: string = 'sepolia', page: number = 1, pageSize: number = 10) =>
@@ -602,7 +602,7 @@ export const tokenAPI = {
       pageSize: number;
       total: number;
       hasMore: boolean;
-    }>(`/tokens/${address}/transactions?network=${network}&page=${page}&page_size=${pageSize}`, {}, generateCacheKey('token_transactions', address, network, page, pageSize), 30000), // 30秒缓存
+    }>(`/tokens/tokens/${address}/transactions/?network=${network}&page=${page}&page_size=${pageSize}`, {}, generateCacheKey('token_transactions', address, network, page, pageSize), 30000), // 30秒缓存
 
   // 获取代币持有人
   getTokenHolders: (address: string, network: string = 'sepolia', page: number = 1, pageSize: number = 10) =>
@@ -613,7 +613,7 @@ export const tokenAPI = {
       pageSize: number;
       total: number;
       hasMore: boolean;
-    }>(`/tokens/${address}/holders?network=${network}&page=${page}&page_size=${pageSize}`, {}, generateCacheKey('token_holders', address, network, page, pageSize), 300000),
+    }>(`/tokens/tokens/${address}/holders/?network=${network}&page=${page}&page_size=${pageSize}`, {}, generateCacheKey('token_holders', address, network, page, pageSize), 300000),
 
   // 获取代币图表数据
   getTokenChartData: (address: string, timeframe: string, network: string = 'sepolia') =>
@@ -628,7 +628,7 @@ export const tokenAPI = {
           backgroundColor: string;
         }>;
       };
-    }>(`/tokens/${address}/chart/?timeframe=${timeframe}&network=${network}`, {}, generateCacheKey('token_chart_data', address, timeframe, network), 300000),
+    }>(`/tokens/tokens/${address}/chart/?timeframe=${timeframe}&network=${network}`, {}, generateCacheKey('token_chart_data', address, timeframe, network), 300000),
 
   // 获取OKB价格
   getOKBPrice: () => 
@@ -672,7 +672,7 @@ export const tokenAPI = {
         interval: string;
         count: number;
       };
-    }>(`/tokens/${address}/price-history?${searchParams.toString()}`, {}, generateCacheKey('token_price_history', address, encodeURIComponent(searchParams.toString())), 300000);
+    }>(`/tokens/tokens/${address}/price-history?${searchParams.toString()}`, {}, generateCacheKey('token_price_history', address, encodeURIComponent(searchParams.toString())), 300000);
   },
 };
 
