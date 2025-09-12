@@ -106,15 +106,20 @@ export default function TokenDetailPage() {
           };
         });
 
-        // 同时更新 stats24h 状态
-        setStats24h((prevStats: any) => ({
-          ...prevStats,
+        // 同时更新 stats24h 状态，确保所有组件都能获得最新数据
+        const updatedStats = {
           currentPrice: priceData.current_price || priceData.currentPrice,
           priceChange24h: priceData.price_change_24h || priceData.priceChange24h,
           volume24h: priceData.volume_24h || priceData.volume24h,
-          high24h: priceData.high_24h || priceData.high24h || prevStats?.high24h,
-          low24h: priceData.low_24h || priceData.low24h || prevStats?.low24h,
+          high24h: priceData.high_24h || priceData.high24h,
+          low24h: priceData.low_24h || priceData.low24h,
           updatedAt: new Date().toISOString()
+        };
+
+        console.log('[TokenDetailPage] Updating stats24h with WebSocket data:', updatedStats);
+        setStats24h((prevStats: any) => ({
+          ...prevStats,
+          ...updatedStats
         }));
       }
     }
@@ -310,7 +315,7 @@ export default function TokenDetailPage() {
                 {/* 图表区域 */}
                 <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl">
                   <div className="p-6">
-                    <CandlestickChart tokenAddress={tokenAddress} />
+                    <CandlestickChart tokenAddress={tokenAddress} stats24h={stats24h} />
                   </div>
                 </div>
                 

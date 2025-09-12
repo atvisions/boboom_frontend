@@ -380,64 +380,85 @@ export function TrendingSection() {
       {loading ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
           {[...Array(4)].map((_, index) => (
-            <div key={index} className="relative rounded-lg overflow-hidden w-full max-w-[350px] h-[343px] mx-auto bg-transparent animate-pulse">
-              {/* 背景骨架 */}
-              <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-900"></div>
-              
+            <div key={index} className="relative rounded-2xl overflow-hidden w-full max-w-[380px] h-[420px] mx-auto bg-gradient-to-br from-gray-900/80 to-gray-800/60 backdrop-blur-sm border border-gray-700/50 animate-pulse">
+              {/* 顶部装饰条骨架 */}
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-gray-600 via-gray-500 to-gray-600"></div>
+
               {/* 收藏按钮骨架 - 右上角 */}
-              <div className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-gray-600"></div>
-              
+              <div className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-gray-600/50"></div>
+
               {/* 内容骨架 */}
-              <div className="relative p-6 flex flex-col items-center text-center h-full justify-center">
-                {/* Logo骨架 - 圆形 */}
-                <div className="w-20 h-20 rounded-full bg-gray-600 mb-4"></div>
-                
-                {/* 代币名称和验证标识骨架 */}
-                <div className="flex items-center justify-center space-x-2 mb-3">
-                  <div className="h-8 bg-gray-600 rounded w-24"></div>
-                  <div className="w-5 h-5 rounded-full bg-gray-600"></div>
-                </div>
-                
-                {/* 代币简介骨架 */}
-                <div className="mb-4 px-2 w-full">
-                  <div className="h-4 bg-gray-600 rounded w-3/4 mx-auto"></div>
-                </div>
-                
-                {/* 市场数据骨架 */}
-                <div className="space-y-3 mb-4 w-full">
-                  {/* Progress显示在进度条上方 */}
-                  <div className="flex justify-between items-center">
+              <div className="relative p-6 flex flex-col h-full">
+                {/* 头部区域骨架 - Logo和名称 */}
+                <div className="flex items-center space-x-4 mb-6">
+                  {/* 代币Logo骨架 */}
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-gray-700 to-gray-800 border-2 border-gray-600/50 shadow-lg"></div>
+
+                  {/* 代币名称和验证标识骨架 */}
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <div className="h-6 bg-gray-600 rounded w-24"></div>
+                      <div className="w-5 h-5 rounded-full bg-gray-600"></div>
+                    </div>
                     <div className="h-4 bg-gray-600 rounded w-16"></div>
-                    <div className="h-4 bg-gray-600 rounded w-12"></div>
                   </div>
-                  
+                </div>
+
+                {/* 代币简介骨架 */}
+                <div className="mb-6">
+                  <div className="h-4 bg-gray-600 rounded w-full mb-2"></div>
+                  <div className="h-4 bg-gray-600 rounded w-3/4"></div>
+                </div>
+
+                {/* 毕业进度区域骨架 */}
+                <div className="mb-6">
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="h-4 bg-gray-600 rounded w-32"></div>
+                    <div className="h-5 bg-gray-600 rounded w-12"></div>
+                  </div>
+
                   {/* 进度条骨架 */}
-                  <div className="w-full h-3 bg-gray-700 rounded-full overflow-hidden">
-                    <div className="w-1/3 h-3 bg-gray-600 rounded-full"></div>
+                  <div className="w-full h-4 bg-gray-700/50 rounded-full overflow-hidden border border-gray-600/30">
+                    <div className="w-1/3 h-4 bg-gradient-to-r from-gray-500 via-gray-400 to-gray-500 rounded-full"></div>
                   </div>
-                  
-                  {/* 24h Volume骨架 */}
-                  <div className="flex justify-between items-center">
+
+                  {/* 进度信息骨架 */}
+                  <div className="flex justify-between items-center mt-2">
+                    <div className="h-3 bg-gray-600 rounded w-24"></div>
+                    <div className="h-3 bg-gray-600 rounded w-16"></div>
+                  </div>
+                </div>
+
+                {/* 市场数据骨架 */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div className="bg-gray-800/50 rounded-xl p-3 border border-gray-700/30">
+                    <div className="h-3 bg-gray-600 rounded w-16 mb-1"></div>
                     <div className="h-4 bg-gray-600 rounded w-20"></div>
+                  </div>
+                  <div className="bg-gray-800/50 rounded-xl p-3 border border-gray-700/30">
+                    <div className="h-3 bg-gray-600 rounded w-20 mb-1"></div>
                     <div className="h-4 bg-gray-600 rounded w-24"></div>
                   </div>
                 </div>
-                
-                {/* 创建者信息和社交媒体骨架 */}
-                <div className="flex items-center justify-between w-full">
-                  {/* 创建者信息骨架 - 靠左 */}
-                  <div className="flex items-center space-x-2">
-                    <div className="w-6 h-6 rounded-full bg-gray-600"></div>
-                    <div className="h-4 bg-gray-600 rounded w-16"></div>
-                    <div className="w-1 h-1 rounded-full bg-gray-600"></div>
-                    <div className="h-4 bg-gray-600 rounded w-12"></div>
+
+                {/* 底部区域骨架 - 创建者信息和社交媒体 */}
+                <div className="mt-auto">
+                  {/* 创建者信息骨架 */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-600 to-gray-700 border border-gray-500/50"></div>
+                      <div>
+                        <div className="h-4 bg-gray-600 rounded w-20 mb-1"></div>
+                        <div className="h-3 bg-gray-600 rounded w-12"></div>
+                      </div>
+                    </div>
                   </div>
-                  
-                  {/* 社交媒体图标骨架 - 靠右 */}
-                  <div className="flex space-x-2">
-                    <div className="w-6 h-6 rounded-full bg-gray-600"></div>
-                    <div className="w-6 h-6 rounded-full bg-gray-600"></div>
-                    <div className="w-6 h-6 rounded-full bg-gray-600"></div>
+
+                  {/* 社交媒体图标骨架 */}
+                  <div className="flex items-center justify-center space-x-3">
+                    <div className="w-8 h-8 rounded-full bg-gray-800/50 border border-gray-700/30"></div>
+                    <div className="w-8 h-8 rounded-full bg-gray-800/50 border border-gray-700/30"></div>
+                    <div className="w-8 h-8 rounded-full bg-gray-800/50 border border-gray-700/30"></div>
                   </div>
                 </div>
               </div>

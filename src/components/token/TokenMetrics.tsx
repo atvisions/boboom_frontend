@@ -1,4 +1,5 @@
 import { TrendingUp, TrendingDown } from 'lucide-react';
+import { formatPrice } from '@/lib/utils';
 
 interface TokenMetricsProps {
   token: any;
@@ -15,8 +16,18 @@ export function TokenMetrics({ token, okbPrice, showCurrentPrice = true, stats24
   const athDrop = athPrice > 0 ? ((currentPrice - athPrice) / athPrice) * 100 : 0;
   const athProgress = athPrice > 0 ? Math.min((currentPrice / athPrice) * 100, 100) : 0;
 
+  // 使用通用的价格格式化函数
+
   // 根据是否显示当前价格决定列数 - 现在显示3列
   const gridCols = showCurrentPrice ? 'md:grid-cols-2 lg:grid-cols-3' : 'md:grid-cols-1 lg:grid-cols-2';
+
+  // 调试日志
+  console.log('TokenMetrics Debug:', {
+    tokenAddress: token.address,
+    currentPriceRaw: token.currentPrice,
+    currentPriceParsed: currentPrice,
+    formattedPrice: formatPrice(currentPrice)
+  });
 
   return (
     <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6">
@@ -26,7 +37,7 @@ export function TokenMetrics({ token, okbPrice, showCurrentPrice = true, stats24
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-gray-400">Current Price</h3>
             <div className="text-2xl font-bold text-white">
-              ${currentPrice.toFixed(6)}
+              ${formatPrice(currentPrice)}
             </div>
             <div className="flex items-center space-x-2">
               {(() => {

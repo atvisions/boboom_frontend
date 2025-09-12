@@ -30,6 +30,7 @@ export function LiveUpdatesCard() {
     console.log('🔥 SIMPLE useEffect EXECUTED! This should always show!');
     console.log('🔥 Window available:', typeof window !== 'undefined');
     console.log('🔥 WebSocket service:', !!websocketService);
+    console.log('🔥 WebSocket URL from env:', process.env.NEXT_PUBLIC_WEBSOCKET_URL);
 
     if (typeof window !== 'undefined' && websocketService) {
       console.log('🔥 Attempting WebSocket connection...');
@@ -515,36 +516,99 @@ export function LiveUpdatesCard() {
       <div className="relative overflow-hidden">
         {/* 背景装饰 */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse"></div>
-        
+
         <div className="flex gap-6 py-6 px-2 overflow-x-auto">
-          {/* 加载骨架屏 */}
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="relative w-80 rounded-2xl p-6 bg-gradient-to-br from-gray-800/40 via-gray-700/30 to-gray-800/50 backdrop-blur-sm border border-gray-600/20 flex-shrink-0 animate-pulse">
+          {/* 加载骨架屏 - 4种不同颜色的卡片类型 */}
+          {[
+            { color: 'emerald', label: 'Live Buy' },
+            { color: 'red', label: 'Live Sell' },
+            { color: 'blue', label: 'New Token' },
+            { color: 'purple', label: 'Whale Alert' }
+          ].map((cardType, i) => (
+            <div key={i} className={`relative w-80 rounded-2xl p-6 backdrop-blur-sm border flex-shrink-0 animate-pulse ${
+              cardType.color === 'emerald' ? 'bg-gradient-to-br from-emerald-900/40 via-emerald-800/30 to-green-900/50 border-emerald-500/20' :
+              cardType.color === 'red' ? 'bg-gradient-to-br from-red-900/40 via-red-800/30 to-rose-900/50 border-red-500/20' :
+              cardType.color === 'blue' ? 'bg-gradient-to-br from-blue-900/40 via-indigo-800/30 to-purple-900/50 border-blue-500/20' :
+              'bg-gradient-to-br from-purple-900/40 via-violet-800/30 to-fuchsia-900/50 border-purple-500/20'
+            }`}>
+              {/* 发光效果骨架 */}
+              <div className={`absolute inset-0 rounded-2xl opacity-30 ${
+                cardType.color === 'emerald' ? 'bg-gradient-to-r from-emerald-400/20 to-green-400/20' :
+                cardType.color === 'red' ? 'bg-gradient-to-r from-red-400/20 to-rose-400/20' :
+                cardType.color === 'blue' ? 'bg-gradient-to-r from-blue-400/20 to-indigo-400/20' :
+                'bg-gradient-to-r from-purple-400/20 to-violet-400/20'
+              }`}></div>
+
+              {/* 点击提示骨架 */}
+              <div className="absolute top-2 right-2">
+                <div className={`w-2 h-2 rounded-full animate-pulse ${
+                  cardType.color === 'emerald' ? 'bg-emerald-400/50' :
+                  cardType.color === 'red' ? 'bg-red-400/50' :
+                  cardType.color === 'blue' ? 'bg-blue-400/50' :
+                  'bg-purple-400/50'
+                }`}></div>
+              </div>
+
               {/* 顶部状态指示器骨架 */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-gray-600/50 rounded-full"></div>
-                  <div className="h-3 bg-gray-600/50 rounded w-16"></div>
+                  <div className={`w-2 h-2 rounded-full animate-pulse ${
+                    cardType.color === 'emerald' ? 'bg-emerald-400/50' :
+                    cardType.color === 'red' ? 'bg-red-400/50' :
+                    cardType.color === 'blue' ? 'bg-blue-400/50' :
+                    'bg-purple-400/50'
+                  }`}></div>
+                  <div className={`h-3 rounded w-20 ${
+                    cardType.color === 'emerald' ? 'bg-emerald-300/30' :
+                    cardType.color === 'red' ? 'bg-red-300/30' :
+                    cardType.color === 'blue' ? 'bg-blue-300/30' :
+                    'bg-purple-300/30'
+                  }`}></div>
                 </div>
-                <div className="w-5 h-5 bg-gray-600/50 rounded"></div>
+                <div className={`w-5 h-5 rounded animate-bounce ${
+                  cardType.color === 'emerald' ? 'bg-emerald-400/50' :
+                  cardType.color === 'red' ? 'bg-red-400/50' :
+                  cardType.color === 'blue' ? 'bg-blue-400/50' :
+                  'bg-purple-400/50'
+                }`}></div>
               </div>
 
               <div className="flex items-center space-x-4">
                 {/* 左侧代币图标骨架（主要显示） */}
                 <div className="relative">
-                  <div className="w-16 h-16 rounded-2xl bg-gray-600/50"></div>
+                  <div className={`w-16 h-16 rounded-2xl ring-4 shadow-lg ${
+                    cardType.color === 'emerald' ? 'bg-gradient-to-br from-emerald-500/50 to-green-600/50 ring-emerald-400/30' :
+                    cardType.color === 'red' ? 'bg-gradient-to-br from-red-500/50 to-rose-600/50 ring-red-400/30' :
+                    cardType.color === 'blue' ? 'bg-gradient-to-br from-blue-500/50 to-indigo-600/50 ring-blue-400/30' :
+                    'bg-gradient-to-br from-purple-500/50 to-violet-600/50 ring-purple-400/30'
+                  }`}></div>
                   {/* 操作人头像覆盖层骨架（右下角） */}
-                  <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gray-700/50 border-2 border-gray-600/50"></div>
+                  <div className={`absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-gray-800 border-2 ${
+                    cardType.color === 'emerald' ? 'border-emerald-400/50' :
+                    cardType.color === 'red' ? 'border-red-400/50' :
+                    cardType.color === 'blue' ? 'border-blue-400/50' :
+                    'border-purple-400/50'
+                  }`}></div>
                 </div>
 
                 {/* 右侧信息区域骨架 */}
                 <div className="flex-1 space-y-2">
                   <div className="flex items-center justify-between">
-                    <div className="h-4 bg-gray-600/50 rounded w-20"></div>
-                    <div className="h-6 bg-gray-600/50 rounded-full w-16"></div>
+                    <div className="h-4 bg-white/20 rounded w-20"></div>
+                    <div className={`h-6 rounded-full w-16 ${
+                      cardType.color === 'emerald' ? 'bg-emerald-500/50' :
+                      cardType.color === 'red' ? 'bg-red-500/50' :
+                      cardType.color === 'blue' ? 'bg-blue-500/50' :
+                      'bg-purple-500/50'
+                    }`}></div>
                   </div>
-                  <div className="h-4 bg-gray-600/50 rounded w-24"></div>
-                  <div className="h-3 bg-gray-600/50 rounded w-16"></div>
+                  <div className={`h-4 rounded w-24 ${
+                    cardType.color === 'emerald' ? 'bg-emerald-200/30' :
+                    cardType.color === 'red' ? 'bg-red-200/30' :
+                    cardType.color === 'blue' ? 'bg-blue-200/30' :
+                    'bg-purple-200/30'
+                  }`}></div>
+                  <div className="h-3 bg-white/20 rounded w-16"></div>
                 </div>
               </div>
             </div>

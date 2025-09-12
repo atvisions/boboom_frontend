@@ -6,25 +6,31 @@ import { Button } from '@/components/ui/button';
 import { TrendingUp, TrendingDown, Clock, RotateCcw } from 'lucide-react';
 import { tokenAPI } from '@/services/api';
 import { connectToTokenCandles } from '@/services/websocket';
+import { formatPrice } from '@/lib/utils';
+import websocketService from '@/services/websocket';
 
 // 动态导入 ApexCharts 以避免 SSR 问题
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
 interface CandlestickChartProps {
   tokenAddress: string;
+  stats24h?: any; // 接收父组件传递的24小时统计数据
 }
 
-export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
+export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartProps) {
   const [timeframe, setTimeframe] = useState('1h');
   const [priceType, setPriceType] = useState<'price' | 'mcap'>('mcap');
   const [currency, setCurrency] = useState<'USD' | 'OKB'>('USD');
   const [showTimeDropdown, setShowTimeDropdown] = useState(false);
-  const [stats24h, setStats24h] = useState<any>(null);
+  const [localStats24h, setLocalStats24h] = useState<any>(null); // 本地备用状态
   const [candlestickData, setCandlestickData] = useState<any[]>([]);
   const [volumeData, setVolumeData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [okbPrice, setOkbPrice] = useState<number>(177.6); // 默认OKB价格
   const wsConnectionIdRef = useRef<string | null>(null);
+
+  // 优先使用父组件传递的stats24h，否则使用本地状态
+  const currentStats24h = stats24h || localStats24h;
 
   // 后端支持的 interval 映射（将 UI timeframe 映射到后端可用的 interval）
   const getBackendInterval = (tf: string): string => {
@@ -60,14 +66,17 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
     loadOKBPrice();
   }, []);
 
-  // 加载24小时统计数据
+  // 加载24小时统计数据（仅在没有父组件传递数据时使用）
   useEffect(() => {
     const load24hStats = async () => {
       try {
         setLoading(true);
+        // 添加时间戳参数绕过缓存
+        const timestamp = Date.now();
         const response = await tokenAPI.getToken24hStats(tokenAddress, 'sepolia');
         if (response.success) {
-          setStats24h(response.data);
+          console.log('[CandlestickChart] Loaded 24h stats:', response.data);
+          setLocalStats24h(response.data);
         }
       } catch (error) {
         console.error('Failed to load 24h stats:', error);
@@ -76,10 +85,15 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
       }
     };
 
-    if (tokenAddress) {
+    // 只有在没有父组件传递stats24h时才加载本地数据
+    if (tokenAddress && !stats24h) {
       load24hStats();
+    } else if (stats24h) {
+      setLoading(false);
     }
-  }, [tokenAddress]);
+  }, [tokenAddress, stats24h]);
+
+
 
   // 为特定合约生成模拟K线数据
   const generateMockCandleData = (tokenAddress: string) => {
@@ -246,7 +260,34 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
 
     const handleMessage = (data: any) => {
       try {
-        if (data?.type === 'candles_snapshot' && data.data?.candles) {
+        console.log('[CandlestickChart] Received WebSocket message:', data?.type, data?.data?.address);
+
+        // 处理价格更新（仅在没有父组件传递stats24h时更新本地状态）
+        if (data?.type === 'price_update' && data.data?.address === tokenAddress) {
+          const priceData = data.data;
+          console.log('[CandlestickChart] Processing price update for', tokenAddress, ':', priceData);
+
+          // 只有在没有父组件传递stats24h时才更新本地状态
+          if (!stats24h) {
+            setLocalStats24h((prevStats: any) => {
+              const newStats = {
+                ...prevStats,
+                currentPrice: priceData.current_price || priceData.currentPrice,
+                high24h: priceData.high_24h || priceData.high24h || prevStats?.high24h,
+                low24h: priceData.low_24h || priceData.low24h || prevStats?.low24h,
+                priceChange24h: priceData.price_change_24h || priceData.priceChange24h,
+                volume24h: priceData.volume_24h || priceData.volume24h,
+                updatedAt: new Date().toISOString()
+              };
+              console.log('[CandlestickChart] Updated localStats24h:', newStats);
+              return newStats;
+            });
+          } else {
+            console.log('[CandlestickChart] Using parent stats24h, skipping local update');
+          }
+        }
+        // 处理K线数据
+        else if (data?.type === 'candles_snapshot' && data.data?.candles) {
           const transformed = data.data.candles.map((candle: any) => {
             const x = new Date(candle.timestamp);
             const factor = currency === 'OKB' ? 1 / okbPrice : 1;
@@ -777,7 +818,7 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
             {loading ? (
               <div className="animate-pulse bg-gray-600 h-4 w-20 rounded"></div>
             ) : (
-              `$${parseFloat(stats24h?.currentPrice || '0').toFixed(8)}`
+              `$${formatPrice(currentStats24h?.currentPrice || '0')}`
             )}
           </div>
         </div>
@@ -788,7 +829,7 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
             {loading ? (
               <div className="animate-pulse bg-gray-600 h-4 w-20 rounded"></div>
             ) : (
-              `$${parseFloat(stats24h?.high24h || '0').toFixed(8)}`
+              `$${formatPrice(currentStats24h?.high24h || '0')}`
             )}
           </div>
         </div>
@@ -799,7 +840,7 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
             {loading ? (
               <div className="animate-pulse bg-gray-600 h-4 w-20 rounded"></div>
             ) : (
-              `$${parseFloat(stats24h?.low24h || '0').toFixed(8)}`
+              `$${formatPrice(currentStats24h?.low24h || '0')}`
             )}
           </div>
         </div>
@@ -810,14 +851,14 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
             <div className="animate-pulse bg-gray-600 h-4 w-16 rounded"></div>
           ) : (
             <div className={`font-bold text-sm flex items-center ${
-              parseFloat(stats24h?.priceChange24h || '0') >= 0 ? 'text-green-500' : 'text-red-500'
+              parseFloat(currentStats24h?.priceChange24h || '0') >= 0 ? 'text-green-500' : 'text-red-500'
             }`}>
-              {parseFloat(stats24h?.priceChange24h || '0') >= 0 ? (
+              {parseFloat(currentStats24h?.priceChange24h || '0') >= 0 ? (
                 <TrendingUp className="h-3 w-3 mr-1" />
               ) : (
                 <TrendingDown className="h-3 w-3 mr-1" />
               )}
-              {parseFloat(stats24h?.priceChange24h || '0') >= 0 ? '+' : ''}{parseFloat(stats24h?.priceChange24h || '0').toFixed(2)}%
+              {parseFloat(currentStats24h?.priceChange24h || '0') >= 0 ? '+' : ''}{parseFloat(currentStats24h?.priceChange24h || '0').toFixed(2)}%
             </div>
           )}
         </div>
@@ -829,7 +870,7 @@ export function CandlestickChart({ tokenAddress }: CandlestickChartProps) {
               <div className="animate-pulse bg-gray-600 h-4 w-16 rounded"></div>
             ) : (
               (() => {
-                const volumeOKB = parseFloat(stats24h?.volume24h || '0');
+                const volumeOKB = parseFloat(currentStats24h?.volume24h || '0');
                 const volumeUSD = volumeOKB * okbPrice;
 
                 if (volumeUSD >= 1000000) {

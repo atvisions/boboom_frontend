@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { tokenAPI, favoriteAPI, userAPI } from "@/services/api";
 import { useWalletAuth } from "@/hooks/useWalletAuth";
 import websocketService from "@/services/websocket";
+import { MiniChart } from "@/components/ui/MiniChart";
 
 // 时间格式化函数
 const getTimeAgo = (dateString: string) => {
@@ -53,10 +54,8 @@ export function TokenGrid() {
   useEffect(() => {
     if (isClient) {
       const savedSort = localStorage.getItem('tokenGridSort');
-      console.log('Loading from localStorage:', savedSort);
       if (savedSort) {
         setSelectedSort(savedSort);
-        console.log('Set selectedSort to:', savedSort);
       }
       
       const savedViewMode = localStorage.getItem('tokenGridViewMode');
@@ -98,19 +97,20 @@ export function TokenGrid() {
   
   // 处理WebSocket代币列表数据
   const handleTokenListData = useCallback((data: any) => {
-    console.log('Received WebSocket data:', data);
-    
+    console.log('🔍 TokenGrid received WebSocket data:', data?.type, 'with', data?.data?.length, 'items');
+
+
     // 处理不同类型的WebSocket消息
     const isValidTokenData = (
-      data.type === 'token_list' || 
-      data.type === 'newest_tokens' || 
-      data.type === 'near_graduation_tokens' || 
+      data.type === 'token_list' ||
+      data.type === 'newest_tokens' ||
+      data.type === 'near_graduation_tokens' ||
       data.type === 'top_mc_tokens' ||
       data.type === 'newest_tokens_update' ||
       data.type === 'near_graduation_tokens_update' ||
       data.type === 'top_mc_tokens_update'
     );
-    
+
     if (isValidTokenData) {
       const tokenList = data.data;
       if (Array.isArray(tokenList)) {
@@ -119,14 +119,27 @@ export function TokenGrid() {
           // WebSocket数据可能使用下划线命名，需要转换
           graduationProgress: parseFloat(token.graduationProgress || token.graduation_progress || '0'),
           volume24h: token.volume24h || token.volume_24h || '0',
+          change24h: token.change24h || token.change_24h || '0',
           createdAt: token.createdAt || token.created_at || new Date().toISOString(),
           isVerified: token.isVerified || token.is_verified || false,
           imageUrl: token.imageUrl || token.image_url || '',
           marketCap: token.marketCap || token.market_cap || '0',
-          currentPrice: token.currentPrice || token.current_price || '0'
+          currentPrice: token.currentPrice || token.current_price || '0',
+          // 重要：确保ATH和交易数量字段被正确映射
+          ath: token.ath || '0',
+          transactionCount: token.transactionCount || token.transaction_count || 0,
+          holderCount: token.holderCount || token.holder_count || 0
         }));
-        
-        console.log(`Processed ${processedTokens.length} tokens from WebSocket`);
+
+        // ATH Debug - 检查原始数据和处理后数据
+        console.log('🔍 ATH Debug - First token:', {
+          symbol: processedTokens[0]?.symbol,
+          originalATH: tokenList[0]?.ath,
+          processedATH: processedTokens[0]?.ath,
+          originalTXNS: tokenList[0]?.transactionCount,
+          processedTXNS: processedTokens[0]?.transactionCount,
+          firstTokenKeys: tokenList[0] ? Object.keys(tokenList[0]) : 'no keys'
+        });
         
         // WebSocket端点已经按照排序返回数据，无需再次排序
         // 但为了保险起见，仍然保留一些基本的过滤逻辑
@@ -199,7 +212,7 @@ export function TokenGrid() {
           } else {
             setIsRefreshing(true);
           }
-          console.log('Connecting WebSocket for sort:', selectedSort);
+  
           
           // 断开之前的连接
           if (connectionId) {
@@ -226,7 +239,7 @@ export function TokenGrid() {
               endpoint = 'tokens/newest/';
               break;
           }
-          
+
           // 建立WebSocket连接
           const newConnectionId = websocketService.connect(
             endpoint,
@@ -242,7 +255,7 @@ export function TokenGrid() {
           );
           
           setConnectionId(newConnectionId);
-          console.log(`WebSocket connected to ${endpoint} with ID:`, newConnectionId);
+
         } catch (error) {
           console.error('Failed to connect WebSocket:', error);
           // 如果WebSocket连接失败，回退到API
@@ -379,7 +392,6 @@ export function TokenGrid() {
       };
 
       // 优先使用WebSocket连接
-      console.log(`[TokenGrid] Connecting WebSocket for sort: ${selectedSort}`);
       connectWebSocket();
     }, 300); // 300ms 防抖延迟
     
@@ -848,7 +860,7 @@ export function TokenGrid() {
         // 列表视图
         <div className="bg-[#1a1a1a] rounded-xl border border-gray-700 overflow-hidden">
           {/* 列表头部 */}
-          <div className="grid grid-cols-13 gap-2 px-4 py-4 bg-[#232323] border-b border-gray-700 text-sm font-medium text-gray-300">
+          <div className="grid grid-cols-12 gap-2 px-4 py-4 bg-[#232323] border-b border-gray-700 text-sm font-medium text-gray-300">
             <div className="col-span-1">#</div>
             <div className="col-span-2">COIN</div>
             <div className="col-span-1">GRAPH</div>
@@ -858,17 +870,15 @@ export function TokenGrid() {
             <div className="col-span-1">TXNS</div>
             <div className="col-span-1">24H VOL</div>
             <div className="col-span-1">TRADERS</div>
-            <div className="col-span-1">5M</div>
-            <div className="col-span-1">1H</div>
             <div className="col-span-1">24H</div>
-            <div className="col-span-1 text-center">收藏</div>
+            <div className="col-span-1 text-center">FAVORITE</div>
           </div>
           
           {/* 列表内容 */}
           {tokens.map((token, index) => (
             <div
               key={token.address}
-              className="grid grid-cols-13 gap-2 px-4 py-4 border-b border-gray-800 hover:bg-[#232323]/50 transition-colors cursor-pointer"
+              className="grid grid-cols-12 gap-2 px-4 py-4 border-b border-gray-800 hover:bg-[#232323]/50 transition-colors cursor-pointer"
               onClick={() => router.push(`/token/${token.address}`)}
             >
               {/* 排名 */}
@@ -895,11 +905,16 @@ export function TokenGrid() {
                 </div>
               </div>
               
-              {/* 图表占位 */}
+              {/* 图表 */}
               <div className="col-span-1 flex items-center">
-                <div className="w-12 h-6 bg-gradient-to-r from-green-500/20 to-green-500/40 rounded flex items-center justify-center">
-                  <div className="w-8 h-3 bg-green-500/30 rounded-sm"></div>
-                </div>
+                <MiniChart
+                  width={48}
+                  height={24}
+                  color={parseFloat(token.change24h || '0') >= 0 ? '#10B981' : '#EF4444'}
+                  className="opacity-80"
+                  useRealData={true}
+                  tokenAddress={token.address}
+                />
               </div>
               
               {/* 市值 */}
@@ -931,17 +946,7 @@ export function TokenGrid() {
               <div className="col-span-1 flex items-center text-gray-400 text-sm">
                 {token.holderCount || '-'}
               </div>
-              
-              {/* 5分钟变化 */}
-              <div className="col-span-1 flex items-center text-sm">
-                <span className="text-gray-400">-</span>
-              </div>
-              
-              {/* 1小时变化 */}
-              <div className="col-span-1 flex items-center text-sm">
-                <span className="text-gray-400">-</span>
-              </div>
-              
+
               {/* 24小时变化 */}
               <div className="col-span-1 flex items-center text-sm">
                 <span className={parseFloat(token.change24h || '0') >= 0 ? 'text-green-400' : 'text-red-400'}>

@@ -30,9 +30,11 @@ class WebSocketService {
     if (websocketUrl) {
       this.baseUrl = websocketUrl;
     } else {
-      // WebSocket运行在8001端口，与Django API的8000端口分离
-      this.baseUrl = 'ws://127.0.0.1:8001/ws';
+      // WebSocket运行在8000端口，与Django API在同一端口
+      this.baseUrl = 'ws://127.0.0.1:8000/ws';
     }
+
+    console.log('WebSocket service initialized with baseUrl:', this.baseUrl);
   }
 
   /**
@@ -133,9 +135,9 @@ class WebSocketService {
       };
 
       ws.onerror = (error) => {
-        // 只在连接真正失败时才处理错误（不记录日志，因为某些浏览器会误报）
+        console.error(`❌ WebSocket error for ${connection.url}:`, error);
         connection.isConnecting = false;
-        
+
         // 调用所有错误处理器
         connection.errorHandlers.forEach(handler => {
           try {

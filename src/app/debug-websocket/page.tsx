@@ -14,7 +14,7 @@ export default function DebugWebSocketPage() {
     const connections: WebSocket[] = [];
 
     endpoints.forEach((endpoint, index) => {
-      const ws = new WebSocket(`ws://127.0.0.1:8001/ws/${endpoint}`);
+      const ws = new WebSocket(`ws://127.0.0.1:8000/ws/${endpoint}`);
       connections.push(ws);
 
       ws.onopen = () => {
