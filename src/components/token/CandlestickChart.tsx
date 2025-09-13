@@ -8,9 +8,19 @@ import { tokenAPI } from '@/services/api';
 import { connectToTokenCandles } from '@/services/websocket';
 import { formatPrice } from '@/lib/utils';
 import websocketService from '@/services/websocket';
+import { ChartErrorBoundary, ChartErrorFallback } from '@/components/ui/ChartErrorBoundary';
 
 // 动态导入 ApexCharts 以避免 SSR 问题
-const Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
+const Chart = dynamic(
+  () => import('react-apexcharts').catch(() => {
+    // 如果导入失败，返回一个空组件
+    return { default: () => <div className="text-center text-gray-500 py-8">图表加载失败，请刷新页面重试</div> };
+  }),
+  {
+    ssr: false,
+    loading: () => <div className="text-center text-gray-500 py-8">加载图表中...</div>
+  }
+);
 
 interface CandlestickChartProps {
   tokenAddress: string;
@@ -27,6 +37,7 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
   const [volumeData, setVolumeData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [okbPrice, setOkbPrice] = useState<number>(177.6); // 默认OKB价格
+  const [chartError, setChartError] = useState(false); // 图表加载错误状态
   const wsConnectionIdRef = useRef<string | null>(null);
 
   // 优先使用父组件传递的stats24h，否则使用本地状态
@@ -254,7 +265,7 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
 
     // 断开已有连接
     if (wsConnectionIdRef.current) {
-      // 通过服务内管理实现，连接ID变更时新 connect 会覆盖；此处仅记录ID
+      websocketService.disconnect(wsConnectionIdRef.current);
       wsConnectionIdRef.current = null;
     }
 
@@ -356,8 +367,11 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
     wsConnectionIdRef.current = connId;
 
     return () => {
-      // 连接的实际关闭由全局服务在页面卸载时统一处理；此处清理引用即可
-      wsConnectionIdRef.current = null;
+      // 组件卸载时断开WebSocket连接
+      if (wsConnectionIdRef.current) {
+        websocketService.disconnect(wsConnectionIdRef.current);
+        wsConnectionIdRef.current = null;
+      }
     };
   }, [tokenAddress, timeframe, currency, okbPrice]);
 
@@ -763,17 +777,21 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
         <div className="space-y-2">
           {/* K线图 */}
           {candlestickData.length > 0 ? (
-            <Chart
-              options={chartOptions}
-              series={[
-                {
-                  name: 'Price',
-                  data: candlestickData
-                }
-              ]}
-              type="candlestick"
-              height={380}
-            />
+            <ChartErrorBoundary fallback={<ChartErrorFallback />}>
+              <div className="chart-container">
+                <Chart
+                  options={chartOptions}
+                  series={[
+                    {
+                      name: 'Price',
+                      data: candlestickData
+                    }
+                  ]}
+                  type="candlestick"
+                  height={380}
+                />
+              </div>
+            </ChartErrorBoundary>
           ) : (
             <div className="flex items-center justify-center h-[380px] text-gray-400">
               <div className="text-center">
@@ -789,17 +807,25 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
           {/* 交易量图 */}
           <div className="border-t border-gray-700 pt-2">
             {volumeData.length > 0 ? (
-              <Chart
-                options={volumeOptions}
-                series={[
-                  {
-                    name: 'Volume',
-                    data: volumeData
-                  }
-                ]}
-                type="bar"
-                height={80}
-              />
+              <ChartErrorBoundary fallback={
+                <div className="flex items-center justify-center h-[80px] text-gray-500 text-sm">
+                  Volume chart unavailable
+                </div>
+              }>
+                <div className="volume-chart-container">
+                  <Chart
+                    options={volumeOptions}
+                    series={[
+                      {
+                        name: 'Volume',
+                        data: volumeData
+                      }
+                    ]}
+                    type="bar"
+                    height={80}
+                  />
+                </div>
+              </ChartErrorBoundary>
             ) : (
               <div className="flex items-center justify-center h-[80px] text-gray-500 text-sm">
                 No volume data

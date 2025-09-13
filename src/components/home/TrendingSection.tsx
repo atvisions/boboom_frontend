@@ -9,6 +9,7 @@ import { tokenAPI, favoriteAPI, userAPI, cacheAPI } from "@/services/api";
 import { useWalletAuth } from "@/hooks/useWalletAuth";
 import { useRouter } from "next/navigation";
 import websocketService from "@/services/websocket";
+import { extractCreatorAddresses } from "@/utils/contractAddresses";
 
 // 时间格式化函数
 const getTimeAgo = (dateString: string) => {
@@ -58,7 +59,7 @@ export function TrendingSection() {
     if (data.type === 'token_list' || data.type === 'token_update') {
       const tokenList = data.data;
       if (Array.isArray(tokenList)) {
-        console.log('[TrendingSection] Received WebSocket update:', data.type, tokenList.length, 'tokens');
+
 
         // 取前4个作为热门代币
         const trendingTokens = tokenList.slice(0, 4).map((token: any) => ({
@@ -73,13 +74,11 @@ export function TrendingSection() {
           currentPrice: token.currentPrice || token.current_price || '0'
         }));
 
-        console.log('[TrendingSection] Processed trending tokens:', trendingTokens.map(t => `${t.symbol}: ${t.graduationProgress}% - Image: ${t.imageUrl}`));
+
         setTokens(trendingTokens);
 
         // 加载创作者信息
-        const creatorAddresses = trendingTokens
-          .map((token: any) => token.creator)
-          .filter((creator: any) => creator && typeof creator === 'string');
+        const creatorAddresses = extractCreatorAddresses(trendingTokens);
         
         const loadCreators = async () => {
           const newCreators: {[key: string]: any} = {};
@@ -113,7 +112,7 @@ export function TrendingSection() {
   useEffect(() => {
     if (!isClient) return; // 只在客户端运行
     
-    console.log('[TrendingSection] Component mounting, clearing cache...');
+
     // 清除代币相关缓存，确保获取最新数据
     cacheAPI.clearTokens();
     
@@ -135,7 +134,7 @@ export function TrendingSection() {
         });
 
         if (response.success && isComponentMounted) {
-          console.log('[TrendingSection] API response received:', response.data);
+
           // 处理API返回的数据，确保字段名一致
           const processedTokens = response.data.tokens.map((token: any) => {
             const processed = {
@@ -149,24 +148,15 @@ export function TrendingSection() {
               createdAt: token.createdAt || new Date().toISOString(),
               isVerified: token.isVerified || false
             };
-            console.log(`[TrendingSection] Processing token ${token.symbol}:`, {
-              original: token.graduationProgress,
-              processed: processed.graduationProgress,
-              type: typeof processed.graduationProgress,
-              imageUrl: processed.imageUrl,
-              originalImageUrl: token.imageUrl,
-              originalImageUrlUnderscore: token.image_url
-            });
+
             return processed;
           });
 
-          console.log('[TrendingSection] Setting processed tokens:', processedTokens);
+
           setTokens(processedTokens);
 
           // 加载创作者信息
-          const creatorAddresses = response.data.tokens
-            .map((token: any) => token.creator)
-            .filter((creator: any) => creator && typeof creator === 'string');
+          const creatorAddresses = extractCreatorAddresses(response.data.tokens);
 
           const loadCreators = async () => {
             if (!isComponentMounted) return;
@@ -200,7 +190,7 @@ export function TrendingSection() {
         }
       } finally {
         if (isComponentMounted) {
-          console.log('[TrendingSection] Loading finished');
+
           setLoading(false);
         }
       }
@@ -210,14 +200,14 @@ export function TrendingSection() {
     loadTrendingTokens();
 
     // 连接WebSocket获取实时热门代币列表
-    console.log('[TrendingSection] Attempting WebSocket connection...');
+
     connectionId = websocketService.connect('tokens/trending/', (data) => {
       websocketConnected = true;
       // 清除定期刷新，因为WebSocket已连接
       if (refreshInterval) {
         clearInterval(refreshInterval);
         refreshInterval = null;
-        console.log('[TrendingSection] WebSocket connected, clearing periodic refresh');
+
       }
       handleTokenListData(data);
     });
@@ -225,11 +215,11 @@ export function TrendingSection() {
     // 设置WebSocket连接超时检测
     const connectionTimeout = setTimeout(() => {
       if (!websocketConnected && isComponentMounted) {
-        console.log('[TrendingSection] WebSocket connection timeout, starting periodic refresh');
+
         // WebSocket连接失败，启动定期刷新作为备用
         refreshInterval = setInterval(() => {
           if (isComponentMounted && !websocketConnected) {
-            console.log('[TrendingSection] Periodic refresh triggered (WebSocket failed)');
+
             loadTrendingTokens();
           }
         }, 30000); // 每30秒刷新一次
@@ -246,15 +236,15 @@ export function TrendingSection() {
         
         checkCount++;
         if (connectionId && websocketService.isConnected(connectionId)) {
-          console.log('[TrendingSection] WebSocket connected successfully');
+
           return;
         }
         
         if (checkCount < maxChecks) {
-          console.log(`[TrendingSection] WebSocket connection check ${checkCount}/${maxChecks}, retrying...`);
+
           setTimeout(checkConnection, 2000);
         } else {
-          console.log('[TrendingSection] WebSocket connection failed after multiple attempts, using API only');
+
         }
       };
       
@@ -265,15 +255,18 @@ export function TrendingSection() {
     
     // 清理函数
     return () => {
-      console.log('[TrendingSection] Component unmounting, cleaning up...');
+
       isComponentMounted = false;
 
       if (connectionId) {
+
         websocketService.disconnect(connectionId);
+        connectionId = null;
       }
 
       if (refreshInterval) {
         clearInterval(refreshInterval);
+        refreshInterval = null;
       }
 
       if (connectionTimeout) {
@@ -628,7 +621,8 @@ export function TrendingSection() {
                                   alt="Creator avatar"
                                   width={32}
                                   height={32}
-                                  className="w-8 h-8 rounded-full object-cover"
+                                  className="rounded-full object-cover"
+                                  style={{ width: '32px', height: '32px' }}
                                   unoptimized={true}
                                 />
                               );

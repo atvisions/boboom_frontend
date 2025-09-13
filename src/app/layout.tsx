@@ -68,6 +68,8 @@ export const viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
+      <head>
+      </head>
       <body className={`${hubotSans.variable} ${exo2.variable} ${inter.variable} font-inter antialiased min-h-screen bg-background text-foreground`}>
         <Providers>
           {children}

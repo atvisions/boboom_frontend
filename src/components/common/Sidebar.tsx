@@ -39,7 +39,8 @@ export function Sidebar() {
             alt="BOBOOM Logo"
             width={32}
             height={32}
-            className="w-8 h-8"
+            className=""
+            style={{ width: '32px', height: '32px' }}
           />
           <span className="text-white text-xl font-bold font-inter">BOBOOM</span>
         </Link>

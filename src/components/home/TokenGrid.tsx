@@ -10,6 +10,10 @@ import { tokenAPI, favoriteAPI, userAPI } from "@/services/api";
 import { useWalletAuth } from "@/hooks/useWalletAuth";
 import websocketService from "@/services/websocket";
 import { MiniChart } from "@/components/ui/MiniChart";
+import { formatPrice, formatNumber as utilsFormatNumber } from "@/lib/utils";
+import { NETWORK_CONFIG } from "@/contracts/config";
+import { extractCreatorAddresses } from "@/utils/contractAddresses";
+
 
 // 时间格式化函数
 const getTimeAgo = (dateString: string) => {
@@ -97,7 +101,7 @@ export function TokenGrid() {
   
   // 处理WebSocket代币列表数据
   const handleTokenListData = useCallback((data: any) => {
-    console.log('🔍 TokenGrid received WebSocket data:', data?.type, 'with', data?.data?.length, 'items');
+
 
 
     // 处理不同类型的WebSocket消息
@@ -131,15 +135,7 @@ export function TokenGrid() {
           holderCount: token.holderCount || token.holder_count || 0
         }));
 
-        // ATH Debug - 检查原始数据和处理后数据
-        console.log('🔍 ATH Debug - First token:', {
-          symbol: processedTokens[0]?.symbol,
-          originalATH: tokenList[0]?.ath,
-          processedATH: processedTokens[0]?.ath,
-          originalTXNS: tokenList[0]?.transactionCount,
-          processedTXNS: processedTokens[0]?.transactionCount,
-          firstTokenKeys: tokenList[0] ? Object.keys(tokenList[0]) : 'no keys'
-        });
+
         
         // WebSocket端点已经按照排序返回数据，无需再次排序
         // 但为了保险起见，仍然保留一些基本的过滤逻辑
@@ -150,15 +146,13 @@ export function TokenGrid() {
           filteredTokens = processedTokens.filter((token: any) => 
             token.graduationProgress >= 80
           );
-          console.log(`Filtered to ${filteredTokens.length} tokens with progress >= 80%`);
+
         }
         
         setTokens(filteredTokens);
         
         // 加载创作者信息
-        const creatorAddresses = filteredTokens
-          .map((token: any) => token.creator)
-          .filter((creator: any) => creator && typeof creator === 'string');
+        const creatorAddresses = extractCreatorAddresses(filteredTokens);
         
         const loadCreators = async () => {
           const newCreators: {[key: string]: any} = {};
@@ -216,6 +210,7 @@ export function TokenGrid() {
           
           // 断开之前的连接
           if (connectionId) {
+
             websocketService.disconnect(connectionId);
             setConnectionId(null);
           }
@@ -240,12 +235,15 @@ export function TokenGrid() {
               break;
           }
 
+
+
           // 建立WebSocket连接
           const newConnectionId = websocketService.connect(
             endpoint,
             handleTokenListData,
             (error) => {
               console.error('WebSocket connection error:', error);
+              console.error('TokenGrid: WebSocket连接错误', error);
               setError('WebSocket connection failed');
               setLoading(false);
             setIsRefreshing(false);
@@ -272,13 +270,13 @@ export function TokenGrid() {
           } else {
             setIsRefreshing(true);
           }
-          console.log('Falling back to API for sort:', selectedSort);
+
           
           // 根据选择的排序方式调用不同的专用API
           let response;
           const apiParams = {
             limit: selectedSort === 'newest' ? 12 : 50,
-            network: 'sepolia'
+            network: NETWORK_CONFIG.NETWORK_NAME
           };
 
           switch (selectedSort) {
@@ -299,10 +297,10 @@ export function TokenGrid() {
               break;
           }
 
-          console.log('API fallback response:', response);
+
         
           if (response.success) {
-            console.log('[TokenGrid] API response received:', response.data);
+
             // 处理API返回的数据，确保字段名一致
             const processedTokens = response.data.tokens.map((token: any) => {
               const processed = {
@@ -320,11 +318,7 @@ export function TokenGrid() {
                 transactionCount: token.transaction_count || token.transactionCount || 0,
                 ath: token.ath || '0'
               };
-              console.log(`[TokenGrid] Processing token ${token.symbol}:`, {
-                original: token.graduationProgress,
-                processed: processed.graduationProgress,
-                type: typeof processed.graduationProgress
-              });
+
               return processed;
             });
             
@@ -333,12 +327,11 @@ export function TokenGrid() {
             // 根据排序选项处理数据
             if (selectedSort === 'curved') {
               // 过滤进度80%以上的代币
-              console.log('Total tokens received:', processedTokens.length);
-              console.log('Progress distribution:', processedTokens.map((t: any) => t.graduationProgress).sort((a: number, b: number) => a - b));
+
               filteredTokens = processedTokens.filter((token: any) => 
                 token.graduationProgress >= 80
               );
-              console.log('Filtered tokens with progress >= 80%:', filteredTokens.length);
+
             } else if (selectedSort === 'top-mc') {
               // 按市值排序（从高到低）
               filteredTokens = processedTokens.sort((a: any, b: any) => {
@@ -346,16 +339,14 @@ export function TokenGrid() {
                 const marketCapB = parseFloat(b.marketCap || '0');
                 return marketCapB - marketCapA; // 降序排列
               });
-              console.log('Sorted tokens by market cap (top 12):', filteredTokens.slice(0, 12).map((t: any) => ({ name: t.name, marketCap: t.marketCap })));
+
             }
             
-            console.log('[TokenGrid] Setting filtered tokens:', filteredTokens);
+
             setTokens(filteredTokens);
             
             // 加载创作者信息
-            const creatorAddresses = filteredTokens
-              .map((token: any) => token.creator)
-              .filter((creator: any) => creator && typeof creator === 'string');
+            const creatorAddresses = extractCreatorAddresses(filteredTokens);
             
             const loadCreators = async () => {
               const newCreators: {[key: string]: any} = {};
@@ -489,7 +480,7 @@ export function TokenGrid() {
       try {
         const response = await favoriteAPI.toggleFavorite(address, {
           token_address: tokenAddress,
-          network: 'sepolia'
+          network: NETWORK_CONFIG.NETWORK_NAME
         });
 
         if (response.success) {
@@ -533,11 +524,11 @@ export function TokenGrid() {
 
   // 保存排序设置到localStorage
   const handleSortChange = (sortValue: string) => {
-    console.log('Saving sort to localStorage:', sortValue);
+
     setSelectedSort(sortValue);
     if (typeof window !== 'undefined') {
       localStorage.setItem('tokenGridSort', sortValue);
-      console.log('Saved to localStorage, current value:', localStorage.getItem('tokenGridSort'));
+
     }
   };
 
@@ -919,12 +910,12 @@ export function TokenGrid() {
               
               {/* 市值 */}
               <div className="col-span-1 flex items-center text-white text-sm">
-                ${formatNumber(parseFloat(token.marketCap || '0'))}
+                ${utilsFormatNumber(parseFloat(token.marketCap || '0'))}
               </div>
               
               {/* ATH */}
               <div className="col-span-1 flex items-center text-white text-sm">
-                ${formatNumber(parseFloat(token.ath || '0'))}
+                ${formatPrice(parseFloat(token.ath || '0'))}
               </div>
               
               {/* 年龄 */}
@@ -939,7 +930,7 @@ export function TokenGrid() {
               
               {/* 24小时交易量 */}
               <div className="col-span-1 flex items-center text-gray-400 text-sm">
-                ${formatNumber(parseFloat(token.volume24h || '0') * okbPrice)}
+                ${utilsFormatNumber(parseFloat(token.volume24h || '0') * okbPrice)}
               </div>
               
               {/* 交易者数 */}
@@ -1007,13 +998,14 @@ export function TokenGrid() {
               <div className="flex items-start space-x-4 mb-6">
                 {/* Logo - 左侧 */}
                 <div className="flex-shrink-0 w-16 h-16 rounded-2xl overflow-hidden bg-gradient-to-br from-[#1B1B1B] to-[#232323] flex items-center justify-center shadow-lg">
-                  {token.image_url ? (
-                    <Image 
-                      src={token.image_url} 
-                      alt={`${token.name} logo`} 
-                      width={64} 
-                      height={64} 
-                      className="w-16 h-16 object-contain"
+                  {token.imageUrl ? (
+                    <Image
+                      src={token.imageUrl}
+                      alt={`${token.name} logo`}
+                      width={64}
+                      height={64}
+                      className="object-contain"
+                      style={{ width: '64px', height: '64px' }}
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
                         target.style.display = 'none';
@@ -1077,7 +1069,8 @@ export function TokenGrid() {
                                     alt="Creator avatar"
                                     width={20}
                                     height={20}
-                                    className="w-5 h-5 rounded-full object-cover"
+                                    className="rounded-full object-cover"
+                                    style={{ width: '20px', height: '20px' }}
                                     unoptimized={true}
                                   />
                                 );
@@ -1136,7 +1129,7 @@ export function TokenGrid() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <div className="text-[#70E000] font-bold text-lg mb-1">
-                      ${parseFloat(token.marketCap).toFixed(4)}
+                      ${utilsFormatNumber(parseFloat(token.marketCap || '0'))}
                     </div>
                     <div className="text-gray-400 text-xs">
                       Market Cap
@@ -1148,7 +1141,7 @@ export function TokenGrid() {
                         const volume = parseFloat(token.volume24h || '0');
                         const volumeInUSD = volume * okbPrice;
                         // 如果交易量小于0.01美元，显示为$0.00
-                        return volumeInUSD < 0.01 ? '0.00' : volumeInUSD.toFixed(2);
+                        return volumeInUSD < 0.01 ? '0.00' : utilsFormatNumber(volumeInUSD);
                       })()}
                     </div>
                     <div className="text-gray-400 text-xs">

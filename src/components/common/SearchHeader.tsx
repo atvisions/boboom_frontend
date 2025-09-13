@@ -151,9 +151,10 @@ export function SearchHeader() {
                           <Image
                             src={token.imageUrl}
                             alt={token.name}
-                            fill
-                            className="object-cover"
-                            sizes="40px"
+                            width={40}
+                            height={40}
+                            className="object-cover rounded-full"
+                            style={{ width: '40px', height: '40px' }}
                             onError={(e) => {
                               // 图片加载失败时显示首字母
                               e.currentTarget.style.display = 'none';

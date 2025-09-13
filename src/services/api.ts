@@ -1,5 +1,6 @@
 // API基础配置
 import { API_CONFIG } from '@/config/api';
+import { NETWORK_CONFIG } from '@/contracts/config';
 
 // 始终使用完整的后端URL
 const API_BASE_URL = `${API_CONFIG.BASE_URL}/api`;
@@ -207,8 +208,21 @@ export const authAPI = {
 // 用户资料相关接口
 export const userAPI = {
   // 获取用户详情
-  getUser: (address: string) => 
-    apiRequest<any>(`/users/${address}/`, {}, generateCacheKey('user', address), 300000),
+  getUser: (address: string) => {
+    // 检查是否为合约地址，如果是则直接返回错误
+    const contractAddresses = [
+      '0xbc9bd35ad4ae0233b5767d4cb9208fdb9cea942d', // token_factory_v3_address
+      '0x564e310b4390f24fe5cefaf601973ca1ca0d36f3', // bonding_curve_v3_address
+      '0xb96e6ca61596d77150284e4f31ee5c63b9545a70', // izumi_integration_address
+    ];
+
+    if (contractAddresses.includes(address.toLowerCase())) {
+      console.warn(`Attempted to get user info for contract address: ${address}`);
+      return Promise.reject(new Error('Cannot get user info for contract address'));
+    }
+
+    return apiRequest<any>(`/users/${address}/`, {}, generateCacheKey('user', address), 300000);
+  },
 
   // 更新用户资料
   updateUser: (address: string, data: {
@@ -246,7 +260,7 @@ export const userAPI = {
     }>(`/users/${address}/portfolio/`, {}, generateCacheKey('user_portfolio', address), 300000),
 
   // 获取用户代币
-  getUserTokens: (address: string, network: string = 'sepolia') =>
+  getUserTokens: (address: string, network: string = NETWORK_CONFIG.NETWORK_NAME) =>
     apiRequest<{
       created: Array<any>;
       holding: Array<any>;
@@ -259,7 +273,7 @@ export const userAPI = {
     limit?: number;
     network?: string;
   } = {}) => {
-    const { sort_by = 'tokens_created', limit = 50, network = 'sepolia' } = params;
+    const { sort_by = 'tokens_created', limit = 50, network = NETWORK_CONFIG.NETWORK_NAME } = params;
     return apiRequest<{
       success: boolean;
       data: {
@@ -298,7 +312,7 @@ export const favoriteAPI = {
   },
 
   // 获取用户收藏列表
-  getUserFavorites: (userAddress: string, network: string = 'sepolia', limit?: number) => 
+  getUserFavorites: (userAddress: string, network: string = NETWORK_CONFIG.NETWORK_NAME, limit?: number) =>
     apiRequest<{
       success: boolean;
       data: {
@@ -310,7 +324,7 @@ export const favoriteAPI = {
     }>(`/users/${userAddress}/favorites/?network=${network}${limit ? `&limit=${limit}` : ''}`, {}, generateCacheKey('user_favorites', userAddress, network, limit || ''), 300000),
 
   // 检查收藏状态
-  checkFavoriteStatus: (userAddress: string, tokenAddress: string, network: string = 'sepolia') => 
+  checkFavoriteStatus: (userAddress: string, tokenAddress: string, network: string = NETWORK_CONFIG.NETWORK_NAME) =>
     apiRequest<{
       success: boolean;
       data: {
@@ -343,7 +357,7 @@ export const followAPI = {
   }, generateCacheKey('follow_user', followerAddress, data.following_address), 300000),
 
   // 获取用户关注的用户列表
-  getFollowing: (userAddress: string, network: string = 'sepolia', limit?: number) => 
+  getFollowing: (userAddress: string, network: string = NETWORK_CONFIG.NETWORK_NAME, limit?: number) =>
     apiRequest<{
       success: boolean;
       data: {
@@ -355,7 +369,7 @@ export const followAPI = {
     }>(`/users/${userAddress}/following/?network=${network}${limit ? `&limit=${limit}` : ''}`, {}, generateCacheKey('user_following', userAddress, network, limit || ''), 300000),
 
   // 获取用户的粉丝列表
-  getFollowers: (userAddress: string, network: string = 'sepolia', limit?: number) => 
+  getFollowers: (userAddress: string, network: string = NETWORK_CONFIG.NETWORK_NAME, limit?: number) =>
     apiRequest<{
       success: boolean;
       data: {
@@ -367,7 +381,7 @@ export const followAPI = {
     }>(`/users/${userAddress}/followers/?network=${network}${limit ? `&limit=${limit}` : ''}`, {}, generateCacheKey('user_followers', userAddress, network, limit || ''), 300000),
 
   // 检查关注状态
-  checkFollowStatus: (followerAddress: string, followingAddress: string, network: string = 'sepolia') => 
+  checkFollowStatus: (followerAddress: string, followingAddress: string, network: string = NETWORK_CONFIG.NETWORK_NAME) =>
     apiRequest<{
       success: boolean;
       data: {
@@ -380,7 +394,7 @@ export const followAPI = {
     }>(`/users/${followerAddress}/follow/${followingAddress}/check/?network=${network}`, {}, generateCacheKey('check_follow_status', followerAddress, followingAddress, network), 300000),
 
   // 获取推荐关注用户
-  getSuggestedUsers: (userAddress: string, network: string = 'sepolia', limit: number = 10) => 
+  getSuggestedUsers: (userAddress: string, network: string = NETWORK_CONFIG.NETWORK_NAME, limit: number = 10) =>
     apiRequest<{
       success: boolean;
       data: {
@@ -566,21 +580,21 @@ export const tokenAPI = {
   },
 
   // 获取代币详情
-  getTokenDetail: (address: string, network: string = 'sepolia') =>
+  getTokenDetail: (address: string, network: string = NETWORK_CONFIG.NETWORK_NAME) =>
     apiRequest<{
       success: boolean;
       data: any;
     }>(`/tokens/tokens/${address}/?network=${network}`, {}, generateCacheKey('token_detail', address, network), 0),
 
   // 获取代币详情（新接口）
-  getTokenDetails: (address: string, network: string = 'sepolia') =>
+  getTokenDetails: (address: string, network: string = NETWORK_CONFIG.NETWORK_NAME) =>
     apiRequest<{
       success: boolean;
       data: any;
     }>(`/tokens/tokens/${address}/?network=${network}&_t=${Date.now()}`, {}, `token_details_${address}_${network}_${Date.now()}`, 0),
 
   // 获取代币24小时统计数据
-  getToken24hStats: (address: string, network: string = 'sepolia') =>
+  getToken24hStats: (address: string, network: string = NETWORK_CONFIG.NETWORK_NAME) =>
     apiRequest<{
       success: boolean;
       data: {
@@ -594,7 +608,7 @@ export const tokenAPI = {
     }>(`/tokens/tokens/${address}/24h-stats/?network=${network}`, {}, generateCacheKey('token_24h_stats', address, network), 60000), // 1分钟缓存
 
   // 获取代币交易记录
-  getTokenTransactions: (address: string, network: string = 'sepolia', page: number = 1, pageSize: number = 10) =>
+  getTokenTransactions: (address: string, network: string = NETWORK_CONFIG.NETWORK_NAME, page: number = 1, pageSize: number = 10) =>
     apiRequest<{
       success: boolean;
       data: Array<any>;
@@ -605,7 +619,7 @@ export const tokenAPI = {
     }>(`/tokens/tokens/${address}/transactions/?network=${network}&page=${page}&page_size=${pageSize}`, {}, generateCacheKey('token_transactions', address, network, page, pageSize), 30000), // 30秒缓存
 
   // 获取代币持有人
-  getTokenHolders: (address: string, network: string = 'sepolia', page: number = 1, pageSize: number = 10) =>
+  getTokenHolders: (address: string, network: string = NETWORK_CONFIG.NETWORK_NAME, page: number = 1, pageSize: number = 10) =>
     apiRequest<{
       success: boolean;
       data: Array<any>;
@@ -616,7 +630,7 @@ export const tokenAPI = {
     }>(`/tokens/tokens/${address}/holders/?network=${network}&page=${page}&page_size=${pageSize}`, {}, generateCacheKey('token_holders', address, network, page, pageSize), 300000),
 
   // 获取代币图表数据
-  getTokenChartData: (address: string, timeframe: string, network: string = 'sepolia') =>
+  getTokenChartData: (address: string, timeframe: string, network: string = NETWORK_CONFIG.NETWORK_NAME) =>
     apiRequest<{
       success: boolean;
       data: {

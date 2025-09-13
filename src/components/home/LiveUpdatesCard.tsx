@@ -5,8 +5,9 @@ import { Sparkles, TrendingUp, TrendingDown, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import websocketService from "@/services/websocket";
-import { userAPI } from "@/services/api";
+import { userAPI, tokenAPI } from "@/services/api";
 import { formatDistanceToNow } from "date-fns";
+
 
 type BuySellItem = { avatar: string; wallet: string; tokenLogo: string; tokenAddr: string; tokenAddress: string; userAddress: string; side: "Buy" | "Sell"; amount: string; coinName: string; tokenAmount: string };
 type NewTokenItem = { tokenLogo: string; name: string; address: string; fullAddress: string; createdAgo: string; creatorAddress: string };
@@ -17,54 +18,9 @@ type WhaleItem = { tokenLogo: string; name: string; address: string; fullAddress
 export function LiveUpdatesCard() {
   const router = useRouter();
 
-  // 调试：组件加载时立即打印日志
-  console.log('🎯 LiveUpdatesCard component loaded!');
-  console.log('🎯 LiveUpdatesCard: About to define useEffect...');
 
-  // WebSocket连接必须在useEffect中执行（客户端）
-  console.log('🚀 Component loaded - service available:', !!websocketService);
-  console.log('🚀 typeof window:', typeof window);
 
-  // 测试useEffect是否执行
-  useEffect(() => {
-    console.log('🔥 SIMPLE useEffect EXECUTED! This should always show!');
-    console.log('🔥 Window available:', typeof window !== 'undefined');
-    console.log('🔥 WebSocket service:', !!websocketService);
-    console.log('🔥 WebSocket URL from env:', process.env.NEXT_PUBLIC_WEBSOCKET_URL);
 
-    if (typeof window !== 'undefined' && websocketService) {
-      console.log('🔥 Attempting WebSocket connection...');
-
-      const testConnection = websocketService.connect(
-        'transactions/',
-        (data) => {
-          console.log('🎉 RECEIVED WebSocket data:', data);
-          if (data.type === 'transaction_list') {
-            console.log('📊 Initial transaction list received');
-            handleTransactionData(data);
-          } else if (data.type === 'transaction') {
-            console.log('🎯 NEW TRANSACTION received:', data.data?.transaction_hash);
-            handleTransactionData(data);
-          }
-        },
-        (error) => {
-          console.error('❌ WebSocket error:', error);
-        },
-        () => {
-          console.log('🔌 WebSocket closed');
-        }
-      );
-
-      console.log('🔥 WebSocket connection ID:', testConnection);
-
-      return () => {
-        console.log('🧹 Cleaning up WebSocket connection');
-        if (testConnection) {
-          websocketService.disconnect(testConnection);
-        }
-      };
-    }
-  }, []);
 
   // 加载状态
   const [isLoading, setIsLoading] = useState(true);
@@ -136,7 +92,8 @@ export function LiveUpdatesCard() {
               alt="User avatar"
               width={32}
               height={32}
-              className="w-8 h-8 rounded-full object-cover"
+              className="rounded-full object-cover"
+              style={{ width: '32px', height: '32px' }}
               unoptimized={true}
             />
           );
@@ -211,10 +168,119 @@ export function LiveUpdatesCard() {
     }, 400);
   };
 
+  // API回退函数
+  const loadDataFromAPI = useCallback(async () => {
+    try {
+
+
+      // 加载最近交易
+      const transactionsResponse = await fetch('http://127.0.0.1:8000/api/transactions/recent/?limit=20');
+      if (transactionsResponse.ok) {
+        const transactionsData = await transactionsResponse.json();
+        if (transactionsData.success && transactionsData.data.length > 0) {
+
+
+          // 处理买卖交易
+          const buyTransactions = transactionsData.data.filter((t: any) => t.transaction_type === 'BUY');
+          const sellTransactions = transactionsData.data.filter((t: any) => t.transaction_type === 'SELL');
+
+          if (buyTransactions.length > 0) {
+            const latestBuy = buyTransactions[0];
+            const buyItem: BuySellItem = {
+              avatar: getRandomAvatar(),
+              wallet: formatWallet(latestBuy.user_address),
+              tokenLogo: latestBuy.token_image_url || "",
+              tokenAddr: formatWallet(latestBuy.token_address),
+              tokenAddress: latestBuy.token_address,
+              userAddress: latestBuy.user_address,
+              side: 'Buy',
+              amount: `$${parseFloat(latestBuy.usd_amount || latestBuy.okb_amount || '0').toFixed(2)}`,
+              coinName: latestBuy.token_symbol || 'Unknown',
+              tokenAmount: `${parseFloat(latestBuy.token_amount || '0').toFixed(4)} ${latestBuy.token_symbol || ''}`
+            };
+            setBuys([buyItem]);
+            loadUserAvatar(latestBuy.user_address);
+          }
+
+          if (sellTransactions.length > 0) {
+            const latestSell = sellTransactions[0];
+            const sellItem: BuySellItem = {
+              avatar: getRandomAvatar(),
+              wallet: formatWallet(latestSell.user_address),
+              tokenLogo: latestSell.token_image_url || "",
+              tokenAddr: formatWallet(latestSell.token_address),
+              tokenAddress: latestSell.token_address,
+              userAddress: latestSell.user_address,
+              side: 'Sell',
+              amount: `$${parseFloat(latestSell.usd_amount || latestSell.okb_amount || '0').toFixed(2)}`,
+              coinName: latestSell.token_symbol || 'Unknown',
+              tokenAmount: `${parseFloat(latestSell.token_amount || '0').toFixed(4)} ${latestSell.token_symbol || ''}`
+            };
+            setSells([sellItem]);
+            loadUserAvatar(latestSell.user_address);
+          }
+        }
+      }
+
+      // 加载最新代币
+      const tokensResponse = await fetch('http://127.0.0.1:8000/api/tokens/newest/?limit=10&network=sepolia');
+      if (tokensResponse.ok) {
+        const tokensData = await tokensResponse.json();
+        if (tokensData.success && tokensData.data.tokens && tokensData.data.tokens.length > 0) {
+
+
+          const latestToken = tokensData.data.tokens[0];
+          const newTokenItem: NewTokenItem = {
+            tokenLogo: latestToken.imageUrl || latestToken.image_url || "",
+            name: latestToken.name || 'Unknown',
+            address: formatWallet(latestToken.address),
+            fullAddress: latestToken.address,
+            createdAgo: formatDistanceToNow(new Date(latestToken.createdAt || latestToken.created_at || Date.now()), { addSuffix: true }),
+            creatorAddress: latestToken.creator || ''
+          };
+          setNews([newTokenItem]);
+        }
+      }
+
+      // 从交易中筛选鲸鱼交易（OKB金额 >= 10）
+      const whaleResponse = await fetch('http://127.0.0.1:8000/api/transactions/recent/?limit=50');
+      if (whaleResponse.ok) {
+        const whaleData = await whaleResponse.json();
+        if (whaleData.success && whaleData.data.length > 0) {
+          const whaleTransactions = whaleData.data.filter((tx: any) =>
+            parseFloat(tx.okb_amount || '0') >= 10
+          );
+
+          if (whaleTransactions.length > 0) {
+
+
+            const latestWhale = whaleTransactions[0];
+            const whaleItem: WhaleItem = {
+              tokenLogo: latestWhale.token_image_url || "",
+              name: latestWhale.token_symbol || 'Unknown',
+              address: formatWallet(latestWhale.token_address),
+              fullAddress: latestWhale.token_address,
+              userAddress: latestWhale.user_address,
+              amount: `$${parseFloat(latestWhale.usd_amount || latestWhale.okb_amount || '0').toFixed(2)}`
+            };
+            setWhales([whaleItem]);
+            loadUserAvatar(latestWhale.user_address);
+          }
+        }
+      }
+
+      setIsLoading(false);
+      setHasRealData(true);
+
+    } catch (error) {
+      console.error('Failed to load data from API:', error);
+      console.error('LiveUpdatesCard: API loading failed', error);
+      setIsLoading(false);
+    }
+  }, []);
+
   // 处理交易数据
   const handleTransactionData = useCallback((data: any) => {
-    console.log('LiveUpdatesCard: Received transaction data:', data);
-    console.log('LiveUpdatesCard: Data type:', typeof data, 'Keys:', Object.keys(data || {}));
 
     if (data.type === 'transaction') {
       // 单个交易更新
@@ -244,21 +310,20 @@ export function LiveUpdatesCard() {
       loadUserAvatar(transaction.user_address);
       
       // 标记已收到真实数据
-      console.log('LiveUpdatesCard: Setting hasRealData to true and isLoading to false (single transaction)');
+
       setHasRealData(true);
       setIsLoading(false);
     } else if (data.type === 'transaction_list') {
       // 初始交易列表数据
       const transactions = data.data || [];
-      console.log('LiveUpdatesCard: Processing transaction list:', transactions.length, 'transactions');
+
       
       if (transactions.length > 0) {
         // 分别处理买入和卖出交易
         const buyTransactions = transactions.filter(t => t.transaction_type === 'BUY');
         const sellTransactions = transactions.filter(t => t.transaction_type === 'SELL');
 
-        console.log('LiveUpdatesCard: Buy transactions:', buyTransactions.length);
-        console.log('LiveUpdatesCard: Sell transactions:', sellTransactions.length);
+
 
         // 处理买入交易
         if (buyTransactions.length > 0) {
@@ -299,7 +364,7 @@ export function LiveUpdatesCard() {
         }
         
         // 标记已收到真实数据
-        console.log('LiveUpdatesCard: Setting hasRealData to true and isLoading to false (transaction list)');
+
         setHasRealData(true);
         setIsLoading(false);
       }
@@ -308,16 +373,15 @@ export function LiveUpdatesCard() {
 
   // 处理新代币数据
   const handleNewTokenData = useCallback((data: any) => {
-    console.log('LiveUpdatesCard: Received new token data:', data);
     if (data.type === 'new_token') {
       // 单个新代币更新
       const tokenData = data.data;
       const item: NewTokenItem = {
-        tokenLogo: tokenData.image_url || "", // 使用后端提供的代币logo
+        tokenLogo: tokenData.imageUrl || tokenData.image_url || "", // 使用后端提供的代币logo
         name: tokenData.name || 'New Token',
         address: formatWallet(tokenData.address),
         fullAddress: tokenData.address, // 保存完整的代币地址用于跳转
-        createdAgo: formatDistanceToNow(new Date(tokenData.created_at || Date.now()), { addSuffix: true }),
+        createdAgo: formatDistanceToNow(new Date(tokenData.createdAt || tokenData.created_at || Date.now()), { addSuffix: true }),
         creatorAddress: tokenData.creator || '' // 保存创建者地址
       };
 
@@ -339,11 +403,11 @@ export function LiveUpdatesCard() {
         // 取最新的代币作为显示
         const latestToken = tokens[0];
         const item: NewTokenItem = {
-          tokenLogo: latestToken.image_url || "", // 使用后端提供的代币logo
+          tokenLogo: latestToken.imageUrl || latestToken.image_url || "", // 使用后端提供的代币logo
           name: latestToken.name || 'New Token',
           address: formatWallet(latestToken.address),
           fullAddress: latestToken.address, // 保存完整的代币地址用于跳转
-          createdAgo: formatDistanceToNow(new Date(latestToken.created_at || Date.now()), { addSuffix: true }),
+          createdAgo: formatDistanceToNow(new Date(latestToken.createdAt || latestToken.created_at || Date.now()), { addSuffix: true }),
           creatorAddress: latestToken.creator || '' // 保存创建者地址
         };
         setNews([item]);
@@ -362,7 +426,6 @@ export function LiveUpdatesCard() {
 
   // 处理巨鲸交易数据
   const handleWhaleTradeData = useCallback((data: any) => {
-    console.log('LiveUpdatesCard: Received whale trade data:', data);
     if (data.type === 'whale_transaction') {
       // 单个巨鲸交易更新
       const transaction = data.data;
@@ -413,10 +476,6 @@ export function LiveUpdatesCard() {
   }, [loadUserAvatar]);
 
   useEffect(() => {
-    // 连接到WebSocket端点
-    console.log('🚀 LiveUpdatesCard: useEffect triggered, connecting to WebSocket endpoints...');
-    console.log('🚀 LiveUpdatesCard: WebSocket service:', websocketService);
-    console.log('🚀 LiveUpdatesCard: Current time:', new Date().toISOString());
 
     let isComponentMounted = true;
     let connectionIds: string[] = [];
@@ -437,66 +496,110 @@ export function LiveUpdatesCard() {
       handleWhaleTradeData(data);
     };
 
-    // 直接连接，不使用延迟
-    console.log('🚀 LiveUpdatesCard: Starting WebSocket connections...');
+    // 启动WebSocket连接（添加延迟防止React开发模式双重渲染问题）
+    const connectWebSockets = () => {
+      if (!isComponentMounted) return;
 
-    const transactionConnectionId = websocketService.connect(
+      let transactionConnectionId: string | null = null;
+      let newTokenConnectionId: string | null = null;
+      let whaleConnectionId: string | null = null;
+
+      // 交易流连接
+      transactionConnectionId = websocketService.connect(
       'transactions/',
       internalHandleTransactionData,
       (error) => {
-        console.error('LiveUpdatesCard: Transaction WebSocket error:', error);
+        const isDevelopment = process.env.NODE_ENV === 'development';
+        if (isDevelopment) {
+          console.warn('LiveUpdatesCard: WebSocket connection failed (normal in development), falling back to API');
+        } else {
+          console.error('LiveUpdatesCard: Transaction WebSocket error:', error);
+        }
+        // 如果WebSocket失败，回退到API
+        loadDataFromAPI();
       },
       () => {
-        console.log('LiveUpdatesCard: Transaction WebSocket closed');
+        // WebSocket连接关闭
       }
     );
 
-    const newTokenConnectionId = websocketService.connect(
+    // 新代币连接
+    newTokenConnectionId = websocketService.connect(
       'tokens/new/',
       internalHandleNewTokenData,
       (error) => {
-        console.error('LiveUpdatesCard: New token WebSocket error:', error);
+        const isDevelopment = process.env.NODE_ENV === 'development';
+        if (isDevelopment) {
+          console.warn('LiveUpdatesCard: New token WebSocket connection failed (normal in development)');
+        } else {
+          console.error('LiveUpdatesCard: New token WebSocket error:', error);
+        }
       },
       () => {
-        console.log('LiveUpdatesCard: New token WebSocket closed');
+        // WebSocket连接关闭
       }
     );
 
-    const whaleConnectionId = websocketService.connect(
+    // 鲸鱼交易连接
+    whaleConnectionId = websocketService.connect(
       'transactions/whale/',
       internalHandleWhaleTradeData,
       (error) => {
-        console.error('LiveUpdatesCard: Whale WebSocket error:', error);
+        const isDevelopment = process.env.NODE_ENV === 'development';
+        if (isDevelopment) {
+          console.warn('LiveUpdatesCard: Whale WebSocket connection failed (normal in development)');
+        } else {
+          console.error('LiveUpdatesCard: Whale WebSocket error:', error);
+        }
       },
       () => {
-        console.log('LiveUpdatesCard: Whale WebSocket closed');
+        // WebSocket连接关闭
       }
     );
 
-    connectionIds = [transactionConnectionId, newTokenConnectionId, whaleConnectionId];
+      connectionIds = [transactionConnectionId, newTokenConnectionId, whaleConnectionId].filter(id => id !== null) as string[];
 
-    console.log('🚀 LiveUpdatesCard: WebSocket connection IDs:', {
-      transaction: transactionConnectionId,
-      newToken: newTokenConnectionId,
-      whale: whaleConnectionId
-    });
-
-    if (isComponentMounted) {
-      setConnectionIds(connectionIds);
-    }
-
-    // 设置超时，如果10秒内没有收到真实数据，则停止加载状态
-    const fallbackTimeout = setTimeout(() => {
-      if (isComponentMounted && !hasRealData) {
-        console.log('WebSocket连接超时，停止加载状态');
-        setIsLoading(false);
+      if (isComponentMounted) {
+        setConnectionIds(connectionIds);
       }
-    }, 10000);
+
+      // 设置超时，如果10秒内没有收到真实数据，则回退到API
+      const fallbackTimeout = setTimeout(() => {
+        if (isComponentMounted && !hasRealData) {
+          loadDataFromAPI();
+        }
+      }, 10000);
+
+      return fallbackTimeout;
+    };
+
+    // 延迟连接以避免React开发模式的双重渲染问题
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const delay = isDevelopment ? 1500 : 100;
+
+    const connectTimeout = setTimeout(() => {
+      const fallbackTimeout = connectWebSockets();
+
+      // 清理函数
+      return () => {
+        isComponentMounted = false;
+        if (fallbackTimeout) {
+          clearTimeout(fallbackTimeout);
+        }
+
+        // 断开所有连接
+        connectionIds.forEach(id => {
+          if (id) {
+            websocketService.disconnect(id);
+          }
+        });
+      };
+    }, delay);
 
     // 清理函数
     return () => {
       isComponentMounted = false;
-      clearTimeout(fallbackTimeout);
+      clearTimeout(connectTimeout);
 
       // 断开所有连接
       connectionIds.forEach(id => {
@@ -508,8 +611,6 @@ export function LiveUpdatesCard() {
   }, []); // 移除依赖项，避免useEffect重复执行
 
   // 如果没有真实数据或者所有数据都为空，显示骨架图
-  console.log('🔍 LiveUpdatesCard: Render check - hasRealData:', hasRealData, 'buys:', buys.length, 'sells:', sells.length, 'news:', news.length, 'whales:', whales.length);
-  console.log('🔍 LiveUpdatesCard: Component is rendering at', new Date().toISOString());
 
   if (buys.length === 0 && sells.length === 0 && news.length === 0 && whales.length === 0) {
     return (

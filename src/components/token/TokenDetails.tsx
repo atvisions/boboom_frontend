@@ -247,13 +247,13 @@ export function TokenDetails({ token }: TokenDetailsProps) {
                   <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#70E000]/20 to-[#5BC000]/20 flex items-center justify-center overflow-hidden border border-[#5BC000]/30">
                     {creator?.avatar_url ? (
                       creator.avatar_url.startsWith('/media/') ? (
-                        <Image 
+                        <Image
                           src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'}${creator.avatar_url}`}
-                          alt="Creator avatar" 
-                          width={24} 
-                          height={24} 
-                          className="w-6 h-6 rounded-full object-cover"
-                          style={{ width: 'auto', height: 'auto' }}
+                          alt="Creator avatar"
+                          width={24}
+                          height={24}
+                          className="rounded-full object-cover"
+                          style={{ width: '24px', height: '24px' }}
                           unoptimized={true}
                         />
                       ) : (

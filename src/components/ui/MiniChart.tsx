@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import websocketService from '@/services/websocket';
 
 interface MiniChartProps {
   data?: number[];
@@ -25,31 +26,78 @@ export const MiniChart: React.FC<MiniChartProps> = ({
   const [loading, setLoading] = React.useState(false);
 
   // 获取真实价格数据
-  React.useEffect(() => {
-    if (useRealData && tokenAddress) {
-      setLoading(true);
+  const fetchChartData = React.useCallback(async () => {
+    if (!useRealData || !tokenAddress) return;
 
+    setLoading(true);
+    try {
       // 调用API获取真实数据
-      fetch(`/api/tokens/tokens/${tokenAddress}/mini-chart/?network=sepolia&points=8`)
-        .then(response => response.json())
-        .then(data => {
-          if (data.success && data.data.prices) {
-            setRealData(data.data.prices);
-          } else {
-            // 如果API失败，使用模拟数据
-            setRealData(generateMockData());
-          }
-        })
-        .catch(error => {
-          console.warn('Failed to fetch real chart data:', error);
-          // 如果请求失败，使用模拟数据
-          setRealData(generateMockData());
-        })
-        .finally(() => {
-          setLoading(false);
-        });
+      const response = await fetch(`/api/tokens/tokens/${tokenAddress}/mini-chart/?network=sepolia&points=8`);
+      const data = await response.json();
+
+      if (data.success && data.data.prices) {
+        setRealData(data.data.prices);
+      } else {
+        // 如果API失败，使用模拟数据
+        setRealData(generateMockData());
+      }
+    } catch (error) {
+      console.warn('Failed to fetch real chart data:', error);
+      // 如果请求失败，使用模拟数据
+      setRealData(generateMockData());
+    } finally {
+      setLoading(false);
     }
   }, [useRealData, tokenAddress]);
+
+  // 初始数据获取
+  React.useEffect(() => {
+    fetchChartData();
+  }, [fetchChartData]);
+
+  // WebSocket实时更新
+  React.useEffect(() => {
+    if (!useRealData || !tokenAddress) return;
+
+    // 在开发环境中，由于React的严格模式会导致组件双重渲染，
+    // 我们需要延迟WebSocket连接以避免连接冲突
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const delay = isDevelopment ? 1500 : 100;
+
+    let connectionId: string | null = null;
+    let isMounted = true;
+
+    const timer = setTimeout(() => {
+      if (!isMounted) return;
+
+      // 连接到代币详情WebSocket以获取实时价格更新
+      connectionId = websocketService.connect(
+        `tokens/${tokenAddress}/`,
+        (message) => {
+          if (!isMounted) return;
+          if (message.type === 'token_detail_update' || message.type === 'price_update') {
+            // 价格更新时重新获取图表数据
+            fetchChartData();
+          }
+        },
+        (error) => {
+          if (!isMounted) return;
+          // 在开发环境中，WebSocket连接失败是正常的，不显示错误
+          if (!isDevelopment) {
+            console.error(`MiniChart: WebSocket error for ${tokenAddress}:`, error);
+          }
+        }
+      );
+    }, delay);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+      if (connectionId) {
+        websocketService.disconnect(connectionId);
+      }
+    };
+  }, [useRealData, tokenAddress, fetchChartData]);
 
   // 确定使用的数据源
   const chartData = useRealData && realData.length > 0

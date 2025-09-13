@@ -198,11 +198,14 @@ export function TradesAndHolders({ tokenAddress, token, okbPrice }: TradesAndHol
 
     // 清理函数
     return () => {
+      console.log('Trades: Cleaning up WebSocket connections');
       if (transactionConnectionId) {
         websocketService.disconnect(transactionConnectionId);
+        transactionConnectionId = null;
       }
       if (holdersConnectionId) {
         websocketService.disconnect(holdersConnectionId);
+        holdersConnectionId = null;
       }
     };
   }, [tokenAddress, activeTab, handleTransactionData, handleHoldersData]);

@@ -48,17 +48,12 @@ export default function TokenDetailPage() {
 
   // 处理WebSocket代币详情数据
   const handleTokenDetailData = useCallback((data: any) => {
-    console.log('[TokenDetailPage] Received WebSocket data:', data);
-    console.log('[TokenDetailPage] Data type:', data.type);
-    console.log('[TokenDetailPage] Token address from data:', data.data?.address);
-    console.log('[TokenDetailPage] Current token address:', tokenAddress);
+
     
     if (data.type === 'token_detail' || data.type === 'token_detail_update') {
       const tokenData = data.data;
       if (tokenData && tokenData.address === tokenAddress) {
-        console.log('[TokenDetailPage] Processing token data:', tokenData);
-        console.log('[TokenDetailPage] Token name:', tokenData.name);
-        console.log('[TokenDetailPage] Token symbol:', tokenData.symbol);
+
         // 将后端的snake_case字段映射为前端期望的camelCase
         const mappedToken = {
           ...tokenData,
@@ -83,8 +78,7 @@ export default function TokenDetailPage() {
           createdAt: tokenData.created_at || tokenData.createdAt || new Date().toISOString(),
           updatedAt: tokenData.updated_at || tokenData.updatedAt
         };
-        console.log('[TokenDetailPage] Mapped token data:', mappedToken);
-        console.log('[TokenDetailPage] graduationProgress after mapping:', mappedToken.graduationProgress, typeof mappedToken.graduationProgress);
+
         setToken(mappedToken);
         setLoading(false);
         setError(null);
@@ -92,7 +86,7 @@ export default function TokenDetailPage() {
     } else if (data.type === 'price_update') {
       const priceData = data.data;
       if (priceData && priceData.address === tokenAddress) {
-        console.log('[TokenDetailPage] Processing price update:', priceData);
+
         setToken((prevToken: any) => {
           if (!prevToken) return prevToken;
           return {
@@ -116,7 +110,7 @@ export default function TokenDetailPage() {
           updatedAt: new Date().toISOString()
         };
 
-        console.log('[TokenDetailPage] Updating stats24h with WebSocket data:', updatedStats);
+
         setStats24h((prevStats: any) => ({
           ...prevStats,
           ...updatedStats
@@ -144,7 +138,7 @@ export default function TokenDetailPage() {
     // 备用API加载（如果WebSocket连接失败）
     const loadTokenDetails = async () => {
       try {
-        console.log('[TokenDetailPage] Starting to load token details for:', tokenAddress);
+
 
         // 清除相关缓存
         clearApiCache('token_details');
@@ -156,14 +150,13 @@ export default function TokenDetailPage() {
           tokenAPI.getToken24hStats(tokenAddress, 'sepolia')
         ]);
 
-        console.log('[TokenDetailPage] API responses:', { detailResponse, statsResponse });
+
 
         if (detailResponse.success) {
           const tokenData = detailResponse.data;
           const statsData = statsResponse.success ? statsResponse.data : { high24h: '0', low24h: '0' };
 
-          console.log('[TokenDetailPage] Token data received:', tokenData);
-          console.log('[TokenDetailPage] Stats data received:', statsData);
+
 
           // 保存 24h 统计数据
           setStats24h(statsData);
@@ -219,15 +212,15 @@ export default function TokenDetailPage() {
       const checkConnection = () => {
         checkCount++;
         if (websocketService.isConnected(connectionId)) {
-          console.log('WebSocket connected successfully');
+
           return;
         }
         
         if (checkCount < maxChecks) {
-          console.log(`WebSocket connection check ${checkCount}/${maxChecks}, retrying...`);
+
           setTimeout(checkConnection, 2000);
         } else {
-          console.log('WebSocket connection failed after multiple attempts, using API only');
+
         }
       };
       

@@ -430,7 +430,8 @@ export default function RankingPage() {
                               alt={`${token.name} logo`}
                               width={64}
                               height={64}
-                              className="w-16 h-16 object-contain"
+                              className="object-contain"
+                              style={{ width: '64px', height: '64px' }}
                               unoptimized={true}
                               onError={(e) => {
                                 console.log(`Failed to load image for ${token.name}:`, token.imageUrl);
