@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Flame, Share2, Info, Star, User, BadgeCheck } from "lucide-react";
 import { FaXTwitter, FaTelegram, FaGlobe } from "react-icons/fa6";
 import Image from "next/image";
@@ -34,6 +34,100 @@ export function TrendingSection() {
   const [error, setError] = useState<string | null>(null);
   const [okbPrice, setOkbPrice] = useState<number>(177.6); // 默认OKB价格
   const [creators, setCreators] = useState<{[key: string]: any}>({}); // 存储创作者信息
+  const [dataSource, setDataSource] = useState<'API' | 'WebSocket' | null>(null); // 跟踪数据来源
+  const [lastStableData, setLastStableData] = useState<any[]>([]); // 存储稳定的数据
+  const [pendingUpdates, setPendingUpdates] = useState<any[]>([]); // 待处理的更新
+  const [updateDebounceTimer, setUpdateDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+  const lastDataHashRef = useRef<string | null>(null); // 用于WebSocket数据去重
+
+  // 数据稳定化：检查是否为显著变化
+  const isSignificantChange = useCallback((newTokens: any[], currentTokens: any[]) => {
+    if (currentTokens.length === 0) return true; // 首次加载
+    if (newTokens.length !== currentTokens.length) return true; // 数量变化
+
+    // 检查前4个代币的排序是否发生变化
+    for (let i = 0; i < Math.min(4, newTokens.length, currentTokens.length); i++) {
+      if (newTokens[i].address !== currentTokens[i].address) {
+        console.log(`[TrendingSection] 排序变化检测: 位置${i} ${currentTokens[i].name} -> ${newTokens[i].name}`);
+        return true;
+      }
+    }
+
+    // 检查volume24h是否有显著变化（超过10%）
+    const firstToken = newTokens[0];
+    const currentFirst = currentTokens[0];
+    if (firstToken && currentFirst && firstToken.address === currentFirst.address) {
+      const newVolume = parseFloat(firstToken.volume24h || firstToken.volume_24h || '0');
+      const currentVolume = parseFloat(currentFirst.volume24h || currentFirst.volume_24h || '0');
+      const changePercent = currentVolume > 0 ? Math.abs((newVolume - currentVolume) / currentVolume) : 0;
+
+      if (changePercent > 0.1) { // 10%以上的变化才更新
+        console.log(`[TrendingSection] 交易量显著变化: ${currentVolume} -> ${newVolume} (${(changePercent * 100).toFixed(2)}%)`);
+        return true;
+      }
+    }
+
+    return false;
+  }, []);
+
+  // 防抖更新函数
+  const debouncedUpdate = useCallback((newTokens: any[], source: 'API' | 'WebSocket') => {
+    // 清除之前的定时器
+    if (updateDebounceTimer) {
+      clearTimeout(updateDebounceTimer);
+    }
+
+    // 如果是显著变化，立即更新
+    if (isSignificantChange(newTokens, tokens)) {
+      console.log(`[TrendingSection] 立即更新 - 显著变化检测 (${source})`);
+      setTokens(newTokens);
+      setLastStableData(newTokens);
+      setPendingUpdates([]);
+      return;
+    }
+
+    // 否则，延迟更新（防止频繁跳动）
+    console.log(`[TrendingSection] 延迟更新 - 数据变化不显著 (${source})`);
+    setPendingUpdates(newTokens);
+
+    const timer = setTimeout(() => {
+      console.log(`[TrendingSection] 执行延迟更新 (${source})`);
+      setTokens(newTokens);
+      setLastStableData(newTokens);
+      setPendingUpdates([]);
+    }, 3000); // 3秒后更新
+
+    setUpdateDebounceTimer(timer);
+  }, [updateDebounceTimer, isSignificantChange, tokens]);
+
+  // 数据一致性检查函数
+  const checkDataConsistency = useCallback((newTokens: any[], source: 'API' | 'WebSocket') => {
+    if (tokens.length > 0 && newTokens.length > 0) {
+      const currentFirst = tokens[0];
+      const newFirst = newTokens[0];
+
+      if (currentFirst.address === newFirst.address) {
+        const socialMediaChanged =
+          currentFirst.website !== newFirst.website ||
+          currentFirst.twitter !== newFirst.twitter ||
+          currentFirst.telegram !== newFirst.telegram;
+
+        if (socialMediaChanged) {
+          console.warn(`[TrendingSection] Social media data inconsistency detected!`, {
+            previousSource: dataSource,
+            newSource: source,
+            token: currentFirst.address,
+            changes: {
+              website: { old: currentFirst.website, new: newFirst.website },
+              twitter: { old: currentFirst.twitter, new: newFirst.twitter },
+              telegram: { old: currentFirst.telegram, new: newFirst.telegram }
+            }
+          });
+        }
+      }
+    }
+    setDataSource(source);
+  }, [tokens, dataSource]);
 
   // 加载OKB价格
   useEffect(() => {
@@ -56,10 +150,25 @@ export function TrendingSection() {
   // 处理WebSocket代币列表数据
   const handleTokenListData = useCallback((data: any) => {
     // 处理多种类型的WebSocket消息
-    if (data.type === 'token_list' || data.type === 'token_update') {
+    if (data.type === 'token_list' || data.type === 'token_update' || data.type === 'trending_tokens_update') {
       const tokenList = data.data;
       if (Array.isArray(tokenList)) {
+        // 数据去重：检查地址排序和关键数据字段
+        const keyData = tokenList.slice(0, 4).map(t => ({
+          address: t.address,
+          currentPrice: t.currentPrice || t.current_price || '0',
+          marketCap: t.marketCap || t.market_cap || '0',
+          volume24h: t.volume24h || t.volume_24h || '0',
+          graduationProgress: t.graduationProgress || t.graduation_progress || '0',
+          okbCollected: t.okbCollected || t.okb_collected || '0'
+        }));
+        const dataHash = JSON.stringify(keyData);
 
+        // 检查数据是否真的有变化
+        if (lastDataHashRef.current === dataHash) {
+          return; // 数据没有变化，跳过更新
+        }
+        lastDataHashRef.current = dataHash;
 
         // 取前4个作为热门代币
         const trendingTokens = tokenList.slice(0, 4).map((token: any) => ({
@@ -71,11 +180,16 @@ export function TrendingSection() {
           isVerified: token.isVerified || token.is_verified || false,
           imageUrl: token.imageUrl || token.image_url || '',
           marketCap: token.marketCap || token.market_cap || '0',
-          currentPrice: token.currentPrice || token.current_price || '0'
+          currentPrice: token.currentPrice || token.current_price || '0',
+          // 社交媒体字段映射
+          website: token.website || '',
+          twitter: token.twitter || '',
+          telegram: token.telegram || ''
         }));
 
-
-        setTokens(trendingTokens);
+        // 使用防抖更新，避免页面跳动
+        debouncedUpdate(trendingTokens, 'WebSocket');
+        setLoading(false);
 
         // 加载创作者信息
         const creatorAddresses = extractCreatorAddresses(trendingTokens);
@@ -146,14 +260,41 @@ export function TrendingSection() {
               currentPrice: token.currentPrice || '0',
               imageUrl: token.imageUrl || token.image_url || '',
               createdAt: token.createdAt || new Date().toISOString(),
-              isVerified: token.isVerified || false
+              isVerified: token.isVerified || false,
+              // 社交媒体字段映射 - 确保API数据也包含这些字段
+              website: token.website || '',
+              twitter: token.twitter || '',
+              telegram: token.telegram || ''
             };
 
             return processed;
           });
 
 
-          setTokens(processedTokens);
+          // 使用防抖更新，避免页面跳动
+          debouncedUpdate(processedTokens, 'API');
+
+          // 调试：检查API数据一致性
+          if (processedTokens.length > 0) {
+            console.log('[TrendingSection] API data received:', {
+              timestamp: new Date().toISOString(),
+              dataSource: 'API',
+              tokenCount: processedTokens.length,
+              firstToken: {
+                address: processedTokens[0].address,
+                name: processedTokens[0].name,
+                volume24h: processedTokens[0].volume24h,
+                marketCap: processedTokens[0].marketCap,
+                currentPrice: processedTokens[0].currentPrice
+              },
+              topTokens: processedTokens.slice(0, 4).map(token => ({
+                address: token.address,
+                name: token.name,
+                volume24h: token.volume24h,
+                marketCap: token.marketCap
+              }))
+            });
+          }
 
           // 加载创作者信息
           const creatorAddresses = extractCreatorAddresses(response.data.tokens);
@@ -196,21 +337,24 @@ export function TrendingSection() {
       }
     };
 
-    // 立即加载初始数据
-    loadTrendingTokens();
-
     // 连接WebSocket获取实时热门代币列表
-
     connectionId = websocketService.connect('tokens/trending/', (data) => {
       websocketConnected = true;
       // 清除定期刷新，因为WebSocket已连接
       if (refreshInterval) {
         clearInterval(refreshInterval);
         refreshInterval = null;
-
       }
       handleTokenListData(data);
     });
+
+    // 延迟加载初始数据，给WebSocket一个连接的机会
+    const initialLoadTimeout = setTimeout(() => {
+      if (!websocketConnected && isComponentMounted) {
+        console.log('[TrendingSection] WebSocket not connected, loading via API');
+        loadTrendingTokens();
+      }
+    }, 2000); // 2秒后如果WebSocket还没连接，则使用API加载
 
     // 设置WebSocket连接超时检测
     const connectionTimeout = setTimeout(() => {
@@ -255,11 +399,9 @@ export function TrendingSection() {
     
     // 清理函数
     return () => {
-
       isComponentMounted = false;
 
       if (connectionId) {
-
         websocketService.disconnect(connectionId);
         connectionId = null;
       }
@@ -271,6 +413,15 @@ export function TrendingSection() {
 
       if (connectionTimeout) {
         clearTimeout(connectionTimeout);
+      }
+
+      if (initialLoadTimeout) {
+        clearTimeout(initialLoadTimeout);
+      }
+
+      // 清理防抖定时器
+      if (updateDebounceTimer) {
+        clearTimeout(updateDebounceTimer);
       }
     };
   }, [isClient, handleTokenListData]);
@@ -436,8 +587,9 @@ export function TrendingSection() {
 
                 {/* 底部区域骨架 - 创建者信息和社交媒体 */}
                 <div className="mt-auto">
-                  {/* 创建者信息骨架 */}
+                  {/* 创建者信息和社交媒体图标骨架 */}
                   <div className="flex items-center justify-between mb-4">
+                    {/* 左侧：创建者信息骨架 */}
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-600 to-gray-700 border border-gray-500/50"></div>
                       <div>
@@ -445,13 +597,13 @@ export function TrendingSection() {
                         <div className="h-3 bg-gray-600 rounded w-12"></div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* 社交媒体图标骨架 */}
-                  <div className="flex items-center justify-center space-x-3">
-                    <div className="w-8 h-8 rounded-full bg-gray-800/50 border border-gray-700/30"></div>
-                    <div className="w-8 h-8 rounded-full bg-gray-800/50 border border-gray-700/30"></div>
-                    <div className="w-8 h-8 rounded-full bg-gray-800/50 border border-gray-700/30"></div>
+                    {/* 右侧：社交媒体图标骨架 */}
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 rounded-full bg-gray-800/50 border border-gray-700/30"></div>
+                      <div className="w-8 h-8 rounded-full bg-gray-800/50 border border-gray-700/30"></div>
+                      <div className="w-8 h-8 rounded-full bg-gray-800/50 border border-gray-700/30"></div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -472,7 +624,7 @@ export function TrendingSection() {
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
           {tokens.map((token) => (
             <div
-              key={token.address}
+              key={`${token.address}-${token.name}-${Date.now()}`}
               className="relative rounded-2xl overflow-hidden group w-full max-w-[380px] h-[420px] mx-auto bg-gradient-to-br from-gray-900/80 to-gray-800/60 backdrop-blur-sm border border-gray-700/50 cursor-pointer hover:border-[#70E000]/30 hover:shadow-[0_0_30px_rgba(112,224,0,0.1)] transition-all duration-300"
               onClick={() => router.push(`/token/${token.address}`)}
             >
@@ -596,14 +748,14 @@ export function TrendingSection() {
 
                 {/* 底部区域 - 创建者信息和社交媒体 */}
                 <div className="mt-auto">
-                  {/* 创建者信息 */}
+                  {/* 创建者信息和社交媒体图标 */}
                   <div className="flex items-center justify-between mb-4">
-                    <button 
+                    <button
                       className="flex items-center space-x-3 hover:bg-white/5 rounded-xl px-3 py-2 transition-colors"
                       onClick={(e) => {
                         e.stopPropagation();
-                        const creatorAddress = typeof token.creator === 'string' 
-                          ? token.creator 
+                        const creatorAddress = typeof token.creator === 'string'
+                          ? token.creator
                           : token.creator?.address;
                         if (creatorAddress) {
                           router.push(`/profile/${creatorAddress}/`);
@@ -664,46 +816,51 @@ export function TrendingSection() {
                         </div>
                       </div>
                     </button>
-                  </div>
 
-                  {/* 社交媒体图标 */}
-                  <div className="flex items-center justify-center space-x-3">
-                    {token.twitter && token.twitter.trim() && (
-                      <a 
-                        href={token.twitter}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 rounded-full bg-gray-800/50 hover:bg-[#70E000] hover:text-black transition-all duration-300 border border-gray-700/30"
-                        onClick={(e) => e.stopPropagation()}
-                        title="Twitter"
-                      >
-                        <FaXTwitter className="h-4 w-4 text-white" />
-                      </a>
-                    )}
-                    {token.telegram && token.telegram.trim() && (
-                      <a 
-                        href={token.telegram}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 rounded-full bg-gray-800/50 hover:bg-[#70E000] hover:text-black transition-all duration-300 border border-gray-700/30"
-                        onClick={(e) => e.stopPropagation()}
-                        title="Telegram"
-                      >
-                        <FaTelegram className="h-4 w-4 text-white" />
-                      </a>
-                    )}
-                    {token.website && token.website.trim() && (
-                      <a 
-                        href={token.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 rounded-full bg-gray-800/50 hover:bg-[#70E000] hover:text-black transition-all duration-300 border border-gray-700/30"
-                        onClick={(e) => e.stopPropagation()}
-                        title="Website"
-                      >
-                        <FaGlobe className="h-4 w-4 text-white" />
-                      </a>
-                    )}
+                    {/* 社交媒体图标 - 放在创建者信息的右侧 */}
+                    <div className="flex items-center space-x-2">
+                      {/* Twitter 图标 */}
+                      {token.twitter && (
+                        <a
+                          href={token.twitter}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 rounded-full bg-gray-800/50 hover:bg-[#70E000] hover:text-black transition-all duration-300 border border-gray-700/30"
+                          onClick={(e) => e.stopPropagation()}
+                          title="Twitter"
+                        >
+                          <FaXTwitter className="h-4 w-4 text-white" />
+                        </a>
+                      )}
+
+                      {/* Telegram 图标 */}
+                      {token.telegram && (
+                        <a
+                          href={token.telegram}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 rounded-full bg-gray-800/50 hover:bg-[#70E000] hover:text-black transition-all duration-300 border border-gray-700/30"
+                          onClick={(e) => e.stopPropagation()}
+                          title="Telegram"
+                        >
+                          <FaTelegram className="h-4 w-4 text-white" />
+                        </a>
+                      )}
+
+                      {/* Website 图标 */}
+                      {token.website && (
+                        <a
+                          href={token.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 rounded-full bg-gray-800/50 hover:bg-[#70E000] hover:text-black transition-all duration-300 border border-gray-700/30"
+                          onClick={(e) => e.stopPropagation()}
+                          title="Website"
+                        >
+                          <FaGlobe className="h-4 w-4 text-white" />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

@@ -419,6 +419,8 @@ const websocketService = new WebSocketService();
 if (typeof window !== 'undefined') {
   // 清理可能存在的旧连接
 
+  // 导出到全局对象，方便调试
+  (window as any).websocketService = websocketService;
 
   window.addEventListener('beforeunload', () => {
     websocketService.disconnectAll();
@@ -441,6 +443,10 @@ export default websocketService;
 // 导出便捷方法
 export const connectToTokenList = (messageHandler: MessageHandler) => {
   return websocketService.connect('tokens/', messageHandler);
+};
+
+export const connectToTrendingTokens = (messageHandler: MessageHandler) => {
+  return websocketService.connect('tokens/trending/', messageHandler);
 };
 
 export const connectToTransactions = (messageHandler: MessageHandler) => {
