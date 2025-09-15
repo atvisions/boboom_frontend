@@ -31,13 +31,7 @@ export function TokenOverview({ token, okbPrice = 177.6 }: TokenOverviewProps) {
     '0'
   );
 
-  // 调试信息
-  console.log('[TokenOverview] Progress fields check:', {
-    graduationProgress: token?.graduationProgress,
-    graduation_progress: token?.graduation_progress,
-    bonding_progress: token?.bonding_progress,
-    finalValue: graduationProgress
-  });
+
 
   // 供应量信息 - 使用合约设计的固定值
   const tokensTraded = parseFloat(token?.tokens_traded || '0');

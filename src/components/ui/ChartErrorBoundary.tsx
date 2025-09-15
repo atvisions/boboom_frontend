@@ -32,15 +32,15 @@ export class ChartErrorBoundary extends React.Component<ChartErrorBoundaryProps,
         <div className="flex items-center justify-center h-[380px] bg-[#1a1a1a] rounded-lg border border-gray-700">
           <div className="text-center text-gray-400">
             <div className="text-4xl mb-4">📊</div>
-            <div className="text-lg mb-2">图表暂时无法加载</div>
+            <div className="text-lg mb-2">Chart temporarily unavailable</div>
             <div className="text-sm text-gray-500 mb-4">
-              正在修复图表组件，请稍后刷新页面重试
+              Chart component is being fixed, please refresh the page and try again
             </div>
-            <button 
-              onClick={() => window.location.reload()} 
+            <button
+              onClick={() => window.location.reload()}
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
             >
-              刷新页面
+              Refresh Page
             </button>
           </div>
         </div>
@@ -51,33 +51,33 @@ export class ChartErrorBoundary extends React.Component<ChartErrorBoundaryProps,
   }
 }
 
-// 简单的图表加载组件
+// Simple chart loading component
 export function ChartLoadingFallback() {
   return (
     <div className="flex items-center justify-center h-[380px] bg-[#1a1a1a] rounded-lg border border-gray-700">
       <div className="text-center text-gray-400">
         <div className="animate-spin text-2xl mb-4">⏳</div>
-        <div>加载图表中...</div>
+        <div>Loading chart...</div>
       </div>
     </div>
   );
 }
 
-// 图表错误回退组件
+// Chart error fallback component
 export function ChartErrorFallback() {
   return (
     <div className="flex items-center justify-center h-[380px] bg-[#1a1a1a] rounded-lg border border-gray-700">
       <div className="text-center text-gray-400">
         <div className="text-4xl mb-4">⚠️</div>
-        <div className="text-lg mb-2">图表加载失败</div>
+        <div className="text-lg mb-2">Chart failed to load</div>
         <div className="text-sm text-gray-500 mb-4">
-          请检查网络连接或稍后重试
+          Please check your network connection or try again later
         </div>
-        <button 
-          onClick={() => window.location.reload()} 
+        <button
+          onClick={() => window.location.reload()}
           className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
         >
-          重新加载
+          Reload
         </button>
       </div>
     </div>

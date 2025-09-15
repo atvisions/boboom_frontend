@@ -53,17 +53,13 @@ class WebSocketService {
         const testWs = new WebSocket(`${this.baseUrl}/transactions/`);
 
         testWs.onopen = () => {
-          console.log('✅ WebSocket connection test successful');
           testWs.close();
         };
 
         testWs.onerror = (error) => {
-          if (isDevelopment) {
-            console.warn('⚠️ WebSocket connection test failed (this is normal in development mode)');
-            console.warn('Components will fall back to API polling');
-          } else {
-            console.warn('⚠️ WebSocket connection test failed:', error);
-            console.warn('Will fall back to API polling');
+          // 在开发环境中，WebSocket连接失败是正常的，组件会回退到API轮询
+          if (!isDevelopment) {
+            console.warn('WebSocket connection test failed:', error);
           }
         };
 
@@ -270,7 +266,6 @@ class WebSocketService {
   send(connectionId: string, message: any): boolean {
     const connection = this.connections.get(connectionId);
     if (!connection || !connection.ws || connection.ws.readyState !== WebSocket.OPEN) {
-      console.warn(`Cannot send message: WebSocket not connected for ${connectionId}`);
       return false;
     }
 
@@ -278,7 +273,6 @@ class WebSocketService {
       connection.ws.send(JSON.stringify(message));
       return true;
     } catch (error) {
-      console.error('Error sending WebSocket message:', error);
       return false;
     }
   }

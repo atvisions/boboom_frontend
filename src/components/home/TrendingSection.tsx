@@ -48,7 +48,6 @@ export function TrendingSection() {
     // 检查前4个代币的排序是否发生变化
     for (let i = 0; i < Math.min(4, newTokens.length, currentTokens.length); i++) {
       if (newTokens[i].address !== currentTokens[i].address) {
-        console.log(`[TrendingSection] 排序变化检测: 位置${i} ${currentTokens[i].name} -> ${newTokens[i].name}`);
         return true;
       }
     }
@@ -62,7 +61,6 @@ export function TrendingSection() {
       const changePercent = currentVolume > 0 ? Math.abs((newVolume - currentVolume) / currentVolume) : 0;
 
       if (changePercent > 0.1) { // 10%以上的变化才更新
-        console.log(`[TrendingSection] 交易量显著变化: ${currentVolume} -> ${newVolume} (${(changePercent * 100).toFixed(2)}%)`);
         return true;
       }
     }
@@ -325,13 +323,11 @@ export function TrendingSection() {
           setError('Failed to load trending tokens');
         }
       } catch (err) {
-        console.error('[TrendingSection] Error loading trending tokens:', err);
         if (isComponentMounted) {
           setError('Failed to load trending tokens');
         }
       } finally {
         if (isComponentMounted) {
-
           setLoading(false);
         }
       }
@@ -351,7 +347,6 @@ export function TrendingSection() {
     // 延迟加载初始数据，给WebSocket一个连接的机会
     const initialLoadTimeout = setTimeout(() => {
       if (!websocketConnected && isComponentMounted) {
-        console.log('[TrendingSection] WebSocket not connected, loading via API');
         loadTrendingTokens();
       }
     }, 2000); // 2秒后如果WebSocket还没连接，则使用API加载

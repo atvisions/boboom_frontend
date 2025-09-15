@@ -81,8 +81,6 @@ export function TradesAndHolders({ tokenAddress, token, okbPrice }: TradesAndHol
           transaction_hash: transaction.transaction_hash
         }));
 
-        console.log('Mapped transactions:', mappedTransactions);
-
         if (append) {
           setTransactions(prev => [...prev, ...mappedTransactions]);
         } else {
@@ -198,7 +196,6 @@ export function TradesAndHolders({ tokenAddress, token, okbPrice }: TradesAndHol
 
     // 清理函数
     return () => {
-      console.log('Trades: Cleaning up WebSocket connections');
       if (transactionConnectionId) {
         websocketService.disconnect(transactionConnectionId);
         transactionConnectionId = null;

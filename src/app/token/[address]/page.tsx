@@ -39,7 +39,7 @@ export default function TokenDetailPage() {
           setOkbPrice(parseFloat(response.data.price));
         }
       } catch (error) {
-        console.error('Failed to load OKB price:', error);
+        // 静默处理OKB价格加载失败
       }
     };
 
@@ -48,8 +48,6 @@ export default function TokenDetailPage() {
 
   // 处理WebSocket代币详情数据
   const handleTokenDetailData = useCallback((data: any) => {
-
-    
     if (data.type === 'token_detail' || data.type === 'token_detail_update') {
       const tokenData = data.data;
       if (tokenData && tokenData.address === tokenAddress) {
@@ -156,8 +154,6 @@ export default function TokenDetailPage() {
           const tokenData = detailResponse.data;
           const statsData = statsResponse.success ? statsResponse.data : { high24h: '0', low24h: '0' };
 
-
-
           // 保存 24h 统计数据
           setStats24h(statsData);
           
@@ -194,7 +190,7 @@ export default function TokenDetailPage() {
           setError('Failed to load token details');
         }
       } catch (err) {
-        console.error('Error loading token details:', err);
+        // 静默处理代币详情加载失败
         setError('Failed to load token details');
       } finally {
         setLoading(false);
@@ -212,15 +208,11 @@ export default function TokenDetailPage() {
       const checkConnection = () => {
         checkCount++;
         if (websocketService.isConnected(connectionId)) {
-
           return;
         }
-        
+
         if (checkCount < maxChecks) {
-
           setTimeout(checkConnection, 2000);
-        } else {
-
         }
       };
       

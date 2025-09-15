@@ -134,7 +134,6 @@ export function TradingPanel({ token }: TradingPanelProps) {
   useEffect(() => {
     const handleApprovalSuccess = async () => {
       if (isApprovalSuccess && lastTransactionType === 'approve' && amount && parseFloat(amount) > 0) {
-        console.log('Approval successful, proceeding with buy...');
         setLastTransactionType('buy');
         try {
           await buyToken(token.address, parseFloat(amount));
@@ -170,7 +169,7 @@ export function TradingPanel({ token }: TradingPanelProps) {
           const tokenBal = await getTokenBalance(token.address);
           tokenFromChain = tokenBal.toString();
         } catch (e) {
-          console.warn('on-chain token balance read failed', e);
+          // Silently handle token balance read failure
         }
         const okbFromChain = okbBalanceChain.toString();
         if (!abortController.signal.aborted) {
@@ -253,7 +252,9 @@ export function TradingPanel({ token }: TradingPanelProps) {
       (async () => {
         try {
           await Promise.all([refetchOkbAllowanceBondingCurve(), refetchOkbBalance()]);
-        } catch (e) { console.error('Refetch allowance/balance error:', e); }
+        } catch (e) {
+          // Silently handle refetch errors
+        }
       })();
       (async () => {
         const MAX_ATTEMPTS = 15; const SLEEP = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -269,10 +270,11 @@ export function TradingPanel({ token }: TradingPanelProps) {
             const okbChanged = Math.abs(parseFloat(latestOkb) - parseFloat(prevOkbBalance || '0')) > 1e-9;
             const tokenChanged = Math.abs(parseFloat(latestTokenBal) - parseFloat(prevTokenBalance || '0')) > 1e-9;
             if (okbChanged || tokenChanged) { updated = true; break; }
-          } catch (error) { console.error('Polling balance error:', error); }
+          } catch (error) {
+            // Silently handle polling errors
+          }
           await SLEEP(1000);
         }
-        if (!updated) { console.warn('Balance polling timeout, closing overlay as fallback'); }
         setIsRefreshingBalances(false);
       })();
     }
@@ -284,17 +286,12 @@ export function TradingPanel({ token }: TradingPanelProps) {
       return;
     }
 
-    console.log('Setting up WebSocket connection for user balance updates:', address);
-    
     const handleBalanceUpdate = (data: any) => {
-      console.log('Received balance update:', data);
-      
       if (data.type === 'balance_update') {
         const { user_address, token_address, okb_balance, token_balance } = data;
-        
+
         // 检查是否是当前用户的更新
         if (user_address.toLowerCase() === address.toLowerCase()) {
-          console.log('Updating balances from WebSocket:', { okb_balance, token_balance });
           
           // 更新OKB余额
           if (okb_balance !== undefined) {
@@ -390,20 +387,13 @@ export function TradingPanel({ token }: TradingPanelProps) {
       return;
     }
 
-    console.log("=== HANDLE BUY DEBUG ===");
-    console.log("OKB Amount:", okbAmount);
-    console.log("OKB Allowance:", okbAllowanceBondingCurve);
-    console.log("Needs approval:", okbAmount >= okbAllowanceBondingCurve);
-
     try {
       // 检查是否需要授权
       if (okbAmount >= okbAllowanceBondingCurve) {
-        console.log("Calling approveOKBForTrading...");
         setLastTransactionType('approve'); // 设置为授权类型
         // 需要授权，直接调用授权函数
         await approveOKBForTrading(okbAmount);
       } else {
-        console.log("Calling buyToken...");
         setLastTransactionType('buy'); // 设置为买入类型
         // 直接买入
         await buyToken(token.address, okbAmount);

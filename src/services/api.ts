@@ -126,19 +126,17 @@ async function apiRequest<T>(
         
         // 如果是超时错误且还有重试机会，则重试
         if (error instanceof Error && error.name === 'AbortError' && attempt < maxRetries) {
-          console.warn(`API request timeout, retrying... (attempt ${attempt + 1}/${maxRetries})`);
           await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1))); // 递增延迟
           continue;
         }
         
         // 网络错误（Failed to fetch）且还有重试机会，则重试
-        if (((error instanceof TypeError && error.message.includes('fetch')) || 
+        if (((error instanceof TypeError && error.message.includes('fetch')) ||
             (error instanceof Error && error.message.includes('network')) ||
             (error instanceof Error && error.message.includes('Network')) ||
             (error instanceof Error && error.message.includes('timeout')) ||
-            (error instanceof Error && error.message.includes('Timeout'))) && 
+            (error instanceof Error && error.message.includes('Timeout'))) &&
             attempt < maxRetries) {
-          console.warn(`Network error: ${error.message}, retrying... (attempt ${attempt + 1}/${maxRetries})`);
           await new Promise(resolve => setTimeout(resolve, 2000 * (attempt + 1))); // 递增延迟
           continue;
         }
@@ -148,13 +146,15 @@ async function apiRequest<T>(
       }
     }
     
-    console.error('API request failed:', {
-      url,
-      method: config.method || 'GET',
-      error: lastError?.message || 'Unknown error',
-      stack: lastError?.stack,
-      timestamp: new Date().toISOString()
-    });
+    // 只在非404错误时记录日志
+    if (!lastError?.message.includes('404') && !lastError?.message.includes('Not Found')) {
+      console.warn('API request failed:', {
+        url,
+        method: config.method || 'GET',
+        error: lastError?.message || 'Unknown error',
+        timestamp: new Date().toISOString()
+      });
+    }
     throw lastError;
   })();
 
@@ -656,28 +656,43 @@ export const tokenAPI = {
       };
     }>('/tokens/okb-price/', {}, 'okb_price', 300000),
 
-  // 获取代币价格历史
+  // 获取代币价格历史 - 使用新的K线API
   getTokenPriceHistory: (
     address: string,
     params: {
-      interval?: '1m' | '5m' | '1h' | '1d';
+      interval?: '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d' | '7d' | '1M' | '1y' | 'all';
       limit?: number;
       start_time?: string;
       end_time?: string;
       network?: string;
+      continuous?: boolean;
     } = {}
   ) => {
     const searchParams = new URLSearchParams();
+    // 添加token_address参数
+    searchParams.append('token_address', address);
+
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined) {
         searchParams.append(key, String(value));
       }
     });
-    
+
     return apiRequest<{
       success: boolean;
       data: {
-        candles: Array<any>;
+        candles: Array<{
+          timestamp: string;
+          open: number;
+          high: number;
+          low: number;
+          close: number;
+          volume: number;
+          trade_count: number;
+          total_okb_volume: number;
+          total_token_volume: number;
+          is_complete: boolean;
+        }>;
         token: {
           address: string;
           name: string;
@@ -685,8 +700,47 @@ export const tokenAPI = {
         };
         interval: string;
         count: number;
+        continuous: boolean;
+        start_time: string;
+        end_time: string;
       };
-    }>(`/tokens/tokens/${address}/price-history?${searchParams.toString()}`, {}, generateCacheKey('token_price_history', address, encodeURIComponent(searchParams.toString())), 300000);
+    }>(`/analytics/price-history/?${searchParams.toString()}`, {}, generateCacheKey('token_price_history', address, encodeURIComponent(searchParams.toString())), 10000); // 减少缓存时间到10秒
+  },
+
+  // 获取支持的K线时间间隔
+  getSupportedIntervals: () => {
+    return apiRequest<{
+      success: boolean;
+      data: {
+        intervals: Array<{
+          value: string;
+          label: string;
+          seconds: number | null;
+        }>;
+      };
+    }>('/analytics/intervals/', {}, 'supported_intervals', 3600000); // 缓存1小时
+  },
+
+  // 获取代币K线摘要
+  getTokenCandlestickSummary: (address: string) => {
+    return apiRequest<{
+      success: boolean;
+      data: {
+        token_address: string;
+        summary: Record<string, {
+          timestamp: string;
+          open: number;
+          high: number;
+          low: number;
+          close: number;
+          volume: number;
+          trade_count: number;
+          is_complete: boolean;
+          last_trade_time: string;
+        }>;
+        timestamp: string;
+      };
+    }>(`/analytics/summary/${address}/`, {}, generateCacheKey('token_candlestick_summary', address), 30000); // 缓存30秒
   },
 };
 

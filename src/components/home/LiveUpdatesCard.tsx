@@ -376,8 +376,6 @@ export function LiveUpdatesCard() {
     if (data.type === 'new_token') {
       // 单个新代币更新
       const tokenData = data.data;
-      console.log('🔍 NEW TOKEN 数据详情:', tokenData);
-
       const item: NewTokenItem = {
         tokenLogo: tokenData.imageUrl || tokenData.image_url || "", // 使用后端提供的代币logo
         name: tokenData.name || 'New Token',
@@ -386,8 +384,6 @@ export function LiveUpdatesCard() {
         createdAgo: formatDistanceToNow(new Date(tokenData.createdAt || tokenData.created_at || Date.now()), { addSuffix: true }),
         creatorAddress: tokenData.creator || '' // 保存创建者地址
       };
-
-      console.log('🔍 处理后的NEW TOKEN项目:', item);
       setNews([item]);
       triggerAnimation('news');
 
@@ -508,28 +504,19 @@ export function LiveUpdatesCard() {
       let whaleConnectionId: string | null = null;
 
       // 交易流连接
-      console.log('[LiveUpdatesCard] 🔗 正在连接TRANSACTION WebSocket...');
       transactionConnectionId = websocketService.connect(
       'transactions/',
       (data) => {
-        console.log('[LiveUpdatesCard] 📥 收到TRANSACTION数据:', data);
         internalHandleTransactionData(data);
       },
       (error) => {
-        console.error('[LiveUpdatesCard] ❌ TRANSACTION WebSocket错误:', error);
         // 如果WebSocket失败，回退到API
         loadDataFromAPI();
       },
       () => {
-        console.log('[LiveUpdatesCard] 🔌 TRANSACTION WebSocket连接关闭');
+        // WebSocket连接关闭
       }
     );
-
-    if (transactionConnectionId) {
-      console.log('[LiveUpdatesCard] ✅ TRANSACTION WebSocket连接成功, ID:', transactionConnectionId);
-    } else {
-      console.log('[LiveUpdatesCard] ❌ TRANSACTION WebSocket连接失败');
-    }
 
     // 新代币连接
     newTokenConnectionId = websocketService.connect(
@@ -537,35 +524,27 @@ export function LiveUpdatesCard() {
       (data) => {
         internalHandleNewTokenData(data);
       },
-      (error) => {
-        console.error('NEW TOKEN WebSocket错误:', error);
+      () => {
+        // WebSocket错误处理
       },
       () => {
-        console.log('NEW TOKEN WebSocket连接关闭');
+        // WebSocket连接关闭
       }
     );
 
     // 鲸鱼交易连接
-    console.log('[LiveUpdatesCard] 🔗 正在连接WHALE WebSocket...');
     whaleConnectionId = websocketService.connect(
       'transactions/whale/',
       (data) => {
-        console.log('[LiveUpdatesCard] 📥 收到WHALE数据:', data);
         internalHandleWhaleTradeData(data);
       },
-      (error) => {
-        console.error('[LiveUpdatesCard] ❌ WHALE WebSocket错误:', error);
+      () => {
+        // WebSocket错误处理
       },
       () => {
-        console.log('[LiveUpdatesCard] 🔌 WHALE WebSocket连接关闭');
+        // WebSocket连接关闭
       }
     );
-
-    if (whaleConnectionId) {
-      console.log('[LiveUpdatesCard] ✅ WHALE WebSocket连接成功, ID:', whaleConnectionId);
-    } else {
-      console.log('[LiveUpdatesCard] ❌ WHALE WebSocket连接失败');
-    }
 
       connectionIds = [transactionConnectionId, newTokenConnectionId, whaleConnectionId].filter(id => id !== null) as string[];
 

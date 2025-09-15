@@ -6,6 +6,7 @@ import { FaXTwitter, FaTelegram, FaDiscord, FaGithub, FaGlobe } from 'react-icon
 import { userAPI, favoriteAPI, tokenAPI } from '@/services/api';
 import { useWalletAuth } from '@/hooks/useWalletAuth';
 import { toast } from '@/components/ui/toast-notification';
+import { SafeImage } from '@/components/ui/SafeImage';
 
 interface TokenDetailsProps {
   token: any;
@@ -43,7 +44,7 @@ export function TokenDetails({ token }: TokenDetailsProps) {
             });
           }
         } catch (error) {
-          console.error('Failed to load creator info:', error);
+          // 静默处理创作者信息加载失败
           // 如果API调用失败，使用token.creator中的基本信息作为备用
           if (token.creator && typeof token.creator === 'object') {
             setCreator(token.creator);
@@ -79,7 +80,7 @@ export function TokenDetails({ token }: TokenDetailsProps) {
         const response = await favoriteAPI.checkFavoriteStatus(address, token.address, 'sepolia');
         setIsFavorited(response.data.is_favorited);
       } catch (error) {
-        console.error('Failed to load favorite status:', error);
+        // 静默处理收藏状态加载失败
       }
     };
 
@@ -95,7 +96,7 @@ export function TokenDetails({ token }: TokenDetailsProps) {
           setOkbPrice(parseFloat(response.data.price));
         }
       } catch (error) {
-        console.error('Failed to load OKB price:', error);
+        // 静默处理OKB价格加载失败
       }
     };
 
@@ -189,28 +190,15 @@ export function TokenDetails({ token }: TokenDetailsProps) {
         {/* 左侧内容 */}
         <div className="flex items-start space-x-5">
           {/* 1. 代币图标 */}
-          <div className="w-24 h-24 rounded-2xl overflow-hidden bg-gradient-to-br from-[#1B1B1B] to-[#232323] flex items-center justify-center border-2 border-orange-400 shadow-lg flex-shrink-0">
-            {token?.image_url ? (
-              <Image 
-                src={token.image_url} 
-                alt={`${token?.name || 'Token'} logo`}
-                width={96} 
-                height={96} 
-                className="w-24 h-24 object-contain"
-                style={{ width: 'auto', height: 'auto' }}
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  const parent = target.parentElement;
-                  if (parent) {
-                    parent.innerHTML = `<span class="text-2xl font-bold text-white">${token?.symbol?.slice(0, 2) || '??'}</span>`;
-                  }
-                }}
-                unoptimized={true}
-              />
-            ) : (
-              <span className="text-2xl font-bold text-white">{token?.symbol?.slice(0, 2) || '??'}</span>
-            )}
+          <div className="w-24 h-24 rounded-2xl overflow-hidden border-2 border-orange-400 shadow-lg flex-shrink-0">
+            <SafeImage
+              src={token?.image_url}
+              alt={`${token?.name || 'Token'} logo`}
+              width={96}
+              height={96}
+              className="w-24 h-24 object-contain"
+              fallbackText={token?.symbol?.slice(0, 2) || '??'}
+            />
           </div>
           
           {/* 2. 代币信息 */}
@@ -268,7 +256,7 @@ export function TokenDetails({ token }: TokenDetailsProps) {
                               // Handle direct emoji or other formats
                               return creator.avatar_url;
                             } catch (e) {
-                              console.error('Error parsing avatar emoji:', e);
+                              // 静默处理头像emoji解析错误
                               return creator.avatar_url;
                             }
                           })()}

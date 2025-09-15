@@ -21,13 +21,7 @@ export function TokenMetrics({ token, okbPrice, showCurrentPrice = true, stats24
   // 根据是否显示当前价格决定列数 - 现在显示3列
   const gridCols = showCurrentPrice ? 'md:grid-cols-2 lg:grid-cols-3' : 'md:grid-cols-1 lg:grid-cols-2';
 
-  // 调试日志
-  console.log('TokenMetrics Debug:', {
-    tokenAddress: token.address,
-    currentPriceRaw: token.currentPrice,
-    currentPriceParsed: currentPrice,
-    formattedPrice: formatPrice(currentPrice)
-  });
+
 
   return (
     <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6">

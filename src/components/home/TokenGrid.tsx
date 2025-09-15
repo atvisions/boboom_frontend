@@ -10,6 +10,7 @@ import { tokenAPI, favoriteAPI, userAPI } from "@/services/api";
 import { useWalletAuth } from "@/hooks/useWalletAuth";
 import websocketService from "@/services/websocket";
 import { MiniChart } from "@/components/ui/MiniChart";
+import { AnimatedPercentage, AnimatedVolume } from "@/components/ui/AnimatedNumber";
 import { formatPrice, formatNumber as utilsFormatNumber } from "@/lib/utils";
 import { NETWORK_CONFIG } from "@/contracts/config";
 import { extractCreatorAddresses } from "@/utils/contractAddresses";
@@ -221,11 +222,10 @@ export function TokenGrid() {
         const response = await tokenAPI.getOKBPrice();
         if (response.success) {
           const newPrice = parseFloat(response.data.price);
-          console.log('OKB price loaded:', newPrice);
           setOkbPrice(newPrice);
         }
       } catch (error) {
-        console.error('Failed to load OKB price:', error);
+        // OKB价格加载失败，使用默认值
       }
     };
 
@@ -239,6 +239,54 @@ export function TokenGrid() {
   const handleTokenListData = useCallback((data: any) => {
 
 
+
+    // 处理单个代币价格更新
+    if (data.type === 'price_update' || data.type === 'token_detail_update') {
+      const tokenData = data.data;
+      if (tokenData && tokenData.address) {
+        setTokens(prevTokens => {
+          return prevTokens.map(token => {
+            if (token.address.toLowerCase() === tokenData.address.toLowerCase()) {
+              return {
+                ...token,
+                currentPrice: tokenData.current_price || tokenData.currentPrice || token.currentPrice,
+                marketCap: tokenData.market_cap || tokenData.marketCap || token.marketCap,
+                volume24h: tokenData.volume_24h || tokenData.volume24h || token.volume24h,
+                change24h: tokenData.price_change_24h || tokenData.change24h || token.change24h,
+                high24h: tokenData.high_24h || tokenData.high24h || token.high24h,
+                low24h: tokenData.low_24h || tokenData.low24h || token.low24h,
+                ath: tokenData.ath || token.ath,
+                transactionCount: tokenData.transaction_count || tokenData.transactionCount || token.transactionCount,
+                holderCount: tokenData.holder_count || tokenData.holderCount || token.holderCount
+              };
+            }
+            return token;
+          });
+        });
+
+        // 同时更新原始数据
+        setOriginalTokens(prevTokens => {
+          return prevTokens.map(token => {
+            if (token.address.toLowerCase() === tokenData.address.toLowerCase()) {
+              return {
+                ...token,
+                currentPrice: tokenData.current_price || tokenData.currentPrice || token.currentPrice,
+                marketCap: tokenData.market_cap || tokenData.marketCap || token.marketCap,
+                volume24h: tokenData.volume_24h || tokenData.volume24h || token.volume24h,
+                change24h: tokenData.price_change_24h || tokenData.change24h || token.change24h,
+                high24h: tokenData.high_24h || tokenData.high24h || token.high24h,
+                low24h: tokenData.low_24h || tokenData.low24h || token.low24h,
+                ath: tokenData.ath || token.ath,
+                transactionCount: tokenData.transaction_count || tokenData.transactionCount || token.transactionCount,
+                holderCount: tokenData.holder_count || tokenData.holderCount || token.holderCount
+              };
+            }
+            return token;
+          });
+        });
+        return;
+      }
+    }
 
     // 处理不同类型的WebSocket消息
     const isValidTokenData = (
@@ -343,6 +391,7 @@ export function TokenGrid() {
 
   // WebSocket连接状态
   const [connectionId, setConnectionId] = useState<string | null>(null);
+  const [tokenListConnectionId, setTokenListConnectionId] = useState<string | null>(null);
   
   // 初始化WebSocket连接
   useEffect(() => {
@@ -411,6 +460,20 @@ export function TokenGrid() {
           );
           
           setConnectionId(newConnectionId);
+
+          // 同时连接到代币列表更新WebSocket，用于接收单个代币的实时更新
+          if (tokenListConnectionId) {
+            websocketService.disconnect(tokenListConnectionId);
+          }
+
+          const tokenListConnId = websocketService.connect(
+            'tokens/',
+            handleTokenListData,
+            (error) => {
+              console.warn('Token list WebSocket connection error (this is normal):', error);
+            }
+          );
+          setTokenListConnectionId(tokenListConnId);
 
         } catch (error) {
           console.error('Failed to connect WebSocket:', error);
@@ -561,6 +624,10 @@ export function TokenGrid() {
         websocketService.disconnect(connectionId);
         setConnectionId(null);
       }
+      if (tokenListConnectionId) {
+        websocketService.disconnect(tokenListConnectionId);
+        setTokenListConnectionId(null);
+      }
     };
   }, [selectedSort, isClient, isInitialized, handleTokenListData, connectionId]);
   
@@ -570,8 +637,11 @@ export function TokenGrid() {
       if (connectionId) {
         websocketService.disconnect(connectionId);
       }
+      if (tokenListConnectionId) {
+        websocketService.disconnect(tokenListConnectionId);
+      }
     };
-  }, [connectionId]);
+  }, [connectionId, tokenListConnectionId]);
 
   // 防抖的收藏状态加载
   const [favoriteTimeout, setFavoriteTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -738,7 +808,6 @@ export function TokenGrid() {
   };
 
   const clearFilters = () => {
-    console.log('Clearing filters, originalTokens.length:', originalTokens.length);
 
     const emptyFilters = {
       mcapMin: "",
@@ -769,7 +838,6 @@ export function TokenGrid() {
     // 直接恢复原始数据，不通过筛选函数
     if (originalTokens.length > 0) {
       setTokens([...originalTokens]);
-      console.log('Restored original tokens:', originalTokens.length);
     }
 
     // 延迟重新启用筛选并清除清除标志
@@ -826,18 +894,7 @@ export function TokenGrid() {
           const tokenVolumeOKB = parseFloat(token.volume24h || '0');
           const tokenVolumeUSD = tokenVolumeOKB * okbPrice;
 
-          // 调试信息 - 只显示前3个代币的详细信息
-          if (volumeMin > 0 && filteredTokens.length < 3) {
-            console.log('Volume filter debug:', {
-              tokenSymbol: token.symbol,
-              tokenVolumeOKB,
-              okbPrice,
-              tokenVolumeUSD,
-              volumeMin,
-              volumeMax,
-              passed: !(volumeMin > 0 && tokenVolumeUSD < volumeMin) && !(volumeMax > 0 && tokenVolumeUSD > volumeMax)
-            });
-          }
+
 
           // 市值筛选
           if (mcapMin > 0 && tokenMcap < mcapMin) return false;
@@ -1450,9 +1507,13 @@ export function TokenGrid() {
               
               {/* 24小时交易量 */}
               <div className="col-span-1 flex items-center text-gray-400 text-sm">
-                ${utilsFormatNumber(parseFloat(token.volume24h || '0') * okbPrice)}
+                <AnimatedVolume
+                  value={parseFloat(token.volume24h || '0') * okbPrice}
+                  className="text-gray-400"
+                  showChangeIndicator={false}
+                />
               </div>
-              
+
               {/* 交易者数 */}
               <div className="col-span-1 flex items-center text-gray-400 text-sm">
                 {token.holderCount || '-'}
@@ -1460,9 +1521,11 @@ export function TokenGrid() {
 
               {/* 24小时变化 */}
               <div className="col-span-1 flex items-center text-sm">
-                <span className={parseFloat(token.change24h || '0') >= 0 ? 'text-green-400' : 'text-red-400'}>
-                  {formatPriceChange(parseFloat(token.change24h || '0'))}
-                </span>
+                <AnimatedPercentage
+                  value={parseFloat(token.change24h || '0')}
+                  className={parseFloat(token.change24h || '0') >= 0 ? 'text-green-400' : 'text-red-400'}
+                  showChangeIndicator={true}
+                />
               </div>
               
               {/* 收藏按钮 */}

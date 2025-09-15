@@ -21,9 +21,9 @@ export const API_CONFIG = {
       LIST: '/api/tokens/',
       DETAIL: (address: string) => `/api/tokens/${address}/`,
       METRICS: (address: string) => `/api/tokens/${address}/metrics/`,
-      PRICE_HISTORY: (address: string) => `/api/tokens/${address}/price-history`,
       TRANSACTIONS: (address: string) => `/api/tokens/${address}/transactions`,
       HOLDERS: (address: string) => `/api/tokens/${address}/holders`,
+      MINI_CHART: (address: string) => `/api/tokens/tokens/${address}/mini-chart/`,
     },
     
     // 用户相关
@@ -40,10 +40,12 @@ export const API_CONFIG = {
       LIST: '/api/transactions/',
     },
     
-    // 分析相关
+    // 分析相关 - 新的事件驱动K线系统
     ANALYTICS: {
       PRICE_HISTORY: '/api/analytics/price-history/',
-      GENERATE_CANDLESTICK: '/api/analytics/generate-candlestick/',
+      INTERVALS: '/api/analytics/intervals/',
+      SUMMARY: (address: string) => `/api/analytics/summary/${address}/`,
+      UPDATE_TRIGGER: '/api/analytics/trigger-update/',
     },
   },
 } as const;
@@ -60,8 +62,8 @@ export const getTokenApiUrl = {
   list: () => buildApiUrl(API_CONFIG.ENDPOINTS.TOKENS.LIST),
   detail: (address: string) => buildApiUrl(API_CONFIG.ENDPOINTS.TOKENS.DETAIL(address)),
   metrics: (address: string) => buildApiUrl(API_CONFIG.ENDPOINTS.TOKENS.METRICS(address)),
-  priceHistory: (address: string) => buildApiUrl(API_CONFIG.ENDPOINTS.TOKENS.PRICE_HISTORY(address)),
   transactions: (address: string) => buildApiUrl(API_CONFIG.ENDPOINTS.TOKENS.TRANSACTIONS(address)),
+  miniChart: (address: string) => buildApiUrl(API_CONFIG.ENDPOINTS.TOKENS.MINI_CHART(address)),
   holders: (address: string) => buildApiUrl(API_CONFIG.ENDPOINTS.TOKENS.HOLDERS(address)),
 };
 
@@ -70,6 +72,14 @@ export const getUserApiUrl = {
   login: () => buildApiUrl(API_CONFIG.ENDPOINTS.USERS.LOGIN),
   autoLogin: () => buildApiUrl(API_CONFIG.ENDPOINTS.USERS.AUTO_LOGIN),
   profile: (address: string) => buildApiUrl(API_CONFIG.ENDPOINTS.USERS.PROFILE(address)),
-  favorites: (address: string, tokenAddress: string) => 
+  favorites: (address: string, tokenAddress: string) =>
     buildApiUrl(API_CONFIG.ENDPOINTS.USERS.FAVORITES(address, tokenAddress)),
+};
+
+// 获取分析相关API URL
+export const getAnalyticsApiUrl = {
+  priceHistory: () => buildApiUrl(API_CONFIG.ENDPOINTS.ANALYTICS.PRICE_HISTORY),
+  intervals: () => buildApiUrl(API_CONFIG.ENDPOINTS.ANALYTICS.INTERVALS),
+  summary: (address: string) => buildApiUrl(API_CONFIG.ENDPOINTS.ANALYTICS.SUMMARY(address)),
+  updateTrigger: () => buildApiUrl(API_CONFIG.ENDPOINTS.ANALYTICS.UPDATE_TRIGGER),
 };
