@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, usePublicClient } from 'wagmi';
 import { parseEther, formatEther } from 'viem';
-import { getContractAddresses, NETWORK_CONFIG } from '@/contracts/config';
+import { NETWORK_CONFIG, TOKEN_FLAGS } from '@/contracts/config';
+import { useContractAddresses } from '@/hooks/useContractConfig';
 import TokenFactoryV3ABI from '@/contracts/abis/TokenFactoryV3.json';
 import OKBTokenABI from '@/contracts/abis/OKBToken.json';
 import BondingCurveV3ABI from '@/contracts/abis/BondingCurveV3_Final.json';
 import { toast } from 'sonner';
-import { TOKEN_FLAGS } from '@/contracts/config';
 
 export interface TokenCreationData {
   name: string;
@@ -20,10 +20,43 @@ export interface TokenCreationData {
 }
 
 export function useTokenFactory(network: 'sepolia' | 'xlayer' = 'sepolia') {
-  const addresses = getContractAddresses(network);
+  const { addresses, isLoading: isConfigLoading, error: configError } = useContractAddresses();
   const { address } = useAccount();
   const publicClient = usePublicClient();
   const chainIdNum = Number(NETWORK_CONFIG.NETWORK_ID || '11155111');
+
+  // 如果配置还在加载中，返回加载状态
+  if (isConfigLoading || !addresses) {
+    return {
+      isConfigLoading: true,
+      configError,
+      // 其他所有状态都设为初始值
+      isApprovalPending: false,
+      isApprovalConfirming: false,
+      isApprovalSuccess: false,
+      isApprovalFailed: false,
+      isCreatePending: false,
+      isCreateConfirming: false,
+      isCreateSuccess: false,
+      isCreateFailed: false,
+      isPurchasePending: false,
+      isPurchaseConfirming: false,
+      isPurchaseSuccess: false,
+      isPurchaseFailed: false,
+      okbBalance: '0',
+      okbAllowance: '0',
+      approveOKB: () => {},
+      createToken: () => {},
+      purchaseTokens: () => {},
+      reset: () => {},
+      approvalError: null,
+      createError: null,
+      purchaseError: null,
+      approvalHash: undefined,
+      createHash: undefined,
+      purchaseHash: undefined,
+    };
+  }
   
   // 写入合约（独立通道）：授权
   const { writeContract: writeApprove, data: approvalHash, isPending: isApprovalPending, error: approvalError } = useWriteContract();
