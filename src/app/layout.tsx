@@ -5,7 +5,6 @@ import "./globals.css";
 import '@rainbow-me/rainbowkit/styles.css';
 
 import { Providers } from "./providers";
-import { ConfigStatus } from "@/components/common/ConfigStatus";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -74,7 +73,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className={`${hubotSans.variable} ${exo2.variable} ${inter.variable} font-inter antialiased min-h-screen bg-background text-foreground`}>
         <Providers>
           {children}
-          <ConfigStatus />
         </Providers>
       </body>
     </html>

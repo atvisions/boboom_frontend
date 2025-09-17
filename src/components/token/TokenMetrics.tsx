@@ -11,10 +11,28 @@ interface TokenMetricsProps {
 export function TokenMetrics({ token, okbPrice, showCurrentPrice = true, stats24h }: TokenMetricsProps) {
   // 计算价格相关数据
   const currentPrice = parseFloat(token.currentPrice || '0'); // 后端返回的已经是USD价格
-  const athPrice = parseFloat(token.ath || '0'); // 后端返回的已经是USD价格
+  // 尝试多种ATH字段来源
+  const athRaw = token.ath || token.athPrice || token.ath_price || '0';
+  const athPrice = parseFloat(athRaw); // 后端返回的已经是USD价格
   const marketCap = parseFloat(token.marketCap || '0');
   const athDrop = athPrice > 0 ? ((currentPrice - athPrice) / athPrice) * 100 : 0;
   const athProgress = athPrice > 0 ? Math.min((currentPrice / athPrice) * 100, 100) : 0;
+
+  // 临时调试ATH问题
+  if (token.address === '0x1858087bbb90d274ffb1833c7a3346249bcd0ffe') {
+    console.log('ATH问题调试:', {
+      'token.ath (raw)': token.ath,
+      'athRaw': athRaw,
+      'athPrice (parsed)': athPrice,
+      'currentPrice': currentPrice,
+      'athPrice > 0': athPrice > 0,
+      'athPrice.toFixed(6)': athPrice > 0 ? athPrice.toFixed(6) : 'N/A'
+    });
+  }
+
+
+
+
 
   // 使用通用的价格格式化函数
 

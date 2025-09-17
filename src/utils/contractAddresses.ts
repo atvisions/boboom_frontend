@@ -2,12 +2,14 @@
  * 合约地址配置和工具函数
  */
 
-// 已知的合约地址列表
+// 已知的合约地址列表 - 使用环境变量获取最新地址
 export const CONTRACT_ADDRESSES = [
-  '0xbc9bd35ad4ae0233b5767d4cb9208fdb9cea942d', // token_factory_v3_address
-  '0x564e310b4390f24fe5cefaf601973ca1ca0d36f3', // bonding_curve_v3_address
-  '0xb96e6ca61596d77150284e4f31ee5c63b9545a70', // izumi_integration_address
-];
+  process.env.NEXT_PUBLIC_TOKEN_FACTORY_V1_ADDRESS?.toLowerCase() || '0xF7b8eF600A699cB0c7327F4576aF30B62b0AD9eE'.toLowerCase(),
+  process.env.NEXT_PUBLIC_BONDING_CURVE_V1_ADDRESS?.toLowerCase() || '0x0DfA50998227518D42Fec00e046f065c48ebe02F'.toLowerCase(),
+  process.env.NEXT_PUBLIC_IZUMI_INTEGRATION_ADDRESS?.toLowerCase() || '0xfC87BD3bEAaD192bf469BAaF9C9a7EE9655a8447'.toLowerCase(),
+  process.env.NEXT_PUBLIC_OKB_TOKEN_ADDRESS?.toLowerCase() || '0x0a4c537d44C4D4f4688812629d07351399C50386'.toLowerCase(),
+  process.env.NEXT_PUBLIC_MOCK_POSITION_MANAGER_ADDRESS?.toLowerCase() || '0xA2EC04A65cbab0c03A955Bd6A20BD3438CDB3614'.toLowerCase(),
+].filter(Boolean); // 过滤掉空值
 
 /**
  * 检查地址是否为合约地址

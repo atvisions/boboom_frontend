@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Rocket, Upload, Image, X } from "lucide-react";
-import { useTokenFactory } from "@/hooks/useTokenFactory";
+import { useTokenFactoryWorking as useTokenFactory } from "@/hooks/useTokenFactoryWorking";
 import { useWalletAuth } from "@/hooks/useWalletAuth";
 import { toast } from "sonner";
 import { TokenCreationFlow } from "../../components/ui/token-creation-flow";
@@ -26,8 +26,12 @@ export type ModalTokenData = {
 // 客户端专用组件
 function CreateTokenForm() {
   const { address, isConnected, isClient } = useWalletAuth();
-  const { 
-    createToken, 
+  const {
+    // 配置状态
+    isConfigLoading,
+    configError,
+    // 方法
+    createToken,
     createTokenWithPurchase,
     approveOKB,
     // 授权独立状态
@@ -305,8 +309,22 @@ function CreateTokenForm() {
         <p className="text-gray-400">Launch your next viral token project</p>
       </div>
 
+      {/* Configuration Loading Check */}
+      {isConfigLoading && (
+        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mb-6">
+          <p className="text-blue-400 text-center">Loading contract configuration...</p>
+        </div>
+      )}
+
+      {/* Configuration Error Check */}
+      {configError && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-6">
+          <p className="text-red-400 text-center">Failed to load contract configuration: {configError}</p>
+        </div>
+      )}
+
       {/* Wallet Connection Check */}
-      {!isConnected && (
+      {!isConnected && !isConfigLoading && (
         <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-6">
           <p className="text-yellow-400 text-center">Please connect your wallet to create a token</p>
         </div>
@@ -403,18 +421,18 @@ function CreateTokenForm() {
                 <label className="block text-sm font-medium text-gray-300">Initial OKB Purchase</label>
                 {isConnected && (
                   <div className="text-sm text-gray-400 space-y-1">
-                    <div>Balance: <span className={`font-medium ${okbBalance > 0 ? 'text-green-400' : 'text-red-400'}`}>{okbBalance.toFixed(4)} OKB</span></div>
-                    <div>Authorized: <span className={`font-medium ${okbAllowance > 0 ? 'text-blue-400' : 'text-yellow-400'}`}>{okbAllowance.toFixed(4)} OKB</span></div>
+                    <div>Balance: <span className={`font-medium ${(okbBalance || 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>{(okbBalance || 0).toFixed(4)} OKB</span></div>
+                    <div>Authorized: <span className={`font-medium ${(okbAllowance || 0) > 0 ? 'text-blue-400' : 'text-yellow-400'}`}>{(okbAllowance || 0).toFixed(4)} OKB</span></div>
                   </div>
                 )}
               </div>
               <Input type="number" placeholder="0.1" value={initialPurchase.toString()} onChange={(e) => setInitialPurchase(Number(e.target.value) || 0.1)} className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#70E000] focus:ring-[#70E000]" min="0.1" step="0.1" required />
               <div className="mt-2 space-y-1">
                 <p className="text-sm text-gray-400">Required. Minimum initial purchase: 0.1 OKB.</p>
-                {isConnected && okbBalance === 0 && (<p className="text-sm text-red-400 flex items-center"><span className="mr-1">⚠️</span>You have no OKB tokens. You cannot create a token.</p>)}
+                {isConnected && (okbBalance || 0) === 0 && (<p className="text-sm text-red-400 flex items-center"><span className="mr-1">⚠️</span>You have no OKB tokens. You cannot create a token.</p>)}
                 {isConnected && initialPurchase > 0 && initialPurchase < 0.1 && (<p className="text-sm text-red-400 flex items-center"><span className="mr-1">⚠️</span>Minimum initial purchase amount is 0.1 OKB.</p>)}
-                {isConnected && initialPurchase > okbBalance && okbBalance > 0 && (<p className="text-sm text-red-400 flex items-center"><span className="mr-1">⚠️</span>Insufficient OKB balance. You need {initialPurchase.toFixed(4)} OKB but have {okbBalance.toFixed(4)} OKB.</p>)}
-                {isConnected && initialPurchase > 0 && initialPurchase <= okbBalance && okbAllowance < initialPurchase && (<p className="text-sm text-yellow-400 flex items-center"><span className="mr-1">⚠️</span>Authorization required. You need to authorize {initialPurchase.toFixed(4)} OKB but only {okbAllowance.toFixed(4)} OKB is authorized.</p>)}
+                {isConnected && initialPurchase > (okbBalance || 0) && (okbBalance || 0) > 0 && (<p className="text-sm text-red-400 flex items-center"><span className="mr-1">⚠️</span>Insufficient OKB balance. You need {initialPurchase.toFixed(4)} OKB but have {(okbBalance || 0).toFixed(4)} OKB.</p>)}
+                {isConnected && initialPurchase > 0 && initialPurchase <= (okbBalance || 0) && (okbAllowance || 0) < initialPurchase && (<p className="text-sm text-yellow-400 flex items-center"><span className="mr-1">⚠️</span>Authorization required. You need to authorize {initialPurchase.toFixed(4)} OKB but only {(okbAllowance || 0).toFixed(4)} OKB is authorized.</p>)}
               </div>
             </div>
           </div>

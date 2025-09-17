@@ -15,7 +15,7 @@ import { tokenAPI, userAPI, clearApiCache } from '@/services/api';
 import { useWalletAuth } from '@/hooks/useWalletAuth';
 import { toast } from '@/components/ui/toast-notification';
 import websocketService from '@/services/websocket';
-import { useTokenFactory } from '@/hooks/useTokenFactory';
+import { useTokenFactoryWorking as useTokenFactory } from '@/hooks/useTokenFactoryWorking';
 
 export default function TokenDetailPage() {
   const params = useParams();
@@ -26,6 +26,7 @@ export default function TokenDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [userTokenBalance, setUserTokenBalance] = useState<string>('0'); // 用户代币余额
   const [stats24h, setStats24h] = useState<any>(null); // 24h 统计数据
+  const [chartRefreshKey, setChartRefreshKey] = useState<number>(0); // 用于强制刷新图表
   const eventSourceRef = useRef<EventSource | null>(null);
 
   const tokenAddress = params?.address as string;
@@ -61,7 +62,8 @@ export default function TokenDetailPage() {
           currentPrice: tokenData.current_price || tokenData.currentPrice,
           marketCap: tokenData.market_cap || tokenData.marketCap,
           volume24h: tokenData.volume_24h || tokenData.volume24h,
-          priceChange24h: tokenData.price_change_24h || tokenData.priceChange24h,
+          priceChange24h: tokenData.change_24h || tokenData.price_change_24h || tokenData.priceChange24h,
+          ath: tokenData.ath || tokenData.ath_price || '0',
           okbCollected: tokenData.okb_collected || tokenData.okbCollected,
           tokensTraded: tokenData.tokens_traded || tokenData.tokensTraded,
           graduationProgress: parseFloat(tokenData.graduationProgress || tokenData.graduation_progress || tokenData.bonding_progress || '0'),
@@ -85,14 +87,36 @@ export default function TokenDetailPage() {
       const priceData = data.data;
       if (priceData && priceData.address === tokenAddress) {
 
+        // 临时调试price_update中的ATH
+        if (tokenAddress === '0x1858087bbb90d274ffb1833c7a3346249bcd0ffe') {
+          console.log('price_update ATH调试:', {
+            'priceData.ath': priceData.ath,
+            'priceData.ath_price': priceData.ath_price,
+            'typeof priceData.ath': typeof priceData.ath,
+            'priceData完整对象': priceData
+          });
+        }
+
         setToken((prevToken: any) => {
           if (!prevToken) return prevToken;
+          const newAth = priceData.ath || priceData.ath_price || '0';
+
+          // 临时调试
+          if (tokenAddress === '0x1858087bbb90d274ffb1833c7a3346249bcd0ffe') {
+            console.log('price_update setToken调试:', {
+              'prevToken.ath': prevToken.ath,
+              'newAth': newAth,
+              'priceData.ath': priceData.ath
+            });
+          }
+
           return {
             ...prevToken,
             currentPrice: priceData.current_price || priceData.currentPrice,
             marketCap: priceData.market_cap || priceData.marketCap,
             volume24h: priceData.volume_24h || priceData.volume24h,
-            priceChange24h: priceData.price_change_24h || priceData.priceChange24h,
+            priceChange24h: priceData.change_24h || priceData.price_change_24h || priceData.priceChange24h,
+            ath: newAth,
             high24h: priceData.high_24h || priceData.high24h || prevToken.high24h,
             low24h: priceData.low_24h || priceData.low24h || prevToken.low24h
           };
@@ -101,7 +125,7 @@ export default function TokenDetailPage() {
         // 同时更新 stats24h 状态，确保所有组件都能获得最新数据
         const updatedStats = {
           currentPrice: priceData.current_price || priceData.currentPrice,
-          priceChange24h: priceData.price_change_24h || priceData.priceChange24h,
+          priceChange24h: priceData.change_24h || priceData.price_change_24h || priceData.priceChange24h,
           volume24h: priceData.volume_24h || priceData.volume24h,
           high24h: priceData.high_24h || priceData.high24h,
           low24h: priceData.low_24h || priceData.low24h,
@@ -166,7 +190,8 @@ export default function TokenDetailPage() {
             currentPrice: tokenData.current_price || tokenData.currentPrice,
             marketCap: tokenData.market_cap || tokenData.marketCap,
             volume24h: tokenData.volume_24h || tokenData.volume24h,
-            priceChange24h: tokenData.price_change_24h || tokenData.priceChange24h,
+            priceChange24h: tokenData.change_24h || tokenData.price_change_24h || tokenData.priceChange24h,
+            ath: tokenData.ath || tokenData.ath_price || '0',
             // 24h统计数据
             high24h: statsData.high24h || tokenData.high24h || '0',
             low24h: statsData.low24h || tokenData.low24h || '0',

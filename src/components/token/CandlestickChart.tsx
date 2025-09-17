@@ -172,6 +172,8 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
         const timestamp = Date.now();
         const response = await tokenAPI.getToken24hStats(tokenAddress, 'sepolia');
         if (response.success) {
+          console.log('24h stats API response:', response.data);
+          console.log('currentPrice type:', typeof response.data.currentPrice, 'value:', response.data.currentPrice);
           setLocalStats24h(response.data);
         }
       } catch (error) {
@@ -365,7 +367,7 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
                 currentPrice: priceData.current_price || priceData.currentPrice,
                 high24h: priceData.high_24h || priceData.high24h || prevStats?.high24h,
                 low24h: priceData.low_24h || priceData.low24h || prevStats?.low24h,
-                priceChange24h: priceData.price_change_24h || priceData.priceChange24h,
+                priceChange24h: priceData.change_24h || priceData.price_change_24h || priceData.priceChange24h,
                 volume24h: priceData.volume_24h || priceData.volume24h,
                 updatedAt: new Date().toISOString()
               };
@@ -1002,7 +1004,11 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
             {loading ? (
               <div className="animate-pulse bg-gray-600 h-4 w-20 rounded"></div>
             ) : (
-              `$${formatPrice(currentStats24h?.currentPrice || '0')}`
+              (() => {
+                const price = currentStats24h?.currentPrice || '0';
+                console.log('Displaying price:', { price, type: typeof price, formatted: formatPrice(price) });
+                return `$${formatPrice(price)}`;
+              })()
             )}
           </div>
         </div>

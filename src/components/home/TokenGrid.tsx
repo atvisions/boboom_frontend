@@ -6,13 +6,13 @@ import Image from "next/image";
 import { toast, toastMessages } from "@/components/ui/toast-notification";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useRouter } from "next/navigation";
-import { tokenAPI, favoriteAPI, userAPI } from "@/services/api";
+import { tokenAPI, favoriteAPI, userAPI, clearApiCache } from "@/services/api";
 import { useWalletAuth } from "@/hooks/useWalletAuth";
 import websocketService from "@/services/websocket";
 import { MiniChart } from "@/components/ui/MiniChart";
 import { AnimatedPercentage, AnimatedVolume } from "@/components/ui/AnimatedNumber";
 import { formatPrice, formatNumber as utilsFormatNumber } from "@/lib/utils";
-import { NETWORK_CONFIG } from "@/contracts/config";
+import { NETWORK_CONFIG } from "@/contracts/config-simple";
 import { extractCreatorAddresses } from "@/utils/contractAddresses";
 
 // 双向范围滑动条组件
@@ -129,8 +129,8 @@ const getTimeAgo = (dateString: string) => {
 const sortOptions = [
   { name: "Newest", value: "newest", icon: Clock },
   { name: "Near Graduation", value: "curved", icon: Zap },
-  { name: "Top MC", value: "top-mc", icon: TrendingUp },
-  { name: "Graduated", value: "graduated", icon: Shield }
+  { name: "Graduated", value: "graduated", icon: Shield },
+  { name: "Top MC", value: "top-mc", icon: TrendingUp }
 ];
 
 export function TokenGrid() {
@@ -234,11 +234,17 @@ export function TokenGrid() {
 
   // 防抖的数据加载函数
   const [loadingTimeout, setLoadingTimeout] = useState<NodeJS.Timeout | null>(null);
-  
+
+  // API 回退状态
+  const [isUsingAPIFallback, setIsUsingAPIFallback] = useState(false);
+
   // 处理WebSocket代币列表数据
   const handleTokenListData = useCallback((data: any) => {
-
-
+    // 如果正在使用 API 回退，忽略 WebSocket 数据
+    if (isUsingAPIFallback) {
+      console.log('🚫 Ignoring WebSocket data because API fallback is active');
+      return;
+    }
 
     // 处理单个代币价格更新
     if (data.type === 'price_update' || data.type === 'token_detail_update') {
@@ -294,14 +300,39 @@ export function TokenGrid() {
       data.type === 'newest_tokens' ||
       data.type === 'near_graduation_tokens' ||
       data.type === 'top_mc_tokens' ||
+      data.type === 'graduated_tokens' ||
       data.type === 'newest_tokens_update' ||
       data.type === 'near_graduation_tokens_update' ||
-      data.type === 'top_mc_tokens_update'
+      data.type === 'top_mc_tokens_update' ||
+      data.type === 'graduated_tokens_update'
     );
 
     if (isValidTokenData) {
-      const tokenList = data.data;
+      console.log(`📡 Received WebSocket data for ${selectedSort}:`, {
+        type: data.type,
+        dataLength: Array.isArray(data.data) ? data.data.length : 'not array',
+        selectedSort
+      });
+
+      let tokenList = data.data;
       if (Array.isArray(tokenList)) {
+        // 🔥 强制验证：对于 graduated 标签页，只显示真正毕业的代币
+        if (selectedSort === 'graduated') {
+          tokenList = tokenList.filter((token: any) => {
+            const isGraduated = token.phase === 'GRADUATED' || token.has_graduated === true;
+            if (!isGraduated) {
+              console.warn(`⚠️ WebSocket: Filtering out non-graduated token:`, {
+                symbol: token.symbol,
+                phase: token.phase,
+                has_graduated: token.has_graduated,
+                graduation_progress: token.graduation_progress
+              });
+            }
+            return isGraduated;
+          });
+          console.log(`✅ WebSocket: After graduation filter: ${tokenList.length} tokens remaining`);
+        }
+
         const processedTokens = tokenList.map((token: any) => ({
           ...token,
           // WebSocket数据可能使用下划线命名，需要转换
@@ -328,9 +359,25 @@ export function TokenGrid() {
         let sortedTokens = [...processedTokens];
 
         if (selectedSort === 'curved') {
-          sortedTokens = sortedTokens.filter((token: any) =>
-            token.graduationProgress >= 80
-          );
+          sortedTokens = sortedTokens.filter((token: any) => {
+            const progress = token.graduationProgress || 0;
+            const isGraduated = token.phase === 'GRADUATED' || token.has_graduated === true;
+
+            // 特别调试 OPTEST
+            if (token.symbol === 'OPTEST') {
+              console.log('🔍 OPTEST debug in WebSocket curved filter:', {
+                symbol: token.symbol,
+                phase: token.phase,
+                graduationProgress: progress,
+                has_graduated: token.has_graduated,
+                isGraduated,
+                willShow: progress >= 80 && !isGraduated
+              });
+            }
+
+            // 只显示进度80%以上但还没毕业的代币
+            return progress >= 80 && !isGraduated;
+          });
         } else if (selectedSort === 'top-mc') {
           sortedTokens = sortedTokens.sort((a: any, b: any) => {
             const marketCapA = parseFloat(a.marketCap || '0');
@@ -344,6 +391,12 @@ export function TokenGrid() {
           sortedTokens = sortedTokens.filter(passesFilter);
         }
 
+        console.log(`📊 Setting tokens for ${selectedSort}:`, {
+          originalCount: processedTokens.length,
+          filteredCount: sortedTokens.length,
+          selectedSort,
+          hasFilters: hasActiveFilters()
+        });
         setTokens(sortedTokens);
 
         // 加载创作者信息
@@ -376,7 +429,7 @@ export function TokenGrid() {
         setError(null);
       }
     }
-  }, [selectedSort]);
+  }, [selectedSort, isUsingAPIFallback]);
 
   // 移除自动筛选的useEffect，改为手动应用筛选
   // useEffect(() => {
@@ -391,7 +444,6 @@ export function TokenGrid() {
 
   // WebSocket连接状态
   const [connectionId, setConnectionId] = useState<string | null>(null);
-  const [tokenListConnectionId, setTokenListConnectionId] = useState<string | null>(null);
   
   // 初始化WebSocket连接
   useEffect(() => {
@@ -451,9 +503,15 @@ export function TokenGrid() {
             (error) => {
               console.error('WebSocket connection error:', error);
               console.error('TokenGrid: WebSocket连接错误', error);
-              setError('WebSocket connection failed');
+
+              // 在开发环境中，WebSocket 连接失败是正常的，不显示错误 UI
+              const isDevelopment = process.env.NODE_ENV === 'development';
+              if (!isDevelopment) {
+                setError('WebSocket connection failed');
+              }
+
               setLoading(false);
-            setIsRefreshing(false);
+              setIsRefreshing(false);
               // 如果WebSocket连接失败，回退到API
               fallbackToAPI();
             }
@@ -461,19 +519,7 @@ export function TokenGrid() {
           
           setConnectionId(newConnectionId);
 
-          // 同时连接到代币列表更新WebSocket，用于接收单个代币的实时更新
-          if (tokenListConnectionId) {
-            websocketService.disconnect(tokenListConnectionId);
-          }
-
-          const tokenListConnId = websocketService.connect(
-            'tokens/',
-            handleTokenListData,
-            (error) => {
-              console.warn('Token list WebSocket connection error (this is normal):', error);
-            }
-          );
-          setTokenListConnectionId(tokenListConnId);
+          // 不需要额外的代币列表连接，主要的端点连接已经足够
 
         } catch (error) {
           console.error('Failed to connect WebSocket:', error);
@@ -485,6 +531,9 @@ export function TokenGrid() {
       // API回退函数
       const fallbackToAPI = async () => {
         try {
+          console.log('🔄 Falling back to API for:', selectedSort);
+          setIsUsingAPIFallback(true);
+
           // 只在没有现有数据时显示loading状态，有数据时显示刷新状态
           if (tokens.length === 0) {
             setLoading(true);
@@ -521,9 +570,39 @@ export function TokenGrid() {
 
         
           if (response.success) {
+            console.log(`🔄 API fallback for ${selectedSort}:`, {
+              selectedSort,
+              tokenCount: response.data.tokens.length,
+              tokens: response.data.tokens.map(t => ({
+                symbol: t.symbol,
+                phase: t.phase,
+                graduation_progress: t.graduation_progress || t.graduationProgress,
+                has_graduated: t.has_graduated,
+                address: t.address
+              }))
+            });
 
             // 处理API返回的数据，确保字段名一致
-            const processedTokens = response.data.tokens.map((token: any) => {
+            let rawTokens = response.data.tokens;
+
+            // 🔥 强制验证：对于 graduated 标签页，只显示真正毕业的代币
+            if (selectedSort === 'graduated') {
+              rawTokens = rawTokens.filter((token: any) => {
+                const isGraduated = token.phase === 'GRADUATED' || token.has_graduated === true;
+                if (!isGraduated) {
+                  console.warn(`⚠️ Filtering out non-graduated token:`, {
+                    symbol: token.symbol,
+                    phase: token.phase,
+                    has_graduated: token.has_graduated,
+                    graduation_progress: token.graduation_progress
+                  });
+                }
+                return isGraduated;
+              });
+              console.log(`✅ After graduation filter: ${rawTokens.length} tokens remaining`);
+            }
+
+            const processedTokens = rawTokens.map((token: any) => {
               const processed = {
                 ...token,
                 // 映射下划线字段名到驼峰格式
@@ -552,10 +631,13 @@ export function TokenGrid() {
 
             // 根据排序选项处理数据
             if (selectedSort === 'curved') {
-              // 过滤进度80%以上的代币
-              filteredTokens = filteredTokens.filter((token: any) =>
-                token.graduationProgress >= 80
-              );
+              // 过滤进度80%以上但还没毕业的代币
+              filteredTokens = filteredTokens.filter((token: any) => {
+                const progress = token.graduationProgress || 0;
+                const isGraduated = token.phase === 'GRADUATED' || token.has_graduated === true;
+                // 只显示进度80%以上但还没毕业的代币
+                return progress >= 80 && !isGraduated;
+              });
 
             } else if (selectedSort === 'top-mc') {
               // 按市值排序（从高到低）
@@ -597,11 +679,19 @@ export function TokenGrid() {
             
             loadCreators();
           } else {
-            setError('Failed to load tokens');
+            // 在生产环境中显示 API 错误，开发环境中静默处理
+            const isDevelopment = process.env.NODE_ENV === 'development';
+            if (!isDevelopment) {
+              setError('Failed to load tokens');
+            }
           }
         } catch (err) {
           console.error('Error loading tokens:', err);
-          setError('Failed to load tokens');
+          // 在生产环境中显示 API 错误，开发环境中静默处理
+          const isDevelopment = process.env.NODE_ENV === 'development';
+          if (!isDevelopment) {
+            setError('Failed to load tokens');
+          }
         } finally {
           setLoading(false);
           setIsRefreshing(false);
@@ -624,10 +714,6 @@ export function TokenGrid() {
         websocketService.disconnect(connectionId);
         setConnectionId(null);
       }
-      if (tokenListConnectionId) {
-        websocketService.disconnect(tokenListConnectionId);
-        setTokenListConnectionId(null);
-      }
     };
   }, [selectedSort, isClient, isInitialized, handleTokenListData, connectionId]);
   
@@ -637,11 +723,8 @@ export function TokenGrid() {
       if (connectionId) {
         websocketService.disconnect(connectionId);
       }
-      if (tokenListConnectionId) {
-        websocketService.disconnect(tokenListConnectionId);
-      }
     };
-  }, [connectionId, tokenListConnectionId]);
+  }, [connectionId]);
 
   // 防抖的收藏状态加载
   const [favoriteTimeout, setFavoriteTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -757,11 +840,37 @@ export function TokenGrid() {
 
   // 保存排序设置到localStorage
   const handleSortChange = (sortValue: string) => {
+    console.log(`🔄 Switching from "${selectedSort}" to "${sortValue}"`);
+
+    // 如果切换到不同的排序方式，清除当前数据以避免显示错误的数据
+    if (sortValue !== selectedSort) {
+      console.log(`🧹 Clearing data for sort change: ${selectedSort} -> ${sortValue}`);
+      setTokens([]);
+      setOriginalTokens([]);
+      setLoading(true);
+      setError(null);
+      setIsRefreshing(false);
+      setIsUsingAPIFallback(false);
+
+      // 清除 API 缓存
+      try {
+        clearApiCache();
+        console.log(`🗑️ Cleared API cache for sort change: ${selectedSort} -> ${sortValue}`);
+      } catch (error) {
+        console.warn('Failed to clear API cache:', error);
+      }
+
+      // 断开现有的 WebSocket 连接
+      if (connectionId) {
+        console.log(`🔌 Disconnecting WebSocket connection: ${connectionId}`);
+        websocketService.disconnect(connectionId);
+        setConnectionId(null);
+      }
+    }
 
     setSelectedSort(sortValue);
     if (typeof window !== 'undefined') {
       localStorage.setItem('tokenGridSort', sortValue);
-
     }
   };
 
@@ -910,9 +1019,12 @@ export function TokenGrid() {
 
       // 应用排序逻辑
       if (selectedSort === 'curved') {
-        filteredTokens = filteredTokens.filter((token: any) =>
-          token.graduationProgress >= 80
-        );
+        filteredTokens = filteredTokens.filter((token: any) => {
+          const progress = token.graduationProgress || 0;
+          const isGraduated = token.phase === 'GRADUATED' || token.has_graduated === true;
+          // 只显示进度80%以上但还没毕业的代币
+          return progress >= 80 && !isGraduated;
+        });
       } else if (selectedSort === 'top-mc') {
         filteredTokens = filteredTokens.sort((a: any, b: any) => {
           const marketCapA = parseFloat(a.marketCap || '0');
@@ -1406,23 +1518,97 @@ export function TokenGrid() {
         // 空状态
         <div className="text-center py-16">
           <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-gray-700 to-gray-800 rounded-2xl flex items-center justify-center">
-            <Filter className="h-10 w-10 text-gray-400" />
+            {(() => {
+              const option = sortOptions.find(opt => opt.value === selectedSort);
+              const IconComponent = option?.icon || Filter;
+              return <IconComponent className="h-10 w-10 text-gray-400" />;
+            })()}
           </div>
-          <h3 className="text-xl font-semibold text-white mb-2">No tokens found</h3>
+          <h3 className="text-xl font-semibold text-white mb-2">
+            {(() => {
+              if (hasActiveFilters()) {
+                return "No tokens found";
+              }
+              switch (selectedSort) {
+                case 'newest':
+                  return "No new tokens";
+                case 'curved':
+                  return "No tokens near graduation";
+                case 'graduated':
+                  return "No graduated tokens";
+                case 'top-mc':
+                  return "No tokens available";
+                default:
+                  return "No tokens found";
+              }
+            })()}
+          </h3>
           <p className="text-gray-400 mb-6 max-w-md mx-auto">
-            {hasActiveFilters()
-              ? "No tokens match your current filter criteria. Try adjusting your filters or clearing them to see more results."
-              : "No tokens are available at the moment. Please try again later."
-            }
+            {(() => {
+              if (hasActiveFilters()) {
+                return "No tokens match your current filter criteria. Try adjusting your filters or clearing them to see more results.";
+              }
+              switch (selectedSort) {
+                case 'newest':
+                  return "No new tokens have been created recently. Check back later for new launches.";
+                case 'curved':
+                  return "No tokens are currently close to graduation (80%+ progress). Check back later as tokens progress.";
+                case 'graduated':
+                  return "No tokens have graduated to DEX yet. Tokens will appear here once they complete the bonding curve phase.";
+                case 'top-mc':
+                  return "No tokens with significant market cap are available at the moment.";
+                default:
+                  return "No tokens are available at the moment. Please try again later.";
+              }
+            })()}
           </p>
-          {hasActiveFilters() && (
-            <button
-              onClick={clearFilters}
-              className="px-6 py-3 bg-[#70E000] text-black rounded-lg hover:bg-[#5BC000] transition-colors font-medium"
-            >
-              Clear All Filters
-            </button>
-          )}
+          <div className="flex flex-col items-center space-y-3">
+            {hasActiveFilters() && (
+              <button
+                onClick={clearFilters}
+                className="px-6 py-3 bg-[#70E000] text-black rounded-lg hover:bg-[#5BC000] transition-colors font-medium"
+              >
+                Clear All Filters
+              </button>
+            )}
+            {selectedSort === 'graduated' && (
+              <button
+                onClick={async () => {
+                  console.log('🔄 Force refresh for graduated tokens');
+                  setTokens([]);
+                  setLoading(true);
+                  setIsUsingAPIFallback(false);
+                  clearApiCache();
+
+                  // 直接调用 API 检查数据
+                  try {
+                    const response = await tokenAPI.getGraduatedTokens({ network: 'sepolia' });
+                    console.log('🔍 Direct API call result:', {
+                      success: response.success,
+                      tokenCount: response.data?.tokens?.length || 0,
+                      tokens: response.data?.tokens?.map((t: any) => ({
+                        symbol: t.symbol,
+                        phase: t.phase,
+                        has_graduated: t.has_graduated,
+                        graduation_progress: t.graduation_progress
+                      })) || []
+                    });
+                  } catch (error) {
+                    console.error('🚨 Direct API call failed:', error);
+                  }
+
+                  // 强制重新连接 WebSocket
+                  if (connectionId) {
+                    websocketService.disconnect(connectionId);
+                    setConnectionId(null);
+                  }
+                }}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition-colors text-sm"
+              >
+                Force Refresh
+              </button>
+            )}
+          </div>
         </div>
       ) : viewMode === "list" ? (
         // 列表视图

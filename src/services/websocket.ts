@@ -436,7 +436,7 @@ export default websocketService;
 
 // 导出便捷方法
 export const connectToTokenList = (messageHandler: MessageHandler) => {
-  return websocketService.connect('tokens/', messageHandler);
+  return websocketService.connect('tokens/newest/', messageHandler);
 };
 
 export const connectToTrendingTokens = (messageHandler: MessageHandler) => {

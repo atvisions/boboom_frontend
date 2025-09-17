@@ -1,6 +1,6 @@
 // API基础配置
 import { API_CONFIG } from '@/config/api';
-import { NETWORK_CONFIG } from '@/contracts/config';
+import { NETWORK_CONFIG } from '@/contracts/config-simple';
 
 // 始终使用完整的后端URL
 const API_BASE_URL = `${API_CONFIG.BASE_URL}/api`;

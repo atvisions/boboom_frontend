@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ethers } from 'ethers';
-import BondingCurveV3ABI from '@/contracts/abis/BondingCurveV3_Final.json';
-import { getContractAddresses } from '@/contracts/config';
+import BondingCurveV1ABI from '@/contracts/abis/BondingCurveV1.json';
+import { getContractAddresses } from '@/contracts/config-simple';
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     // 创建合约实例
     const contract = new ethers.Contract(
       addresses.BONDING_CURVE_V3,
-      BondingCurveV3ABI.abi,
+      BondingCurveV1ABI.abi,
       provider
     );
 
