@@ -21,7 +21,7 @@ export function TokenOverview({ token, okbPrice = 177.6 }: TokenOverviewProps) {
   const totalSupply = parseFloat(token?.total_supply || '0');
 
   // 毕业进度 - 使用API返回的字段，支持多种字段名格式
-  const graduationThreshold = parseFloat(token?.graduation_threshold || '200');
+  const graduationThreshold = parseFloat(token?.graduation_threshold || token?.graduationThreshold || '80');
   const currentCollected = parseFloat(token?.okb_collected || '0');
   // 支持多种字段名格式：graduationProgress, graduation_progress, bonding_progress
   const graduationProgress = parseFloat(

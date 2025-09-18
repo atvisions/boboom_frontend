@@ -18,17 +18,18 @@ export function TokenMetrics({ token, okbPrice, showCurrentPrice = true, stats24
   const athDrop = athPrice > 0 ? ((currentPrice - athPrice) / athPrice) * 100 : 0;
   const athProgress = athPrice > 0 ? Math.min((currentPrice / athPrice) * 100, 100) : 0;
 
-  // 临时调试ATH问题
-  if (token.address === '0x1858087bbb90d274ffb1833c7a3346249bcd0ffe') {
-    console.log('ATH问题调试:', {
-      'token.ath (raw)': token.ath,
+  // ATH调试信息 - 仅在ATH为0时记录
+  if (athPrice === 0 && token.address) {
+    console.warn(`⚠️ ATH为0 [${token.address}]:`, {
+      'token.ath': token.ath,
+      'token.athPrice': token.athPrice,
+      'token.ath_price': token.ath_price,
       'athRaw': athRaw,
-      'athPrice (parsed)': athPrice,
-      'currentPrice': currentPrice,
-      'athPrice > 0': athPrice > 0,
-      'athPrice.toFixed(6)': athPrice > 0 ? athPrice.toFixed(6) : 'N/A'
+      'currentPrice': currentPrice
     });
   }
+
+
 
 
 

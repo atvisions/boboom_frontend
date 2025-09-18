@@ -130,9 +130,10 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
 
   // 后端支持的 interval 映射（新的事件驱动K线系统支持的时间间隔）
   const getBackendInterval = (tf: string): string => {
-    const t = tf.toLowerCase();
-    // 新系统直接支持的时间间隔：1m, 5m, 15m, 30m, 1h, 4h, 1d, 7d, 1M, 1y, all
-    if (['1m', '5m', '15m', '30m', '1h', '4h', '1d', '7d', '1M', '1y', 'all'].includes(t)) return t;
+    // 直接支持的时间间隔，不转换大小写
+    const supportedIntervals = ['1m', '5m', '15m', '30m', '1h', '4h', '1d', '7d', '1month', '1y', 'all'];
+    if (supportedIntervals.includes(tf)) return tf;
+
     // 兼容其他可能的映射
     const fallbackMap: Record<string, string> = {
       '2h': '1h',
@@ -140,11 +141,11 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
       '12h': '4h',
       '24h': '1d',
       '1w': '7d',
-      '1mth': '1M',
-      '1month': '1M',
+      '1M': '1month',  // 兼容旧的大写M格式
+      '1mth': '1month',
       '1year': '1y'
     };
-    return fallbackMap[t] || '1h';
+    return fallbackMap[tf] || fallbackMap[tf.toLowerCase()] || '1h';
   };
 
   // 加载OKB价格
@@ -213,7 +214,8 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
         if (response.success && response.data.candles && response.data.candles.length > 0) {
 
           // 转换数据格式为ApexCharts需要的格式，并根据货币进行转换
-          const candles = response.data.candles
+          // 首先按时间排序，确保K线从旧到新的正确顺序
+          const sortedCandles = response.data.candles
             .filter((candle: any) => {
               // 数据验证：确保所有必需字段存在且为有效数值
               return candle &&
@@ -222,6 +224,9 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
                      candle.low != null && isFinite(candle.low) && candle.low > 0 &&
                      candle.close != null && isFinite(candle.close) && candle.close > 0;
             })
+            .sort((a: any, b: any) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()); // 从旧到新排序
+
+          const candles = sortedCandles
             .map((candle: any, index: number) => {
               let open: number, high: number, low: number, close: number;
 
@@ -262,7 +267,8 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
             .filter(Boolean); // 移除null值
 
           // 新的事件驱动系统已经处理了数据过滤，不需要额外过滤
-          const volumes = response.data.candles
+          // 使用相同的排序后的数据确保K线和交易量数据一致
+          const volumes = sortedCandles
             .filter((candle: any) => {
               // 验证交易量数据
               return candle && candle.volume != null && isFinite(candle.volume) && candle.volume >= 0;
@@ -817,11 +823,11 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
                       <button
                         key={tf}
                         onClick={() => {
-                          setTimeframe(tf.toLowerCase());
+                          setTimeframe(tf); // 保持原始大小写
                           setShowTimeDropdown(false);
                         }}
                         className={`w-full text-left px-2 py-1 rounded text-sm hover:bg-gray-700 ${
-                          timeframe === tf.toLowerCase() ? 'text-white bg-gray-600' : 'text-gray-400'
+                          timeframe === tf ? 'text-white bg-gray-600' : 'text-gray-400'
                         }`}
                       >
                         {tf}
@@ -833,11 +839,11 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
                       <button
                         key={tf}
                         onClick={() => {
-                          setTimeframe(tf.toLowerCase());
+                          setTimeframe(tf); // 保持原始大小写
                           setShowTimeDropdown(false);
                         }}
                         className={`w-full text-left px-2 py-1 rounded text-sm hover:bg-gray-700 ${
-                          timeframe === tf.toLowerCase() ? 'text-white bg-gray-600' : 'text-gray-400'
+                          timeframe === tf ? 'text-white bg-gray-600' : 'text-gray-400'
                         }`}
                       >
                         {tf}
@@ -845,18 +851,18 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
                     ))}
 
                     <div className="text-xs text-gray-500 font-medium px-2 py-1 mt-2">DAYS & MORE</div>
-                    {['1d', '7d', '1M', '1y', 'all'].map((tf) => (
+                    {['1d', '7d', '1month', '1y', 'all'].map((tf) => (
                       <button
                         key={tf}
                         onClick={() => {
-                          setTimeframe(tf.toLowerCase());
+                          setTimeframe(tf); // 保持原始大小写，不要toLowerCase()
                           setShowTimeDropdown(false);
                         }}
                         className={`w-full text-left px-2 py-1 rounded text-sm hover:bg-gray-700 ${
-                          timeframe === tf.toLowerCase() ? 'text-white bg-gray-600' : 'text-gray-400'
+                          timeframe === tf ? 'text-white bg-gray-600' : 'text-gray-400'
                         }`}
                       >
-                        {tf === '1M' ? '1 Month' : tf === '1y' ? '1 Year' : tf === 'all' ? 'All Time' : tf}
+                        {tf === '1month' ? '1 Month' : tf === '1y' ? '1 Year' : tf === 'all' ? 'All Time' : tf}
                       </button>
                     ))}
                   </div>

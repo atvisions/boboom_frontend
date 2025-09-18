@@ -261,7 +261,7 @@ export function TokenGrid() {
                 change24h: tokenData.price_change_24h || tokenData.change24h || token.change24h,
                 high24h: tokenData.high_24h || tokenData.high24h || token.high24h,
                 low24h: tokenData.low_24h || tokenData.low24h || token.low24h,
-                ath: tokenData.ath || token.ath,
+                ath: tokenData.ath || tokenData.ath_price || token.ath,
                 transactionCount: tokenData.transaction_count || tokenData.transactionCount || token.transactionCount,
                 holderCount: tokenData.holder_count || tokenData.holderCount || token.holderCount
               };
@@ -282,7 +282,7 @@ export function TokenGrid() {
                 change24h: tokenData.price_change_24h || tokenData.change24h || token.change24h,
                 high24h: tokenData.high_24h || tokenData.high24h || token.high24h,
                 low24h: tokenData.low_24h || tokenData.low24h || token.low24h,
-                ath: tokenData.ath || token.ath,
+                ath: tokenData.ath || tokenData.ath_price || token.ath,
                 transactionCount: tokenData.transaction_count || tokenData.transactionCount || token.transactionCount,
                 holderCount: tokenData.holder_count || tokenData.holderCount || token.holderCount
               };
@@ -345,7 +345,7 @@ export function TokenGrid() {
           marketCap: token.market_cap || token.marketCap || '0',
           currentPrice: token.current_price || token.currentPrice || '0',
           // 重要：确保ATH和交易数量字段被正确映射
-          ath: token.ath || '0',
+          ath: token.ath || token.ath_price || '0',
           transactionCount: token.transaction_count || token.transactionCount || 0,
           holderCount: token.holder_count || token.holderCount || 0
         }));
@@ -616,7 +616,7 @@ export function TokenGrid() {
                 holderCount: token.holder_count || token.holderCount || 0,
                 change24h: token.change_24h || token.change24h || '0',
                 transactionCount: token.transaction_count || token.transactionCount || 0,
-                ath: token.ath || '0'
+                ath: token.ath || token.ath_price || '0'
               };
 
               return processed;

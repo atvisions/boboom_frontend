@@ -1,7 +1,7 @@
 {
   "_format": "hh-sol-artifact-1",
-  "contractName": "LiquidityRouter",
-  "sourceName": "contracts/LiquidityRouter.sol",
+  "contractName": "LiquidityRouterV1",
+  "sourceName": "contracts/LiquidityRouterV1.sol",
   "abi": [
     {
       "inputs": [
