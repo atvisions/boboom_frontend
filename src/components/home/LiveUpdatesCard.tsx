@@ -34,6 +34,13 @@ export function LiveUpdatesCard() {
   const [pulse, setPulse] = useState({ buy: false, sell: false, news: false, whale: false });
   const [userAvatars, setUserAvatars] = useState<{[key: string]: any}>({}); // 存储用户头像信息
   const [connectionIds, setConnectionIds] = useState<string[]>([]);
+
+  // 监控news状态变化
+  useEffect(() => {
+    if (news.length > 0) {
+      console.log('📊 NEW TOKEN卡片状态:', news[0].name, news[0].address);
+    }
+  }, [news]);
   
   // 动画状态
   const [isAnimating, setIsAnimating] = useState(false);
@@ -53,7 +60,7 @@ export function LiveUpdatesCard() {
           }));
         })
         .catch(error => {
-          console.error('Failed to load user avatar for:', userAddress, error);
+          // Failed to load user avatar
           // 提供默认用户信息
           setUserAvatars(current => ({
             ...current,
@@ -273,8 +280,7 @@ export function LiveUpdatesCard() {
       setHasRealData(true);
 
     } catch (error) {
-      console.error('Failed to load data from API:', error);
-      console.error('LiveUpdatesCard: API loading failed', error);
+      // API loading failed
       setIsLoading(false);
     }
   }, []);
@@ -373,6 +379,13 @@ export function LiveUpdatesCard() {
 
   // 处理新代币数据
   const handleNewTokenData = useCallback((data: any) => {
+    console.log('🆕 NEW TOKEN WebSocket 收到消息:', {
+      type: data.type,
+      tokenName: data.data?.name || 'Unknown',
+      tokenAddress: data.data?.address || 'Unknown',
+      timestamp: new Date().toISOString()
+    });
+    
     if (data.type === 'new_token') {
       // 单个新代币更新
       const tokenData = data.data;
@@ -384,8 +397,20 @@ export function LiveUpdatesCard() {
         createdAgo: formatDistanceToNow(new Date(tokenData.createdAt || tokenData.created_at || Date.now()), { addSuffix: true }),
         creatorAddress: tokenData.creator || '' // 保存创建者地址
       };
+
+      console.log('✅ NEW TOKEN 单个代币更新 - 卡片显示:', {
+        name: item.name,
+        address: item.address,
+        fullAddress: item.fullAddress,
+        createdAgo: item.createdAgo,
+        timestamp: new Date().toISOString()
+      });
       setNews([item]);
-      triggerAnimation('news');
+
+      // 强制触发重新渲染
+      setTimeout(() => {
+        triggerAnimation('news');
+      }, 100);
 
       // 加载创建者头像信息
       if (item.creatorAddress) {
@@ -398,6 +423,13 @@ export function LiveUpdatesCard() {
     } else if (data.type === 'new_token_list') {
       // 初始新代币列表数据
       const tokens = data.data || [];
+      console.log('📋 NEW TOKEN 列表数据:', {
+        tokenCount: tokens.length,
+        latestToken: tokens[0]?.name || 'None',
+        latestAddress: tokens[0]?.address || 'None',
+        timestamp: new Date().toISOString()
+      });
+      
       if (tokens.length > 0) {
         // 取最新的代币作为显示
         const latestToken = tokens[0];
@@ -421,7 +453,7 @@ export function LiveUpdatesCard() {
         setIsLoading(false);
       }
     }
-  }, []);
+  }, [loadUserAvatar, triggerAnimation]);
 
   // 处理巨鲸交易数据
   const handleWhaleTradeData = useCallback((data: any) => {
@@ -471,6 +503,8 @@ export function LiveUpdatesCard() {
         setHasRealData(true);
         setIsLoading(false);
       }
+    } else {
+      // Unhandled data type
     }
   }, [loadUserAvatar]);
 
@@ -519,16 +553,17 @@ export function LiveUpdatesCard() {
     );
 
     // 新代币连接
+    console.log('🔌 NEW TOKEN WebSocket 开始连接: tokens/new/');
     newTokenConnectionId = websocketService.connect(
       'tokens/new/',
       (data) => {
         internalHandleNewTokenData(data);
       },
-      () => {
-        // WebSocket错误处理
+      (error) => {
+        console.error('❌ NEW TOKEN WebSocket 连接错误:', error);
       },
       () => {
-        // WebSocket连接关闭
+        console.log('🔌 NEW TOKEN WebSocket 连接关闭');
       }
     );
 
@@ -552,12 +587,13 @@ export function LiveUpdatesCard() {
         setConnectionIds(connectionIds);
       }
 
-      // 设置超时，如果10秒内没有收到真实数据，则回退到API
+      // 设置超时，如果30秒内没有收到真实数据，则回退到API（延长时间避免覆盖WebSocket数据）
       const fallbackTimeout = setTimeout(() => {
         if (isComponentMounted && !hasRealData) {
+          console.log('🔄 NEW TOKEN: 30秒内无WebSocket数据，触发API回退');
           loadDataFromAPI();
         }
-      }, 10000);
+      }, 30000);
 
       return fallbackTimeout;
     };

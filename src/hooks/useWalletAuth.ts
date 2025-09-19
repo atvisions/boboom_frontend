@@ -59,7 +59,7 @@ export function useWalletAuth() {
   const autoLoginUser = async (userAddress: string) => {
     // 如果已经在处理相同地址的自动登录，直接返回现有的 Promise
     if (globalAuthState.autoLoginPromise && globalAuthState.currentAddress === userAddress) {
-      console.log('Auto login already in progress for:', userAddress);
+      // Auto login already in progress
       return globalAuthState.autoLoginPromise;
     }
     

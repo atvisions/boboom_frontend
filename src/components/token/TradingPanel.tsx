@@ -147,7 +147,7 @@ export function TradingPanel({ token }: TradingPanelProps) {
     // 使用 isRefreshingBalances 而不是 isLoadingBalances，避免影响初始加载状态
     setIsRefreshingBalances(true);
     try {
-      console.log('🔄 Manually refreshing balances...');
+      // Manually refreshing balances
 
       // 并行刷新代币余额和OKB余额
       const [tokenBalance] = await Promise.all([
@@ -279,7 +279,7 @@ export function TradingPanel({ token }: TradingPanelProps) {
 
   // 同步链上OKB余额到本地状态
   useEffect(() => {
-    console.log('🔍 TradingPanel: okbBalanceChain updated:', okbBalanceChain, 'type:', typeof okbBalanceChain);
+    // OKB balance chain updated
     if (okbBalanceChain !== undefined) {
       // okbBalanceChain 已经是格式化后的数字，不需要再用 formatEther
       const balanceStr = okbBalanceChain.toString();

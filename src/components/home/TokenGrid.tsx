@@ -242,7 +242,7 @@ export function TokenGrid() {
   const handleTokenListData = useCallback((data: any) => {
     // 如果正在使用 API 回退，忽略 WebSocket 数据
     if (isUsingAPIFallback) {
-      console.log('🚫 Ignoring WebSocket data because API fallback is active');
+      // Ignoring WebSocket data because API fallback is active
       return;
     }
 
@@ -308,11 +308,7 @@ export function TokenGrid() {
     );
 
     if (isValidTokenData) {
-      console.log(`📡 Received WebSocket data for ${selectedSort}:`, {
-        type: data.type,
-        dataLength: Array.isArray(data.data) ? data.data.length : 'not array',
-        selectedSort
-      });
+      // Received WebSocket data
 
       let tokenList = data.data;
       if (Array.isArray(tokenList)) {
@@ -391,12 +387,7 @@ export function TokenGrid() {
           sortedTokens = sortedTokens.filter(passesFilter);
         }
 
-        console.log(`📊 Setting tokens for ${selectedSort}:`, {
-          originalCount: processedTokens.length,
-          filteredCount: sortedTokens.length,
-          selectedSort,
-          hasFilters: hasActiveFilters()
-        });
+        // Setting filtered tokens
         setTokens(sortedTokens);
 
         // 加载创作者信息

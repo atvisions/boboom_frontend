@@ -173,8 +173,7 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
         const timestamp = Date.now();
         const response = await tokenAPI.getToken24hStats(tokenAddress, 'sepolia');
         if (response.success) {
-          console.log('24h stats API response:', response.data);
-          console.log('currentPrice type:', typeof response.data.currentPrice, 'value:', response.data.currentPrice);
+          // 24h stats API response
           setLocalStats24h(response.data);
         }
       } catch (error) {
@@ -1012,7 +1011,7 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
             ) : (
               (() => {
                 const price = currentStats24h?.currentPrice || '0';
-                console.log('Displaying price:', { price, type: typeof price, formatted: formatPrice(price) });
+                // Displaying price
                 return `$${formatPrice(price)}`;
               })()
             )}

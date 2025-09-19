@@ -77,7 +77,7 @@ export function TrendingSection() {
 
     // 如果是显著变化，立即更新
     if (isSignificantChange(newTokens, tokens)) {
-      console.log(`[TrendingSection] 立即更新 - 显著变化检测 (${source})`);
+      // Immediate update - significant change detected
       setTokens(newTokens);
       setLastStableData(newTokens);
       setPendingUpdates([]);
@@ -85,11 +85,11 @@ export function TrendingSection() {
     }
 
     // 否则，延迟更新（防止频繁跳动）
-    console.log(`[TrendingSection] 延迟更新 - 数据变化不显著 (${source})`);
+    // Delayed update - data change not significant
     setPendingUpdates(newTokens);
 
     const timer = setTimeout(() => {
-      console.log(`[TrendingSection] 执行延迟更新 (${source})`);
+      // Execute delayed update
       setTokens(newTokens);
       setLastStableData(newTokens);
       setPendingUpdates([]);
