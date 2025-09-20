@@ -23,6 +23,7 @@ interface WebSocketConnection {
 class WebSocketService {
   private connections: Map<string, WebSocketConnection> = new Map();
   private baseUrl: string;
+  private connectionThrottle: Map<string, number> = new Map();
 
   constructor() {
     // 从环境变量获取WebSocket服务器地址
@@ -53,17 +54,43 @@ class WebSocketService {
     const url = `${this.baseUrl}/${endpoint}`;
     const connectionId = this.generateConnectionId(endpoint);
 
-    console.log(`🔗 Requesting WebSocket connection to: ${endpoint}`);
+    // 检查连接节流
+    const now = Date.now();
+    const lastAttempt = this.connectionThrottle.get(connectionId) || 0;
+    const throttleDelay = 5000; // 5秒内不允许重复连接同一端点
 
-    // 如果连接已存在，添加处理器并返回
-    if (this.connections.has(connectionId)) {
-      const connection = this.connections.get(connectionId)!;
-      console.log(`♻️ Reusing existing connection: ${endpoint}`);
-      if (messageHandler) connection.messageHandlers.add(messageHandler);
-      if (errorHandler) connection.errorHandlers.add(errorHandler);
-      if (closeHandler) connection.closeHandlers.add(closeHandler);
+    if (now - lastAttempt < throttleDelay) {
+      console.log(`🚫 Connection throttled for: ${endpoint}, wait ${Math.ceil((throttleDelay - (now - lastAttempt)) / 1000)}s`);
+      // 如果连接存在，返回现有连接ID
+      if (this.connections.has(connectionId)) {
+        const connection = this.connections.get(connectionId)!;
+        if (messageHandler) connection.messageHandlers.add(messageHandler);
+        if (errorHandler) connection.errorHandlers.add(errorHandler);
+        if (closeHandler) connection.closeHandlers.add(closeHandler);
+      }
       return connectionId;
     }
+
+    console.log(`🔗 Requesting WebSocket connection to: ${endpoint}`);
+
+    // 如果连接已存在且状态良好，添加处理器并返回
+    if (this.connections.has(connectionId)) {
+      const connection = this.connections.get(connectionId)!;
+      if (connection.ws && connection.ws.readyState === WebSocket.OPEN) {
+        console.log(`♻️ Reusing active connection: ${endpoint}`);
+        if (messageHandler) connection.messageHandlers.add(messageHandler);
+        if (errorHandler) connection.errorHandlers.add(errorHandler);
+        if (closeHandler) connection.closeHandlers.add(closeHandler);
+        return connectionId;
+      } else {
+        // 清理无效连接
+        console.log(`🧹 Cleaning up stale connection: ${endpoint}`);
+        this.disconnect(connectionId);
+      }
+    }
+
+    // 记录连接尝试时间
+    this.connectionThrottle.set(connectionId, now);
 
     // 创建新连接
     const connection: WebSocketConnection = {
@@ -73,8 +100,8 @@ class WebSocketService {
       errorHandlers: new Set(errorHandler ? [errorHandler] : []),
       closeHandlers: new Set(closeHandler ? [closeHandler] : []),
       reconnectAttempts: 0,
-      maxReconnectAttempts: 5,
-      reconnectDelay: 1000,
+      maxReconnectAttempts: 3,
+      reconnectDelay: 3000,
       isConnecting: false,
       shouldReconnect: true
     };
@@ -95,7 +122,7 @@ class WebSocketService {
     connection.isConnecting = true;
 
     // 添加随机延迟，避免同时建立多个连接
-    const delay = Math.random() * 1000; // 0-1秒随机延迟
+    const delay = Math.random() * 2000 + 1000; // 1-3秒随机延迟
 
     setTimeout(() => {
       try {

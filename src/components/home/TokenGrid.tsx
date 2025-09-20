@@ -706,7 +706,7 @@ export function TokenGrid() {
         setConnectionId(null);
       }
     };
-  }, [selectedSort, isClient, isInitialized, handleTokenListData, connectionId]);
+  }, [selectedSort, isClient, isInitialized, handleTokenListData]);
   
   // 组件卸载时清理WebSocket连接
   useEffect(() => {
