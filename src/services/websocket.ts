@@ -1,6 +1,6 @@
 /**
  * WebSocket服务类
- * 管理与后端WebSocket接口的连接和数据流
+ * 优化管理与后端WebSocket接口的连接和数据流
  */
 
 type MessageHandler = (data: any) => void;
