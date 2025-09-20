@@ -60,6 +60,12 @@ const TokenIcon = ({ isOKB, token, className = "w-6 h-6" }: TokenIconProps) => {
 
     // 优先使用 API 返回的图片 URL
     if (token.imageUrl) {
+      // 如果是相对路径，添加后端域名
+      if (token.imageUrl.startsWith('/media/')) {
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://api.boboom.fun';
+        return `${backendUrl}${token.imageUrl}`;
+      }
+      // 如果已经是完整 URL，直接使用
       return token.imageUrl;
     }
 

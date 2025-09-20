@@ -106,7 +106,13 @@ function CreateTokenForm() {
       const response = await fetch('/api/tokens/upload-image', { method: 'POST', body: formData });
       if (!response.ok) throw new Error('Upload failed');
       const data = await response.json();
-      if (data.success) return data.data.url; else throw new Error(data.error || 'Upload failed');
+      console.log('📤 Upload response:', data);
+      if (data.success) {
+        console.log('🖼️ Image URL returned:', data.data.url);
+        return data.data.url;
+      } else {
+        throw new Error(data.error || 'Upload failed');
+      }
     } catch (error) {
       console.error('Image upload error:', error);
       throw error;

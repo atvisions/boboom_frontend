@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   trailingSlash: true,
+  // 移除静态导出配置，使用服务器模式
   images: {
     remotePatterns: [
       {
@@ -19,6 +20,12 @@ const nextConfig = {
         protocol: 'http',
         hostname: 'localhost',
         port: '8000',
+        pathname: '/media/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'api.boboom.fun',
+        port: '',
         pathname: '/media/**',
       },
     ],

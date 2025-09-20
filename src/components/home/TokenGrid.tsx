@@ -1760,7 +1760,14 @@ export function TokenGrid() {
                 <div className="flex-shrink-0 w-16 h-16 rounded-2xl overflow-hidden bg-gradient-to-br from-[#1B1B1B] to-[#232323] flex items-center justify-center shadow-lg">
                   {token.imageUrl ? (
                     <Image
-                      src={token.imageUrl}
+                      src={(() => {
+                        // 处理图片 URL
+                        if (token.imageUrl.startsWith('/media/')) {
+                          const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://api.boboom.fun';
+                          return `${backendUrl}${token.imageUrl}`;
+                        }
+                        return token.imageUrl;
+                      })()}
                       alt={`${token.name} logo`}
                       width={64}
                       height={64}

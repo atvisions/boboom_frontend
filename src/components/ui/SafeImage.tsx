@@ -41,17 +41,26 @@ export function SafeImage({
     );
   }
 
+  // 处理图片 URL
+  const getImageUrl = (src: string) => {
+    if (src.startsWith('/media/')) {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://api.boboom.fun';
+      return `${backendUrl}${src}`;
+    }
+    return src;
+  };
+
   return (
     <div className={`relative ${className}`} style={{ width, height, ...style }}>
       {isLoading && (
-        <div 
+        <div
           className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-[#1B1B1B] to-[#232323] animate-pulse"
         >
           <span className="text-gray-400 text-sm">Loading...</span>
         </div>
       )}
       <Image
-        src={src}
+        src={getImageUrl(src)}
         alt={alt}
         width={width}
         height={height}
