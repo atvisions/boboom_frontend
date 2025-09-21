@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const backendFormData = new FormData();
     backendFormData.append('image', image);
 
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
     const response = await fetch(`${backendUrl}/api/tokens/upload-image/`, {
       method: 'POST',
       body: backendFormData,
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(data);
 
   } catch (error) {
-    console.error('Error uploading image:', error);
+
     return NextResponse.json(
       { 
         success: false, 

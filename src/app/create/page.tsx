@@ -106,15 +106,15 @@ function CreateTokenForm() {
       const response = await fetch('/api/tokens/upload-image', { method: 'POST', body: formData });
       if (!response.ok) throw new Error('Upload failed');
       const data = await response.json();
-      console.log('📤 Upload response:', data);
+
       if (data.success) {
-        console.log('🖼️ Image URL returned:', data.data.url);
+
         return data.data.url;
       } else {
         throw new Error(data.error || 'Upload failed');
       }
     } catch (error) {
-      console.error('Image upload error:', error);
+
       throw error;
     } finally { setIsUploading(false); }
   };
@@ -128,10 +128,10 @@ function CreateTokenForm() {
       if (uploadedImage) {
         try {
           finalImageUrl = await uploadImageToServer(uploadedImage);
-          console.log('✅ Image uploaded successfully:', finalImageUrl);
+
         }
         catch (uploadError) {
-          console.error('❌ Image upload failed:', uploadError);
+
           toast.error('Image upload failed, please try again');
           return; // 停止创建流程，要求用户重新上传
         }
@@ -163,16 +163,12 @@ function CreateTokenForm() {
         initialPurchase
       };
 
-      console.log('🎯 Token data prepared:', tokenData);
-
       // 记录开始创建新代币的时间戳，用于验证交易哈希的有效性
-      console.log('Starting new token creation flow for:', tokenData.name);
-      console.log('Current createHash before starting:', createHash);
-      
+
       setPendingTokenData(tokenData);
       setShowStepsModal(true);
     } catch (error) {
-      console.error('Token creation preparation error:', error);
+
       toast.error('Failed to prepare token creation. Please try again.');
     }
   };
@@ -228,64 +224,53 @@ function CreateTokenForm() {
   // 检查代币地址
   const handleCheckTokenAddress = async (txHash: string): Promise<string | null> => {
     try {
-      console.log('handleCheckTokenAddress called with txHash:', txHash);
-      console.log('User address:', address);
-      
+
       if (!txHash || !address) {
-        console.error('Missing txHash or address:', { txHash, address });
+
         return null;
       }
       
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
       const apiUrl = `${backendUrl}/api/tokens/creators/${address?.toLowerCase()}/latest-token/?network=sepolia&tx_hash=${txHash}`;
-      console.log('API URL:', apiUrl);
-      
+
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
       });
-      
-      console.log('API response status:', response.status);
-      console.log('API response headers:', Object.fromEntries(response.headers.entries()));
-      
+
       const responseText = await response.text();
-      console.log('API response text:', responseText);
-      
+
       if (response.ok) {
         try {
           const data = JSON.parse(responseText);
-          console.log('API response data:', data);
-          
+
           if (data.success && data.data && data.data.address) {
-            console.log('✅ Found token address:', data.data.address);
-            console.log('Token found by:', data.data.found_by);
+
             return data.data.address;
           } else {
-            console.warn('⚠️ API returned success=false or no address:', data);
+
             return null;
           }
         } catch (parseError) {
-          console.error('❌ Failed to parse JSON response:', parseError);
-          console.error('Response text was:', responseText);
+
           return null;
         }
       } else {
-        console.error('❌ API response not ok:', response.status, responseText);
-        
+
         // 尝试解析错误响应
         try {
           const errorData = JSON.parse(responseText);
-          console.error('Error details:', errorData);
+
         } catch (e) {
-          console.error('Could not parse error response as JSON');
+
         }
         
         return null;
       }
     } catch (error) { 
-      console.error('❌ Exception in handleCheckTokenAddress:', error); 
+
       return null; 
     }
   };

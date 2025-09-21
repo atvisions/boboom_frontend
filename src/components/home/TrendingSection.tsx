@@ -111,16 +111,7 @@ export function TrendingSection() {
           currentFirst.telegram !== newFirst.telegram;
 
         if (socialMediaChanged) {
-          console.warn(`[TrendingSection] Social media data inconsistency detected!`, {
-            previousSource: dataSource,
-            newSource: source,
-            token: currentFirst.address,
-            changes: {
-              website: { old: currentFirst.website, new: newFirst.website },
-              twitter: { old: currentFirst.twitter, new: newFirst.twitter },
-              telegram: { old: currentFirst.telegram, new: newFirst.telegram }
-            }
-          });
+
         }
       }
     }
@@ -138,7 +129,7 @@ export function TrendingSection() {
           setOkbPrice(parseFloat(response.data.price));
         }
       } catch (error) {
-        console.error('Failed to load OKB price:', error);
+
       }
     };
     
@@ -200,7 +191,7 @@ export function TrendingSection() {
               const creatorData = await userAPI.getUser(creatorAddress.toLowerCase());
               newCreators[creatorAddress] = creatorData;
             } catch (error) {
-              console.error('Failed to load creator info for:', creatorAddress, error);
+
               // 提供默认创建者信息，确保UI不会因为API错误而崩溃
               newCreators[creatorAddress] = {
                 address: creatorAddress,
@@ -223,7 +214,6 @@ export function TrendingSection() {
   // 初始化WebSocket连接和备用API加载
   useEffect(() => {
     if (!isClient) return; // 只在客户端运行
-    
 
     // 清除代币相关缓存，确保获取最新数据
     cacheAPI.clearTokens();
@@ -268,30 +258,12 @@ export function TrendingSection() {
             return processed;
           });
 
-
           // 使用防抖更新，避免页面跳动
           debouncedUpdate(processedTokens, 'API');
 
           // 调试：检查API数据一致性
           if (processedTokens.length > 0) {
-            console.log('[TrendingSection] API data received:', {
-              timestamp: new Date().toISOString(),
-              dataSource: 'API',
-              tokenCount: processedTokens.length,
-              firstToken: {
-                address: processedTokens[0].address,
-                name: processedTokens[0].name,
-                volume24h: processedTokens[0].volume24h,
-                marketCap: processedTokens[0].marketCap,
-                currentPrice: processedTokens[0].currentPrice
-              },
-              topTokens: processedTokens.slice(0, 4).map(token => ({
-                address: token.address,
-                name: token.name,
-                volume24h: token.volume24h,
-                marketCap: token.marketCap
-              }))
-            });
+
           }
 
           // 加载创作者信息
@@ -309,7 +281,7 @@ export function TrendingSection() {
                   newCreators[creatorAddress] = creatorData;
                 }
               } catch (error) {
-                console.error('Failed to load creator info for:', creatorAddress, error);
+
               }
             }
 
@@ -444,7 +416,7 @@ export function TrendingSection() {
         
         setFavorites(newFavorites);
       } catch (error) {
-        console.error('Error loading favorite status:', error);
+
       }
     };
 
@@ -489,14 +461,14 @@ export function TrendingSection() {
                 setFavorites(updatedFavorites);
               }
             } catch (error) {
-              console.error('Error rechecking favorite status:', error);
+
             }
           }, 500);
         } else {
           toast.error('Failed to update favorite status');
         }
       } catch (error) {
-        console.error('Error toggling favorite:', error);
+
         toast.error('Failed to update favorite status');
       }
     },
@@ -764,7 +736,7 @@ export function TrendingSection() {
                             if (creatorInfo.avatar_url.startsWith('/media/')) {
                               return (
                                 <Image
-                                  src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'}${creatorInfo.avatar_url}?t=${creatorInfo.updated_at || Date.now()}`}
+                                  src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}${creatorInfo.avatar_url}?t=${creatorInfo.updated_at || Date.now()}`}
                                   alt="Creator avatar"
                                   width={32}
                                   height={32}

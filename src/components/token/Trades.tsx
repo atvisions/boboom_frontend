@@ -94,7 +94,7 @@ export function TradesAndHolders({ tokenAddress, token, okbPrice }: TradesAndHol
         setError('Failed to load transactions');
       }
     } catch (err) {
-      console.error('Error loading transactions:', err);
+
       setError('Failed to load transactions');
     } finally {
       setLoading(false);
@@ -109,7 +109,7 @@ export function TradesAndHolders({ tokenAddress, token, okbPrice }: TradesAndHol
       setCopiedHash(hash);
       setTimeout(() => setCopiedHash(null), 2000);
     } catch (err) {
-      console.error('Failed to copy hash:', err);
+
     }
   };
 
@@ -154,7 +154,7 @@ export function TradesAndHolders({ tokenAddress, token, okbPrice }: TradesAndHol
         setError('Failed to load holders');
       }
     } catch (err) {
-      console.error('Error loading holders:', err);
+
       setError('Failed to load holders');
     } finally {
       setLoading(false);
@@ -176,7 +176,6 @@ export function TradesAndHolders({ tokenAddress, token, okbPrice }: TradesAndHol
       // 连接交易WebSocket获取实时更新
       transactionConnectionId = websocketService.connect('transactions/', handleTransactionData);
 
-      console.log('Connected to transaction WebSocket for real-time updates');
     } else if (activeTab === 'holders') {
       // 重置状态并加载第一页持有者数据
       setHoldersPage(1);
@@ -186,7 +185,6 @@ export function TradesAndHolders({ tokenAddress, token, okbPrice }: TradesAndHol
       // 连接持有者WebSocket获取实时更新
       holdersConnectionId = websocketService.connect(`tokens/${tokenAddress}/holders/`, handleHoldersData);
 
-      console.log('Connected to holders WebSocket for real-time updates');
     } else if (activeTab === 'overview') {
       // Overview tab 不需要额外的数据加载，因为数据通过 props 传递
       // 直接设置loading为false
@@ -277,8 +275,6 @@ export function TradesAndHolders({ tokenAddress, token, okbPrice }: TradesAndHol
       : `https://sepolia.etherscan.io/address/${hash}`;
     window.open(url, '_blank');
   };
-
-
 
   if (loading) {
     return (

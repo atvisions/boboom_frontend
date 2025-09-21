@@ -20,27 +20,13 @@ export function TokenMetrics({ token, okbPrice, showCurrentPrice = true, stats24
 
   // ATH调试信息 - 仅在ATH为0时记录
   if (athPrice === 0 && token.address) {
-    console.warn(`⚠️ ATH为0 [${token.address}]:`, {
-      'token.ath': token.ath,
-      'token.athPrice': token.athPrice,
-      'token.ath_price': token.ath_price,
-      'athRaw': athRaw,
-      'currentPrice': currentPrice
-    });
+
   }
-
-
-
-
-
-
 
   // 使用通用的价格格式化函数
 
   // 根据是否显示当前价格决定列数 - 现在显示3列
   const gridCols = showCurrentPrice ? 'md:grid-cols-2 lg:grid-cols-3' : 'md:grid-cols-1 lg:grid-cols-2';
-
-
 
   return (
     <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6">

@@ -23,7 +23,7 @@ export function HoldersList({ tokenAddress }: HoldersListProps) {
           setError('Failed to load holders');
         }
       } catch (err) {
-        console.error('Error loading holders:', err);
+
         setError('Failed to load holders');
       } finally {
         setLoading(false);

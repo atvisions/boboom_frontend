@@ -172,7 +172,7 @@ export function TokenCreationFlow(props: TokenCreationFlowProps) {
     
     // 等待实际交易哈希可用
     if (!txHash) {
-      console.log('Waiting for actual transaction hash...');
+
       return;
     }
     
@@ -180,7 +180,7 @@ export function TokenCreationFlow(props: TokenCreationFlowProps) {
     setStates(s => ({ ...s, SYNC: { ...s.SYNC, status: 'loading', message: 'Syncing with backend...' }}));
 
     const run = async () => {
-      console.log('Starting sync with actual transaction hash:', txHash);
+
       let attempts = 0;
       const maxAttempts = 60; // 增加到60次重试
       
@@ -202,7 +202,7 @@ export function TokenCreationFlow(props: TokenCreationFlowProps) {
         try {
           const addr = await onCheckTokenAddress(txHash);
           if (addr) {
-            console.log('Successfully found token address:', addr);
+
             setStates(s => ({ ...s, SYNC: { ...s.SYNC, status: 'done', message: `Token found: ${addr}` }}));
             setStep('DONE');
             
@@ -214,8 +214,7 @@ export function TokenCreationFlow(props: TokenCreationFlowProps) {
             return;
           }
         } catch (error) {
-          console.warn(`Sync attempt ${attempts} failed:`, error);
-          
+
           // 如果是明确的404错误（代币未找到），继续重试
           // 如果是其他错误，也继续重试，但记录错误信息
           if (attempts % 10 === 0) {
@@ -237,7 +236,7 @@ export function TokenCreationFlow(props: TokenCreationFlowProps) {
       }
       
       // 所有重试都失败了
-      console.error('All sync attempts failed');
+
       setStates(s => ({ 
         ...s, 
         SYNC: { 

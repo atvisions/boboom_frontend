@@ -25,7 +25,6 @@ const exo2 = Exo_2({
   display: 'swap',
 });
 
-
 const hubotSans = localFont({
   src: [
     {
@@ -78,5 +77,4 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     </html>
   );
 }
-
 

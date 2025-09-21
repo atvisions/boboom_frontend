@@ -30,8 +30,6 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
   const targetAddress = params?.address || address;
   const [isOwnProfile, setIsOwnProfile] = useState(false);
 
-
-  
   // 用户数据
   const [userData, setUserData] = useState<any>(null);
   const [userStats, setUserStats] = useState<any>(null);
@@ -129,7 +127,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
         toast.error('Failed to update favorite status');
       }
     } catch (error) {
-      console.error('Error toggling favorite:', error);
+
       toast.error('Failed to update favorite status');
     } finally {
       setFavoriteLoading(prev => {
@@ -224,7 +222,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
         setIsFollowing(followStatus.data.is_following);
       }
     } catch (error) {
-      console.error('Failed to load follow status:', error);
+
     }
   };
 
@@ -259,7 +257,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
       // 根据当前活动标签页加载相应数据
       loadTabData(activeTab);
     } catch (error) {
-      console.error('Failed to load user data:', error);
+
     }
   };
 
@@ -307,7 +305,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
             const tokensResponse = await userAPI.getUserTokens(targetAddress);
             setUserTokens(tokensResponse);
           } catch (error) {
-            console.error('Failed to load user tokens:', error);
+
           }
           break;
           
@@ -332,7 +330,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
           break;
       }
     } catch (error) {
-      console.error(`Failed to load data for tab ${tabId}:`, error);
+
     }
   };
 
@@ -435,8 +433,6 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
     }
   }, [targetAddress, isClient, activeTab]);
 
-
-
   // 如果钱包未连接，显示连接提示
   if (!address && !targetAddress) {
     return (
@@ -490,15 +486,11 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
     transactions: userStats.total_transactions || 0 // 使用真实的交易数量
   } : null;
 
-
-  
   // 处理API返回的数据结构：{created: [...], holding: [...]}
   const createdTokens = (userTokens?.created || []).map((token: any, index: number) => {
     // 前端转换OKB数量为USD
     const okbVolume = parseFloat(token.volume24h || 0);
     const volumeUSD = okbVolume * okbPrice;
-
-
 
     return {
       id: index + 1,
@@ -600,7 +592,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                     {userData?.avatar_url && userData.avatar_url.trim() !== '' ? (
                       userData.avatar_url.startsWith('/media/') ? (
                         <img
-                          src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'}${userData.avatar_url}`}
+                          src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}${userData.avatar_url}`}
                           alt="Avatar"
                           className="w-full h-full rounded-full object-cover"
                         />
@@ -928,9 +920,6 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                 {activeTab === "create" && (
                   <div className="space-y-4">
 
-
-
-
                     {createdTokens && createdTokens.length > 0 ? (
                       createdTokens.map((token) => (
                       <div 
@@ -1068,7 +1057,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                                   {follow.user.avatar_url && follow.user.avatar_url.trim() !== '' ? (
                                     follow.user.avatar_url.startsWith('/media/') ? (
                                       <img
-                                        src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'}${follow.user.avatar_url}`}
+                                        src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}${follow.user.avatar_url}`}
                                         alt="Avatar"
                                         className="w-full h-full rounded-full object-cover"
                                       />
@@ -1142,7 +1131,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                                   {follower.user.avatar_url && follower.user.avatar_url.trim() !== '' ? (
                                     follower.user.avatar_url.startsWith('/media/') ? (
                                       <img
-                                        src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'}${follower.user.avatar_url}`}
+                                        src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}${follower.user.avatar_url}`}
                                         alt="Avatar"
                                         className="w-full h-full rounded-full object-cover"
                                       />
@@ -1217,7 +1206,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                             {user.avatar_url && user.avatar_url.trim() !== '' ? (
                               user.avatar_url.startsWith('/media/') ? (
                                 <img
-                                  src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'}${user.avatar_url}`}
+                                  src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}${user.avatar_url}`}
                                   alt="Avatar"
                                   className="w-full h-full rounded-full object-cover"
                                 />

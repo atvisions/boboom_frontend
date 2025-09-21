@@ -65,18 +65,14 @@ export default function TokenDetailPage() {
 
     // 简化的WebSocket推送日志
     if (data.type === 'price_update') {
-      console.log(`🔔 WebSocket推送 #${wsCounterRef.current.total}: ${data.type}`);
+
     }
     if (data.type === 'token_detail' || data.type === 'token_detail_update') {
       const tokenData = data.data;
       if (tokenData && tokenData.address === tokenAddress) {
         // 仅在ATH为空时记录详细信息
         if (!tokenData.ath && !tokenData.ath_price) {
-          console.warn(`⚠️ ${data.type} ATH数据缺失:`, {
-            address: tokenData.address,
-            ath: tokenData.ath,
-            ath_price: tokenData.ath_price
-          });
+
         }
 
         // 将后端的snake_case字段映射为前端期望的camelCase
@@ -107,10 +103,7 @@ export default function TokenDetailPage() {
 
         // 仅在ATH为0时记录警告
         if (!mappedToken.ath || mappedToken.ath === '0') {
-          console.warn(`⚠️ 映射后ATH为空:`, {
-            ath: mappedToken.ath,
-            currentPrice: mappedToken.currentPrice
-          });
+
         }
 
         setToken(mappedToken);
@@ -122,11 +115,7 @@ export default function TokenDetailPage() {
       if (priceData && priceData.address === tokenAddress) {
         // 仅在ATH数据异常时记录
         if (!priceData.ath && !priceData.ath_price) {
-          console.warn(`⚠️ price_update ATH数据缺失:`, {
-            address: priceData.address,
-            ath: priceData.ath,
-            ath_price: priceData.ath_price
-          });
+
         }
 
         setToken((prevToken: any) => {
@@ -138,11 +127,7 @@ export default function TokenDetailPage() {
 
           // 仅在ATH被重置为0时记录警告
           if (prevToken.ath && prevToken.ath !== '0' && finalAth === '0') {
-            console.warn(`⚠️ ATH被重置:`, {
-              'prevToken.ath': prevToken.ath,
-              'finalAth': finalAth,
-              'hasValidAth': hasValidAth
-            });
+
           }
 
           const updatedToken = {
@@ -158,10 +143,7 @@ export default function TokenDetailPage() {
 
           // 仅在ATH异常时记录
           if (!updatedToken.ath || updatedToken.ath === '0') {
-            console.warn(`⚠️ 更新后ATH异常:`, {
-              ath: updatedToken.ath,
-              currentPrice: updatedToken.currentPrice
-            });
+
           }
 
           return updatedToken;
@@ -176,7 +158,6 @@ export default function TokenDetailPage() {
           low24h: priceData.low_24h || priceData.low24h,
           updatedAt: new Date().toISOString()
         };
-
 
         setStats24h((prevStats: any) => ({
           ...prevStats,
@@ -206,7 +187,6 @@ export default function TokenDetailPage() {
     const loadTokenDetails = async () => {
       try {
 
-
         // 清除相关缓存
         clearApiCache('token_details');
         clearApiCache('token_24h_stats');
@@ -217,19 +197,13 @@ export default function TokenDetailPage() {
           tokenAPI.getToken24hStats(tokenAddress, 'sepolia')
         ]);
 
-
-
         if (detailResponse.success) {
           const tokenData = detailResponse.data;
           const statsData = statsResponse.success ? statsResponse.data : { high24h: '0', low24h: '0' };
 
           // 仅在API返回的ATH数据异常时记录
           if (!tokenData.ath && !tokenData.ath_price) {
-            console.warn(`⚠️ API返回ATH数据缺失:`, {
-              ath: tokenData.ath,
-              ath_price: tokenData.ath_price,
-              current_price: tokenData.current_price
-            });
+
           }
 
           // 保存 24h 统计数据

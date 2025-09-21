@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { address: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
-    const { address } = params;
+    const { searchParams } = new URL(request.url);
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
-
-    const response = await fetch(`${backendUrl}/api/users/${address}/`, {
+    
+    const response = await fetch(`${backendUrl}/api/tokens/?${searchParams.toString()}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -20,14 +17,13 @@ export async function GET(
     }
 
     const data = await response.json();
-
     return NextResponse.json(data);
-  } catch (error) {
 
+  } catch (error) {
     return NextResponse.json(
       { 
         success: false, 
-        error: 'Failed to fetch user info',
+        error: 'Failed to fetch tokens',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }

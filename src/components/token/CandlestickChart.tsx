@@ -30,33 +30,33 @@ interface CandlestickChartProps {
 // 数据验证函数
 function validateChartData(data: any[]): boolean {
   if (!Array.isArray(data)) {
-    console.warn('❌ Chart data is not an array:', typeof data);
+
     return false;
   }
   if (data.length === 0) return true; // 空数组是有效的
   if (data.length > 10000) {
-    console.warn('❌ Chart data array too large:', data.length);
+
     return false;
   }
 
   for (let i = 0; i < data.length; i++) {
     const item = data[i];
     if (!item || typeof item !== 'object') {
-      console.warn('❌ Invalid chart data item at index', i, ':', item);
+
       return false;
     }
     if (typeof item.x !== 'number') {
-      console.warn('❌ Invalid x value at index', i, ':', item.x, typeof item.x);
+
       return false;
     }
     if (!Array.isArray(item.y) || item.y.length !== 4) {
-      console.warn('❌ Invalid y array at index', i, ':', item.y);
+
       return false;
     }
     for (let j = 0; j < item.y.length; j++) {
       const val = item.y[j];
       if (typeof val !== 'number' || !isFinite(val) || val <= 0) {
-        console.warn('❌ Invalid y value at index', i, 'position', j, ':', val);
+
         return false;
       }
     }
@@ -67,27 +67,27 @@ function validateChartData(data: any[]): boolean {
 
 function validateVolumeData(data: any[]): boolean {
   if (!Array.isArray(data)) {
-    console.warn('❌ Volume data is not an array:', typeof data);
+
     return false;
   }
   if (data.length === 0) return true; // 空数组是有效的
   if (data.length > 10000) {
-    console.warn('❌ Volume data array too large:', data.length);
+
     return false;
   }
 
   for (let i = 0; i < data.length; i++) {
     const item = data[i];
     if (!item || typeof item !== 'object') {
-      console.warn('❌ Invalid volume data item at index', i, ':', item);
+
       return false;
     }
     if (typeof item.x !== 'number') {
-      console.warn('❌ Invalid volume x value at index', i, ':', item.x, typeof item.x);
+
       return false;
     }
     if (typeof item.y !== 'number' || !isFinite(item.y) || item.y < 0) {
-      console.warn('❌ Invalid volume y value at index', i, ':', item.y, typeof item.y);
+
       return false;
     }
   }
@@ -191,8 +191,6 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
     }
   }, [tokenAddress, stats24h]);
 
-
-
   // 移除模拟数据生成，现在使用真实的事件驱动K线数据
 
   // 加载蜡烛图数据的函数 - 使用新的事件驱动K线API
@@ -247,7 +245,7 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
                 // Validate converted data
                 if (!isFinite(open) || !isFinite(high) || !isFinite(low) || !isFinite(close) ||
                     open <= 0 || high <= 0 || low <= 0 || close <= 0) {
-                  console.warn('⚠️ Invalid candlestick data:', { candle, converted: { open, high, low, close } });
+
                   return null;
                 }
 
@@ -259,7 +257,7 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
 
                 return candleData;
               } catch (error) {
-                console.warn('⚠️ Candlestick data conversion error:', error, candle);
+
                 return null;
               }
             })
@@ -294,24 +292,17 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
                 setCandlestickData(cleanedCandles);
                 setVolumeData(cleanedVolumes);
               } else {
-                console.warn('⚠️ Data array size check failed');
+
                 setCandlestickData([]);
                 setVolumeData([]);
               }
             } catch (error) {
-              console.error('❌ Error setting chart data:', error);
+
               setCandlestickData([]);
               setVolumeData([]);
             }
           } else {
-            console.warn('⚠️ Data validation failed:', {
-              candleLength: candles.length,
-              volumeLength: volumes.length,
-              isCandleDataValid,
-              isVolumeDataValid,
-              sampleCandle: candles[0],
-              sampleVolume: volumes[0]
-            });
+
             setCandlestickData([]);
             setVolumeData([]);
           }
@@ -321,7 +312,7 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
           setVolumeData([]);
         }
       } catch (error) {
-        console.warn('Failed to load candlestick data:', error);
+
         // 静默处理API失败，显示空图表
         setCandlestickData([]);
         setVolumeData([]);
@@ -422,7 +413,7 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
               if (!open || !high || !low || !close ||
                   open <= 0 || high <= 0 || low <= 0 || close <= 0 ||
                   !isFinite(open) || !isFinite(high) || !isFinite(low) || !isFinite(close)) {
-                console.warn('⚠️ Invalid WebSocket candlestick data, skipping update:', c);
+
                 return; // 跳过这个无效的更新
               }
 
@@ -459,7 +450,7 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
 
               // 验证交易量数据的有效性
               if (!isFinite(volume) || volume < 0) {
-                console.warn('⚠️ Invalid WebSocket volume data, skipping update:', c);
+
                 return; // 跳过这个无效的更新
               }
 
@@ -478,7 +469,7 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
           });
         }
       } catch (e) {
-        console.error('Error handling candles message:', e);
+
       }
     };
 
@@ -880,8 +871,6 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
               <RotateCcw className="w-4 h-4" />
             </Button>
 
-
-
             {/* 货币切换按钮 */}
             <Button
               variant="outline"
@@ -897,8 +886,6 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
         </div>
       </div>
 
-
-
       {/* 主图表区域 */}
       <div className="bg-[#1a1a1a] rounded-lg p-6">
         <div className="space-y-2">
@@ -910,7 +897,7 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
                   try {
                     // Final data validation
                     if (!validateChartData(candlestickData)) {
-                      console.error('❌ Chart data validation failed, cannot render');
+
                       return <ChartErrorFallback />;
                     }
 
@@ -928,7 +915,7 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
                       />
                     );
                   } catch (error) {
-                    console.error('❌ Chart rendering error:', error);
+
                     return <ChartErrorFallback />;
                   }
                 })()}
@@ -959,7 +946,7 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
                     try {
                       // Validate volume data
                       if (!validateVolumeData(volumeData)) {
-                        console.error('❌ Volume data validation failed, cannot render');
+
                         return (
                           <div className="flex items-center justify-center h-[80px] text-gray-500 text-sm">
                             Volume data invalid
@@ -981,7 +968,7 @@ export function CandlestickChart({ tokenAddress, stats24h }: CandlestickChartPro
                         />
                       );
                     } catch (error) {
-                      console.error('❌ Volume chart rendering error:', error);
+
                       return (
                         <div className="flex items-center justify-center h-[80px] text-gray-500 text-sm">
                           Volume chart error

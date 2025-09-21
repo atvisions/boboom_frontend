@@ -23,7 +23,7 @@ export class ChartErrorBoundary extends React.Component<ChartErrorBoundaryProps,
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.warn('Chart component error:', error, errorInfo);
+
   }
 
   render() {

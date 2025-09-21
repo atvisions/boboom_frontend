@@ -8,7 +8,6 @@ import websocketService from "@/services/websocket";
 import { userAPI, tokenAPI } from "@/services/api";
 import { formatDistanceToNow } from "date-fns";
 
-
 type BuySellItem = { avatar: string; wallet: string; tokenLogo: string; tokenAddr: string; tokenAddress: string; userAddress: string; side: "Buy" | "Sell"; amount: string; coinName: string; tokenAmount: string };
 type NewTokenItem = { tokenLogo: string; name: string; address: string; fullAddress: string; createdAgo: string; creatorAddress: string };
 type WhaleItem = { tokenLogo: string; name: string; address: string; fullAddress: string; userAddress: string; amount: string };
@@ -17,10 +16,6 @@ type WhaleItem = { tokenLogo: string; name: string; address: string; fullAddress
 
 export function LiveUpdatesCard() {
   const router = useRouter();
-
-
-
-
 
   // 加载状态
   const [isLoading, setIsLoading] = useState(true);
@@ -38,7 +33,7 @@ export function LiveUpdatesCard() {
   // 监控news状态变化
   useEffect(() => {
     if (news.length > 0) {
-      console.log('📊 NEW TOKEN卡片状态:', news[0].name, news[0].address);
+
     }
   }, [news]);
   
@@ -95,7 +90,7 @@ export function LiveUpdatesCard() {
         if (userInfo.avatar_url.startsWith('/media/')) {
           return (
             <Image
-              src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'}${userInfo.avatar_url}?t=${userInfo.updated_at || Date.now()}`}
+              src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}${userInfo.avatar_url}?t=${userInfo.updated_at || Date.now()}`}
               alt="User avatar"
               width={32}
               height={32}
@@ -179,13 +174,12 @@ export function LiveUpdatesCard() {
   const loadDataFromAPI = useCallback(async () => {
     try {
 
-
       // 加载最近交易
-      const transactionsResponse = await fetch('http://127.0.0.1:8000/api/transactions/recent/?limit=20');
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      const transactionsResponse = await fetch(`${backendUrl}/api/transactions/recent/?limit=20`);
       if (transactionsResponse.ok) {
         const transactionsData = await transactionsResponse.json();
         if (transactionsData.success && transactionsData.data.length > 0) {
-
 
           // 处理买卖交易
           const buyTransactions = transactionsData.data.filter((t: any) => t.transaction_type === 'BUY');
@@ -230,11 +224,10 @@ export function LiveUpdatesCard() {
       }
 
       // 加载最新代币
-      const tokensResponse = await fetch('http://127.0.0.1:8000/api/tokens/newest/?limit=10&network=sepolia');
+      const tokensResponse = await fetch(`${backendUrl}/api/tokens/newest/?limit=10&network=sepolia`);
       if (tokensResponse.ok) {
         const tokensData = await tokensResponse.json();
         if (tokensData.success && tokensData.data.tokens && tokensData.data.tokens.length > 0) {
-
 
           const latestToken = tokensData.data.tokens[0];
           const newTokenItem: NewTokenItem = {
@@ -250,7 +243,7 @@ export function LiveUpdatesCard() {
       }
 
       // 从交易中筛选鲸鱼交易（OKB金额 >= 10）
-      const whaleResponse = await fetch('http://127.0.0.1:8000/api/transactions/recent/?limit=50');
+      const whaleResponse = await fetch(`${backendUrl}/api/transactions/recent/?limit=50`);
       if (whaleResponse.ok) {
         const whaleData = await whaleResponse.json();
         if (whaleData.success && whaleData.data.length > 0) {
@@ -259,7 +252,6 @@ export function LiveUpdatesCard() {
           );
 
           if (whaleTransactions.length > 0) {
-
 
             const latestWhale = whaleTransactions[0];
             const whaleItem: WhaleItem = {
@@ -323,13 +315,10 @@ export function LiveUpdatesCard() {
       // 初始交易列表数据
       const transactions = data.data || [];
 
-      
       if (transactions.length > 0) {
         // 分别处理买入和卖出交易
         const buyTransactions = transactions.filter(t => t.transaction_type === 'BUY');
         const sellTransactions = transactions.filter(t => t.transaction_type === 'SELL');
-
-
 
         // 处理买入交易
         if (buyTransactions.length > 0) {
@@ -379,13 +368,7 @@ export function LiveUpdatesCard() {
 
   // 处理新代币数据
   const handleNewTokenData = useCallback((data: any) => {
-    console.log('🆕 NEW TOKEN WebSocket 收到消息:', {
-      type: data.type,
-      tokenName: data.data?.name || 'Unknown',
-      tokenAddress: data.data?.address || 'Unknown',
-      timestamp: new Date().toISOString()
-    });
-    
+
     if (data.type === 'new_token') {
       // 单个新代币更新
       const tokenData = data.data;
@@ -398,13 +381,6 @@ export function LiveUpdatesCard() {
         creatorAddress: tokenData.creator || '' // 保存创建者地址
       };
 
-      console.log('✅ NEW TOKEN 单个代币更新 - 卡片显示:', {
-        name: item.name,
-        address: item.address,
-        fullAddress: item.fullAddress,
-        createdAgo: item.createdAgo,
-        timestamp: new Date().toISOString()
-      });
       setNews([item]);
 
       // 强制触发重新渲染
@@ -423,13 +399,7 @@ export function LiveUpdatesCard() {
     } else if (data.type === 'new_token_list') {
       // 初始新代币列表数据
       const tokens = data.data || [];
-      console.log('📋 NEW TOKEN 列表数据:', {
-        tokenCount: tokens.length,
-        latestToken: tokens[0]?.name || 'None',
-        latestAddress: tokens[0]?.address || 'None',
-        timestamp: new Date().toISOString()
-      });
-      
+
       if (tokens.length > 0) {
         // 取最新的代币作为显示
         const latestToken = tokens[0];
@@ -553,17 +523,17 @@ export function LiveUpdatesCard() {
     );
 
     // 新代币连接
-    console.log('🔌 NEW TOKEN WebSocket 开始连接: tokens/new/');
+
     newTokenConnectionId = websocketService.connect(
       'tokens/new/',
       (data) => {
         internalHandleNewTokenData(data);
       },
       (error) => {
-        console.error('❌ NEW TOKEN WebSocket 连接错误:', error);
+
       },
       () => {
-        console.log('🔌 NEW TOKEN WebSocket 连接关闭');
+
       }
     );
 
@@ -590,7 +560,7 @@ export function LiveUpdatesCard() {
       // 设置超时，如果30秒内没有收到真实数据，则回退到API（延长时间避免覆盖WebSocket数据）
       const fallbackTimeout = setTimeout(() => {
         if (isComponentMounted && !hasRealData) {
-          console.log('🔄 NEW TOKEN: 30秒内无WebSocket数据，触发API回退');
+
           loadDataFromAPI();
         }
       }, 30000);

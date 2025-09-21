@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error getting current price:', error);
+
     return NextResponse.json(
       { error: 'Failed to get current price' },
       { status: 500 }

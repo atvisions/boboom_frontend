@@ -148,12 +148,7 @@ async function apiRequest<T>(
     
     // 只在非404错误时记录日志
     if (!lastError?.message.includes('404') && !lastError?.message.includes('Not Found')) {
-      console.warn('API request failed:', {
-        url,
-        method: config.method || 'GET',
-        error: lastError?.message || 'Unknown error',
-        timestamp: new Date().toISOString()
-      });
+
     }
     throw lastError;
   })();
@@ -217,7 +212,7 @@ export const userAPI = {
     ];
 
     if (contractAddresses.includes(address.toLowerCase())) {
-      console.warn(`Attempted to get user info for contract address: ${address}`);
+
       return Promise.reject(new Error('Cannot get user info for contract address'));
     }
 

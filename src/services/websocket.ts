@@ -30,17 +30,15 @@ class WebSocketService {
     const websocketUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL;
     if (websocketUrl) {
       this.baseUrl = websocketUrl;
-      console.log('🔗 WebSocket URL from env:', websocketUrl);
+
     } else {
       // 生产环境的默认WebSocket地址
       this.baseUrl = 'wss://api.boboom.fun/ws';
-      console.log('🔗 WebSocket URL fallback:', this.baseUrl);
+
     }
 
     // WebSocket 服务已初始化
   }
-
-
 
   /**
    * 连接到WebSocket端点
@@ -60,7 +58,7 @@ class WebSocketService {
     const throttleDelay = 5000; // 5秒内不允许重复连接同一端点
 
     if (now - lastAttempt < throttleDelay) {
-      console.log(`🚫 Connection throttled for: ${endpoint}, wait ${Math.ceil((throttleDelay - (now - lastAttempt)) / 1000)}s`);
+
       // 如果连接存在，返回现有连接ID
       if (this.connections.has(connectionId)) {
         const connection = this.connections.get(connectionId)!;
@@ -71,20 +69,18 @@ class WebSocketService {
       return connectionId;
     }
 
-    console.log(`🔗 Requesting WebSocket connection to: ${endpoint}`);
-
     // 如果连接已存在且状态良好，添加处理器并返回
     if (this.connections.has(connectionId)) {
       const connection = this.connections.get(connectionId)!;
       if (connection.ws && connection.ws.readyState === WebSocket.OPEN) {
-        console.log(`♻️ Reusing active connection: ${endpoint}`);
+
         if (messageHandler) connection.messageHandlers.add(messageHandler);
         if (errorHandler) connection.errorHandlers.add(errorHandler);
         if (closeHandler) connection.closeHandlers.add(closeHandler);
         return connectionId;
       } else {
         // 清理无效连接
-        console.log(`🧹 Cleaning up stale connection: ${endpoint}`);
+
         this.disconnect(connectionId);
       }
     }
@@ -126,12 +122,12 @@ class WebSocketService {
 
     setTimeout(() => {
       try {
-        console.log(`🔌 Establishing WebSocket connection to: ${connection.url}`);
+
         const ws = new WebSocket(connection.url);
         connection.ws = ws;
 
         ws.onopen = () => {
-          console.log(`✅ WebSocket connected successfully: ${connection.url}`);
+
           connection.isConnecting = false;
           connection.reconnectAttempts = 0;
 
@@ -158,18 +154,16 @@ class WebSocketService {
             try {
               handler(data);
             } catch (error) {
-              console.error('❌ Error in message handler:', error);
+
             }
           });
         } catch (error) {
-          console.error('❌ Error parsing WebSocket message:', error, event.data);
+
         }
       };
 
         ws.onerror = (error) => {
           const isDevelopment = process.env.NODE_ENV === 'development';
-
-          console.error(`❌ WebSocket connection failed: ${connection.url}`, error);
 
           connection.isConnecting = false;
 
@@ -178,16 +172,16 @@ class WebSocketService {
           try {
             handler(error);
           } catch (err) {
-            console.error('Error in error handler:', err);
+
           }
         });
 
         // 如果连接失败次数过多，停止重连
         if (connection.reconnectAttempts >= connection.maxReconnectAttempts) {
           if (isDevelopment) {
-            console.warn(`Stopping WebSocket reconnection for ${connection.url}, using API fallback`);
+
           } else {
-            console.warn(`Max reconnect attempts reached for ${connection.url}, stopping reconnection`);
+
           }
           connection.shouldReconnect = false;
         }
@@ -209,7 +203,7 @@ class WebSocketService {
           try {
             handler(event);
           } catch (error) {
-            console.error('Error in close handler:', error);
+
           }
         });
 
@@ -218,14 +212,13 @@ class WebSocketService {
             connection.reconnectAttempts++;
             const delay = connection.reconnectDelay * Math.pow(2, connection.reconnectAttempts - 1);
 
-            console.log(`🔄 Reconnecting to ${connection.url} in ${delay}ms (attempt ${connection.reconnectAttempts})`);
             setTimeout(() => {
               this.establishConnection(connectionId);
             }, delay);
           }
         };
       } catch (error) {
-        console.error('Error creating WebSocket:', error);
+
         connection.isConnecting = false;
       }
     }, delay);
@@ -248,7 +241,7 @@ class WebSocketService {
     try {
       connection.ws.send(JSON.stringify(heartbeat));
     } catch (error) {
-      console.error('Error sending heartbeat:', error);
+
     }
   }
 
@@ -298,7 +291,7 @@ class WebSocketService {
       // 在开发环境中，减少"连接未找到"的警告
       const isDevelopment = process.env.NODE_ENV === 'development';
       if (!isDevelopment) {
-        console.warn(`Connection ${connectionId} not found for disconnect`);
+
       }
       return;
     }
@@ -395,7 +388,6 @@ class WebSocketService {
     };
   }
 
-
 }
 
 // 创建单例实例
@@ -420,7 +412,6 @@ if (typeof window !== 'undefined') {
       // 页面可见时检查连接健康状态
     }
   });
-
 
 }
 

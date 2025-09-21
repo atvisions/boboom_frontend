@@ -152,7 +152,7 @@ export function AvatarSelectorInline({ currentAvatar, onSelect, onClose }: Avata
       const response = await avatarAPI.getDefaultAvatars();
       setAvatars(response.data.avatars);
     } catch (error) {
-      console.error('Failed to load system avatars:', error);
+
     } finally {
       setLoading(false);
     }

@@ -142,7 +142,7 @@ export function TokenDetails({ token }: TokenDetailsProps) {
               setIsFavorited(statusResponse.data.is_favorited);
             }
           } catch (error) {
-            console.error('Error rechecking favorite status:', error);
+
           }
         }, 500);
       }
@@ -236,7 +236,7 @@ export function TokenDetails({ token }: TokenDetailsProps) {
                     {creator?.avatar_url ? (
                       creator.avatar_url.startsWith('/media/') ? (
                         <Image
-                          src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'}${creator.avatar_url}`}
+                          src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}${creator.avatar_url}`}
                           alt="Creator avatar"
                           width={24}
                           height={24}

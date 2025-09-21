@@ -53,7 +53,7 @@ export default function RankingPage() {
           setOkbPrice(parseFloat(response.data.price));
         }
       } catch (error) {
-        console.error('Failed to load OKB price:', error);
+
       }
     };
     
@@ -119,7 +119,7 @@ export default function RankingPage() {
                   const creatorData = await userAPI.getUser(creatorAddress.toLowerCase());
                   newCreatorInfo[creatorAddress] = creatorData;
                 } catch (error) {
-                  console.warn('Failed to load creator info for:', creatorAddress, error);
+
                 }
               }
               
@@ -145,7 +145,7 @@ export default function RankingPage() {
           }
         }
       } catch (err) {
-        console.error('Error loading ranking data:', err);
+
         setError('Failed to load ranking data');
       } finally {
         setLoading(false);
@@ -171,7 +171,7 @@ export default function RankingPage() {
         const favoritePromises = validTokens.map(token =>
           favoriteAPI.checkFavoriteStatus(address, token.address, 'sepolia')
             .catch(error => {
-              console.warn(`Failed to check favorite status for token ${token.address}:`, error);
+
               return { success: false, data: { is_favorited: false } };
             })
         );
@@ -187,7 +187,7 @@ export default function RankingPage() {
 
         setFavorites(newFavorites);
       } catch (error) {
-        console.error('Error loading favorite status:', error);
+
       }
     };
 
@@ -235,14 +235,14 @@ export default function RankingPage() {
               setFavorites(updatedFavorites);
             }
           } catch (error) {
-            console.error('Error rechecking favorite status:', error);
+
           }
         }, 500);
       } else {
         toast.error('Failed to update favorite status');
       }
     } catch (error) {
-      console.error('Error toggling favorite:', error);
+
       toast.error('Failed to update favorite status');
     } finally {
       setFavoriteLoading(prev => {
@@ -434,7 +434,7 @@ export default function RankingPage() {
                               style={{ width: '64px', height: '64px' }}
                               unoptimized={true}
                               onError={(e) => {
-                                console.log(`Failed to load image for ${token.name}:`, token.imageUrl);
+
                                 // 隐藏图片，显示文字
                                 e.currentTarget.style.display = 'none';
                                 const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
@@ -490,7 +490,7 @@ export default function RankingPage() {
                                     if (creatorData.avatar_url.startsWith('/media/')) {
                                       return (
                                         <Image
-                                          src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'}${creatorData.avatar_url}?t=${creatorData.updated_at || Date.now()}`}
+                                          src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}${creatorData.avatar_url}?t=${creatorData.updated_at || Date.now()}`}
                                           alt="Creator avatar"
                                           width={20}
                                           height={20}
@@ -614,7 +614,7 @@ export default function RankingPage() {
                           {creator.avatar_url && creator.avatar_url.trim() !== '' ? (
                             creator.avatar_url.startsWith('/media/') ? (
                               <img
-                                src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'}${creator.avatar_url}`}
+                                src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}${creator.avatar_url}`}
                                 alt="Avatar"
                                 className="w-full h-full rounded-2xl object-cover"
                               />

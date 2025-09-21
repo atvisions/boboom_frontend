@@ -42,7 +42,7 @@ export const MiniChart: React.FC<MiniChartProps> = ({
         setRealData(generateMockData());
       }
     } catch (error) {
-      console.warn('Failed to fetch real chart data:', error);
+
       // 如果请求失败，使用模拟数据
       setRealData(generateMockData());
     } finally {
@@ -84,7 +84,7 @@ export const MiniChart: React.FC<MiniChartProps> = ({
           if (!isMounted) return;
           // 在开发环境中，WebSocket连接失败是正常的，不显示错误
           if (!isDevelopment) {
-            console.error(`MiniChart: WebSocket error for ${tokenAddress}:`, error);
+
           }
         }
       );

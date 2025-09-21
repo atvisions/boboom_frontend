@@ -65,17 +65,16 @@ export function useWalletAuth() {
     
     // 如果已经为这个地址尝试过自动登录，不再重复
     if (globalAuthState.hasAttemptedAutoLogin && globalAuthState.currentAddress === userAddress) {
-      console.log('Auto login already attempted for:', userAddress);
+
       return;
     }
     
     // 如果已经认证成功，不需要重复登录
     if (globalAuthState.isAuthenticated && globalAuthState.currentAddress === userAddress) {
-      console.log('User already authenticated for:', userAddress);
+
       return;
     }
-    
-    console.log('Starting auto login for:', userAddress);
+
     updateGlobalAuthState({ 
       isLoading: true, 
       currentAddress: userAddress,
@@ -91,12 +90,11 @@ export function useWalletAuth() {
               isAuthenticated: true,
               isLoading: false
             });
-            console.log('User auto login successful:', response.message);
+
             return;
           }
         } catch (error) {
-          console.error('Auto login failed:', error);
-          console.log('Auto login failed, but not creating new user automatically');
+
         } finally {
         updateGlobalAuthState({ 
           isLoading: false,
@@ -144,9 +142,9 @@ export function useWalletAuth() {
             currentAddress: userAddress
           });
           toast.success('Welcome to BoBoom! Your account has been created.');
-          console.log('New user created successfully');
+
         } catch (autoLoginError) {
-          console.error('Failed to get user info after login:', autoLoginError);
+
           // 即使获取用户信息失败，也标记为已认证
           updateGlobalAuthState({
             user: null,
@@ -157,7 +155,7 @@ export function useWalletAuth() {
         }
       }
     } catch (error) {
-      console.error('Failed to create user:', error);
+
       toast.error('Failed to create account. Please try again.');
     }
   };
@@ -169,7 +167,7 @@ export function useWalletAuth() {
     if (isConnected && address) {
       // 如果地址变化了，重置状态
       if (globalAuthState.currentAddress !== address) {
-        console.log('Address changed from', globalAuthState.currentAddress, 'to', address);
+
         updateGlobalAuthState({
           user: null,
           isAuthenticated: false,
@@ -181,13 +179,13 @@ export function useWalletAuth() {
         autoLoginUser(address);
       } else if (!globalAuthState.hasAttemptedAutoLogin && !globalAuthState.autoLoginPromise) {
         // 只有在未尝试过自动登录且没有正在进行的登录请求时才调用
-        console.log('First time auto login for:', address);
+
         autoLoginUser(address);
       }
     } else if (!isConnected) {
       // 只有在状态确实需要重置时才更新
       if (globalAuthState.currentAddress !== null || globalAuthState.isAuthenticated) {
-        console.log('Wallet disconnected, resetting auth state');
+
         updateGlobalAuthState({
           user: null,
           isAuthenticated: false,
@@ -246,7 +244,7 @@ export function useWalletAuth() {
         toast.success('Login successful!');
       }
     } catch (error) {
-      console.error('Login failed:', error);
+
       toast.error('Login failed. Please try again.');
     } finally {
       setIsLoading(false);

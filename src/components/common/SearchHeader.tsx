@@ -32,7 +32,6 @@ export function SearchHeader() {
 
       try {
         setIsSearching(true);
-        console.log('🔍 Searching for:', query.trim());
 
         // 直接调用API，不使用缓存
         const searchParams = new URLSearchParams({
@@ -49,18 +48,17 @@ export function SearchHeader() {
         });
 
         const data = await response.json();
-        console.log('🔍 Search response:', data);
 
         if (data.success) {
-          console.log('✅ Found tokens:', data.data.tokens.length);
+
           setSearchResults(data.data.tokens);
           setShowResults(true);
         } else {
-          console.log('❌ Search failed:', data);
+
           setSearchResults([]);
         }
       } catch (error) {
-        console.error('❌ Search error:', error);
+
         setSearchResults([]);
       } finally {
         setIsSearching(false);

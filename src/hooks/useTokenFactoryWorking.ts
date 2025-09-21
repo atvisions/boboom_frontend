@@ -56,16 +56,11 @@ export function useTokenFactoryWorking() {
   useEffect(() => {
     const fetchBalances = async () => {
       if (!publicClient || !address || !addresses?.OKB_TOKEN) {
-        console.log('Missing requirements for balance fetch:', {
-          publicClient: !!publicClient,
-          address: !!address,
-          okbToken: !!addresses?.OKB_TOKEN
-        });
+
         return;
       }
 
       try {
-        console.log('Fetching balance data for:', address, 'from:', addresses.OKB_TOKEN);
 
         // 首先获取 OKB 代币的小数位数
         const decimals = await (publicClient as any).readContract({
@@ -75,7 +70,6 @@ export function useTokenFactoryWorking() {
           args: [],
         });
 
-        console.log('OKB decimals:', decimals);
         setOkbDecimals(Number(decimals));
 
         // 获取 OKB 余额
@@ -86,8 +80,6 @@ export function useTokenFactoryWorking() {
           args: [address],
         });
 
-        console.log('Raw balance:', balance);
-        
         // 获取授权额度（给Factory）
         let allowance = 0n;
         if (addresses.TOKEN_FACTORY_V3) {
@@ -99,7 +91,7 @@ export function useTokenFactoryWorking() {
               args: [address, addresses.TOKEN_FACTORY_V3],
             }) as bigint;
           } catch (err) {
-            console.warn('Failed to get factory allowance:', err);
+
           }
         }
         
@@ -114,25 +106,13 @@ export function useTokenFactoryWorking() {
               args: [address, addresses.BONDING_CURVE_V3],
             }) as bigint;
           } catch (err) {
-            console.warn('Failed to get bonding curve allowance:', err);
+
           }
         }
         
         const balanceFormatted = Number(formatUnits(balance as bigint, decimals));
         const allowanceFormatted = Number(formatUnits(allowance, decimals));
         const allowanceBondingCurveFormatted = Number(formatUnits(allowanceBondingCurve, decimals));
-        
-        console.log('Formatted balances:', {
-          balance: balanceFormatted,
-          allowance: allowanceFormatted,
-          allowanceBondingCurve: allowanceBondingCurveFormatted
-        });
-        
-        console.log('✅ Setting balance data:', {
-          okbBalance: balanceFormatted,
-          okbAllowance: allowanceFormatted,
-          okbAllowanceBondingCurve: allowanceBondingCurveFormatted,
-        });
 
         setBalanceData({
           okbBalance: balanceFormatted,
@@ -140,30 +120,16 @@ export function useTokenFactoryWorking() {
           okbAllowanceBondingCurve: allowanceBondingCurveFormatted,
         });
       } catch (error) {
-        console.error('❌ Error fetching balance data:', error);
-        console.error('Error details:', {
-          address,
-          okbTokenAddress: addresses.OKB_TOKEN,
-          publicClient: !!publicClient,
-          error: error.message
-        });
+
         // 保持默认值，但不重置为0，保留之前的值
       }
     };
 
-    console.log('🔍 Balance fetch conditions:', {
-      hasAddresses: !!addresses,
-      hasOkbToken: !!addresses?.OKB_TOKEN,
-      hasAddress: !!address,
-      hasPublicClient: !!publicClient,
-      okbTokenAddress: addresses?.OKB_TOKEN
-    });
-
     if (addresses && address && publicClient) {
-      console.log('✅ All conditions met, fetching balances...');
+
       fetchBalances();
     } else {
-      console.log('❌ Missing conditions for balance fetch');
+
     }
   }, [addresses?.OKB_TOKEN, addresses?.TOKEN_FACTORY_V3, addresses?.BONDING_CURVE_V3, address, publicClient]);
 
@@ -183,12 +149,6 @@ export function useTokenFactoryWorking() {
     }));
 
     try {
-      console.log('Starting OKB approval process...');
-      console.log('Amount to approve:', amount);
-      console.log('Addresses:', {
-        OKB_TOKEN: addresses.OKB_TOKEN,
-        TOKEN_FACTORY_V3: addresses.TOKEN_FACTORY_V3
-      });
 
       // 检查 MetaMask
       if (!window.ethereum) {
@@ -199,15 +159,13 @@ export function useTokenFactoryWorking() {
 
       // 检查当前网络
       const chainId = await ethereum.request({ method: 'eth_chainId' });
-      console.log('Current chain ID:', chainId);
 
       // 检查当前账户
       const accounts = await ethereum.request({ method: 'eth_accounts' });
-      console.log('Current accounts:', accounts);
 
       // 检查是否连接到正确的网络 (Sepolia = 0xaa36a7)
       if (chainId !== '0xaa36a7') {
-        console.warn('Not connected to Sepolia network. Current:', chainId, 'Expected: 0xaa36a7');
+
       }
 
       // 构建交易数据
@@ -219,23 +177,16 @@ export function useTokenFactoryWorking() {
         args: [addresses.TOKEN_FACTORY_V3, parseUnits(amount.toString(), okbDecimals)],
       });
 
-      console.log('Encoded function data:', data);
-
       const approveData = {
         to: addresses.OKB_TOKEN,
         from: address,
         data: data,
       };
 
-      console.log('Transaction data:', approveData);
-      console.log('Requesting MetaMask signature...');
-
       const hash = await ethereum.request({
         method: 'eth_sendTransaction',
         params: [approveData],
       });
-
-      console.log('Transaction hash received:', hash);
 
       setTransactionStates(prev => ({
         ...prev,
@@ -298,12 +249,6 @@ export function useTokenFactoryWorking() {
     }));
 
     try {
-      console.log('Starting OKB approval for trading...');
-      console.log('Amount to approve:', amount);
-      console.log('Addresses:', {
-        OKB_TOKEN: addresses.OKB_TOKEN,
-        BONDING_CURVE_V3: addresses.BONDING_CURVE_V3
-      });
 
       const ethereum = window.ethereum as any;
 
@@ -322,13 +267,10 @@ export function useTokenFactoryWorking() {
         data: data,
       };
 
-      console.log('Requesting MetaMask signature for OKB approval...');
       const hash = await ethereum.request({
         method: 'eth_sendTransaction',
         params: [txData],
       });
-
-      console.log('Approval transaction hash received:', hash);
 
       setTransactionStates(prev => ({
         ...prev,
@@ -563,10 +505,6 @@ export function useTokenFactoryWorking() {
         throw new Error('MetaMask not found');
       }
 
-      console.log('Creating token with purchase...');
-      console.log('Token data:', tokenData);
-      console.log('OKB amount:', okbAmount);
-
       setTransactionStates(prev => ({
         ...prev,
         create: { ...prev.create, isPending: true, error: null }
@@ -593,22 +531,16 @@ export function useTokenFactoryWorking() {
           ],
         });
 
-        console.log('Create with purchase transaction data:', data);
-
         const createData = {
           to: addresses.TOKEN_FACTORY_V3,
           from: address,
           data: data,
         };
 
-        console.log('Requesting MetaMask signature for create with purchase...');
-
         const hash = await ethereum.request({
           method: 'eth_sendTransaction',
           params: [createData],
         });
-
-        console.log('Create with purchase transaction hash received:', hash);
 
         setTransactionStates(prev => ({
           ...prev,
@@ -634,7 +566,7 @@ export function useTokenFactoryWorking() {
 
         return hash;
       } catch (error) {
-        console.error('Error creating token with purchase:', error);
+
         setTransactionStates(prev => ({
           ...prev,
           create: {
@@ -659,10 +591,6 @@ export function useTokenFactoryWorking() {
       if (!window.ethereum) {
         throw new Error('MetaMask not found');
       }
-
-      console.log('Starting buy token process...');
-      console.log('Token address:', tokenAddress);
-      console.log('OKB amount:', okbAmount);
 
       try {
         // 设置交易开始状态
@@ -690,22 +618,16 @@ export function useTokenFactoryWorking() {
           args: [tokenAddress, parseUnits(okbAmount.toString(), okbDecimals), parseEther('0')], // token, okbIn, minTokensOut
         });
 
-        console.log('Buy transaction data:', data);
-
         const buyData = {
           to: addresses.BONDING_CURVE_V3,
           from: address,
           data: data,
         };
 
-        console.log('Requesting MetaMask signature for buy...');
-
         const hash = await ethereum.request({
           method: 'eth_sendTransaction',
           params: [buyData],
         });
-
-        console.log('Buy transaction hash received:', hash);
 
         // 设置交易确认中状态
         setTransactionStates(prev => ({
@@ -720,7 +642,6 @@ export function useTokenFactoryWorking() {
 
         // 等待交易确认
         const receipt = await publicClient?.waitForTransactionReceipt({ hash });
-        console.log('Buy transaction confirmed:', receipt);
 
         // 检查交易状态
         if (receipt?.status === 'reverted') {
@@ -739,7 +660,6 @@ export function useTokenFactoryWorking() {
 
         return hash;
       } catch (error) {
-        console.error('Error buying tokens:', error);
 
         // 设置交易失败状态
         setTransactionStates(prev => ({
@@ -758,10 +678,7 @@ export function useTokenFactoryWorking() {
     },
     sellToken: async (tokenAddress: string, tokenAmount: number) => {
       if (!addresses?.BONDING_CURVE_V3 || !address) {
-        console.log('Missing requirements for sell:', {
-          bondingCurve: !!addresses?.BONDING_CURVE_V3,
-          userAddress: !!address
-        });
+
         throw new Error('Missing contract addresses or user address');
       }
 
@@ -782,10 +699,6 @@ export function useTokenFactoryWorking() {
 
         const ethereum = window.ethereum as any;
 
-        console.log('Starting sell process...');
-        console.log('Token amount to sell:', tokenAmount);
-        console.log('Addresses:', { bondingCurve: addresses.BONDING_CURVE_V3, token: tokenAddress });
-
         // 构建卖出交易数据
         const { encodeFunctionData } = await import('viem');
 
@@ -795,22 +708,16 @@ export function useTokenFactoryWorking() {
           args: [tokenAddress, parseEther(tokenAmount.toString()), parseUnits('0', okbDecimals)], // token, tokensIn, minOkbOut
         });
 
-        console.log('Sell transaction data:', data);
-
         const sellData = {
           to: addresses.BONDING_CURVE_V3,
           from: address,
           data: data,
         };
 
-        console.log('Requesting MetaMask signature for sell...');
-
         const hash = await ethereum.request({
           method: 'eth_sendTransaction',
           params: [sellData],
         });
-
-        console.log('Sell transaction hash received:', hash);
 
         // 设置交易确认中状态
         setTransactionStates(prev => ({
@@ -825,7 +732,6 @@ export function useTokenFactoryWorking() {
 
         // 等待交易确认
         const receipt = await publicClient?.waitForTransactionReceipt({ hash });
-        console.log('Sell transaction confirmed:', receipt);
 
         // 检查交易状态
         if (receipt?.status === 'reverted') {
@@ -844,7 +750,6 @@ export function useTokenFactoryWorking() {
 
         return hash;
       } catch (error) {
-        console.error('Error selling tokens:', error);
 
         // 设置交易失败状态
         setTransactionStates(prev => ({
@@ -863,15 +768,11 @@ export function useTokenFactoryWorking() {
     },
     getBuyQuote: async (tokenAddress: string, okbAmount: number) => {
       if (!publicClient || !addresses?.BONDING_CURVE_V3) {
-        console.log('Missing requirements for buy quote:', {
-          publicClient: !!publicClient,
-          bondingCurve: !!addresses?.BONDING_CURVE_V3
-        });
+
         return null;
       }
 
       try {
-        console.log('Getting buy quote for:', { tokenAddress, okbAmount });
 
         const quote = await (publicClient as any).readContract({
           address: addresses.BONDING_CURVE_V3,
@@ -879,8 +780,6 @@ export function useTokenFactoryWorking() {
           functionName: 'getQuoteBuy',
           args: [tokenAddress, parseUnits(okbAmount.toString(), okbDecimals)],
         });
-
-        console.log('Raw buy quote:', quote);
 
         if (quote && Array.isArray(quote) && quote.length >= 3) {
           const tokensOut = Number(formatEther(quote[0] as bigint));
@@ -896,28 +795,23 @@ export function useTokenFactoryWorking() {
             priceImpact: 0, // 可以根据需要计算价格影响
           };
 
-          console.log('Formatted buy quote:', result);
           return result;
         }
 
         return null;
       } catch (error) {
-        console.error('Error getting buy quote:', error);
+
         return null;
       }
     },
 
     getSellQuote: async (tokenAddress: string, tokenAmount: number) => {
       if (!publicClient || !addresses?.BONDING_CURVE_V3) {
-        console.log('Missing requirements for sell quote:', {
-          publicClient: !!publicClient,
-          bondingCurve: !!addresses?.BONDING_CURVE_V3
-        });
+
         return null;
       }
 
       try {
-        console.log('Getting sell quote for:', { tokenAddress, tokenAmount });
 
         const quote = await (publicClient as any).readContract({
           address: addresses.BONDING_CURVE_V3,
@@ -925,8 +819,6 @@ export function useTokenFactoryWorking() {
           functionName: 'getQuoteSell',
           args: [tokenAddress, parseEther(tokenAmount.toString())],
         });
-
-        console.log('Raw sell quote:', quote);
 
         if (quote && Array.isArray(quote) && quote.length >= 3) {
           const okbOut = Number(formatUnits(quote[0] as bigint, okbDecimals));
@@ -942,13 +834,12 @@ export function useTokenFactoryWorking() {
             priceImpact: 0, // 可以根据需要计算价格影响
           };
 
-          console.log('Formatted sell quote:', result);
           return result;
         }
 
         return null;
       } catch (error) {
-        console.error('Error getting sell quote:', error);
+
         return null;
       }
     },
@@ -975,19 +866,18 @@ export function useTokenFactoryWorking() {
 
         return 0;
       } catch (error) {
-        console.error('Error getting current price:', error);
+
         return 0;
       }
     },
 
     getTokenBalance: async (tokenAddress: string) => {
       if (!publicClient || !address || !tokenAddress) {
-        console.log('getTokenBalance: Missing required data', { publicClient: !!publicClient, address, tokenAddress });
+
         return 0;
       }
 
       try {
-        console.log('Getting token balance for:', { tokenAddress, userAddress: address });
 
         const balance = await (publicClient as any).readContract({
           address: tokenAddress,
@@ -1004,13 +894,11 @@ export function useTokenFactoryWorking() {
           args: [address],
         });
 
-        console.log('Raw token balance:', balance);
         const formattedBalance = Number(formatEther(balance as bigint));
-        console.log('Formatted token balance:', formattedBalance);
 
         return formattedBalance;
       } catch (error) {
-        console.error('Error getting token balance:', error);
+
         return 0;
       }
     },

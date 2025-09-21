@@ -15,7 +15,6 @@ import { formatPrice, formatNumber as utilsFormatNumber } from "@/lib/utils";
 import { NETWORK_CONFIG } from "@/contracts/config-simple";
 import { extractCreatorAddresses } from "@/utils/contractAddresses";
 
-
 // 双向范围滑动条组件
 interface RangeSliderProps {
   min: number;
@@ -177,7 +176,7 @@ export function TokenGrid() {
           const parsedFilters = JSON.parse(savedFilters);
           setFilters(parsedFilters);
         } catch (error) {
-          console.error('Failed to parse saved filters:', error);
+
         }
       }
     }
@@ -318,16 +317,11 @@ export function TokenGrid() {
           tokenList = tokenList.filter((token: any) => {
             const isGraduated = token.phase === 'GRADUATED' || token.has_graduated === true;
             if (!isGraduated) {
-              console.warn(`⚠️ WebSocket: Filtering out non-graduated token:`, {
-                symbol: token.symbol,
-                phase: token.phase,
-                has_graduated: token.has_graduated,
-                graduation_progress: token.graduation_progress
-              });
+
             }
             return isGraduated;
           });
-          console.log(`✅ WebSocket: After graduation filter: ${tokenList.length} tokens remaining`);
+
         }
 
         const processedTokens = tokenList.map((token: any) => ({
@@ -347,8 +341,6 @@ export function TokenGrid() {
           holderCount: token.holder_count || token.holderCount || 0
         }));
 
-
-        
         // 保存原始数据
         setOriginalTokens(processedTokens);
 
@@ -362,14 +354,7 @@ export function TokenGrid() {
 
             // 特别调试 OPTEST
             if (token.symbol === 'OPTEST') {
-              console.log('🔍 OPTEST debug in WebSocket curved filter:', {
-                symbol: token.symbol,
-                phase: token.phase,
-                graduationProgress: progress,
-                has_graduated: token.has_graduated,
-                isGraduated,
-                willShow: progress >= 80 && !isGraduated
-              });
+
             }
 
             // 只显示进度80%以上但还没毕业的代币
@@ -402,7 +387,7 @@ export function TokenGrid() {
               const creatorData = await userAPI.getUser(creatorAddress.toLowerCase());
               newCreators[creatorAddress] = creatorData;
             } catch (error) {
-              console.error('Failed to load creator info for:', creatorAddress, error);
+
               // 提供默认创建者信息，防止UI因API错误而崩溃
               newCreators[creatorAddress] = {
                 address: creatorAddress,
@@ -457,8 +442,7 @@ export function TokenGrid() {
           } else {
             setIsRefreshing(true);
           }
-  
-          
+
           // 断开之前的连接
           if (connectionId) {
 
@@ -486,15 +470,11 @@ export function TokenGrid() {
               break;
           }
 
-
-
           // 建立WebSocket连接
           const newConnectionId = websocketService.connect(
             endpoint,
             handleTokenListData,
             (error) => {
-              console.error('WebSocket connection error:', error);
-              console.error('TokenGrid: WebSocket连接错误', error);
 
               // 在开发环境中，WebSocket 连接失败是正常的，不显示错误 UI
               const isDevelopment = process.env.NODE_ENV === 'development';
@@ -514,7 +494,7 @@ export function TokenGrid() {
           // 不需要额外的代币列表连接，主要的端点连接已经足够
 
         } catch (error) {
-          console.error('Failed to connect WebSocket:', error);
+
           // 如果WebSocket连接失败，回退到API
           fallbackToAPI();
         }
@@ -523,7 +503,7 @@ export function TokenGrid() {
       // API回退函数
       const fallbackToAPI = async () => {
         try {
-          console.log('🔄 Falling back to API for:', selectedSort);
+
           setIsUsingAPIFallback(true);
 
           // 只在没有现有数据时显示loading状态，有数据时显示刷新状态
@@ -533,7 +513,6 @@ export function TokenGrid() {
             setIsRefreshing(true);
           }
 
-          
           // 根据选择的排序方式调用不同的专用API
           let response;
           const apiParams = {
@@ -559,20 +538,7 @@ export function TokenGrid() {
               break;
           }
 
-
-        
           if (response.success) {
-            console.log(`🔄 API fallback for ${selectedSort}:`, {
-              selectedSort,
-              tokenCount: response.data.tokens.length,
-              tokens: response.data.tokens.map(t => ({
-                symbol: t.symbol,
-                phase: t.phase,
-                graduation_progress: t.graduation_progress || t.graduationProgress,
-                has_graduated: t.has_graduated,
-                address: t.address
-              }))
-            });
 
             // 处理API返回的数据，确保字段名一致
             let rawTokens = response.data.tokens;
@@ -582,16 +548,11 @@ export function TokenGrid() {
               rawTokens = rawTokens.filter((token: any) => {
                 const isGraduated = token.phase === 'GRADUATED' || token.has_graduated === true;
                 if (!isGraduated) {
-                  console.warn(`⚠️ Filtering out non-graduated token:`, {
-                    symbol: token.symbol,
-                    phase: token.phase,
-                    has_graduated: token.has_graduated,
-                    graduation_progress: token.graduation_progress
-                  });
+
                 }
                 return isGraduated;
               });
-              console.log(`✅ After graduation filter: ${rawTokens.length} tokens remaining`);
+
             }
 
             const processedTokens = rawTokens.map((token: any) => {
@@ -656,7 +617,7 @@ export function TokenGrid() {
                   const creatorData = await userAPI.getUser(creatorAddress.toLowerCase());
                   newCreators[creatorAddress] = creatorData;
                 } catch (error) {
-                  console.error('Failed to load creator info for:', creatorAddress, error);
+
                   // 提供默认创建者信息，防止UI因API错误而崩溃
                   newCreators[creatorAddress] = {
                     address: creatorAddress,
@@ -678,7 +639,7 @@ export function TokenGrid() {
             }
           }
         } catch (err) {
-          console.error('Error loading tokens:', err);
+
           // 在生产环境中显示 API 错误，开发环境中静默处理
           const isDevelopment = process.env.NODE_ENV === 'development';
           if (!isDevelopment) {
@@ -761,7 +722,7 @@ export function TokenGrid() {
           
           setFavorites(newFavorites);
         } catch (error) {
-          console.error('Error loading favorite status:', error);
+
         }
       };
 
@@ -816,14 +777,14 @@ export function TokenGrid() {
                 setFavorites(updatedFavorites);
               }
             } catch (error) {
-              console.error('Error rechecking favorite status:', error);
+
             }
           }, 500);
         } else {
           toast.error('Failed to update favorite status');
         }
       } catch (error) {
-        console.error('Error toggling favorite:', error);
+
         toast.error('Failed to update favorite status');
       }
     },
@@ -832,11 +793,10 @@ export function TokenGrid() {
 
   // 保存排序设置到localStorage
   const handleSortChange = (sortValue: string) => {
-    console.log(`🔄 Switching from "${selectedSort}" to "${sortValue}"`);
 
     // 如果切换到不同的排序方式，清除当前数据以避免显示错误的数据
     if (sortValue !== selectedSort) {
-      console.log(`🧹 Clearing data for sort change: ${selectedSort} -> ${sortValue}`);
+
       setTokens([]);
       setOriginalTokens([]);
       setLoading(true);
@@ -847,14 +807,14 @@ export function TokenGrid() {
       // 清除 API 缓存
       try {
         clearApiCache();
-        console.log(`🗑️ Cleared API cache for sort change: ${selectedSort} -> ${sortValue}`);
+
       } catch (error) {
-        console.warn('Failed to clear API cache:', error);
+
       }
 
       // 断开现有的 WebSocket 连接
       if (connectionId) {
-        console.log(`🔌 Disconnecting WebSocket connection: ${connectionId}`);
+
         websocketService.disconnect(connectionId);
         setConnectionId(null);
       }
@@ -972,16 +932,12 @@ export function TokenGrid() {
 
   // 使用自定义筛选条件应用筛选
   const applyFiltersWithCustomFilters = (customFilters: any) => {
-    console.log('applyFiltersWithCustomFilters called with:', customFilters);
-    console.log('originalTokens.length:', originalTokens.length);
-    console.log('okbPrice:', okbPrice);
 
     if (originalTokens.length > 0) {
       let filteredTokens = [...originalTokens]; // 从原始数据开始
 
       // 检查是否有活跃的筛选条件
       const hasCustomActiveFilters = !!(customFilters.mcapMin || customFilters.mcapMax || customFilters.volumeMin || customFilters.volumeMax);
-      console.log('hasCustomActiveFilters:', hasCustomActiveFilters);
 
       if (hasCustomActiveFilters) {
         filteredTokens = filteredTokens.filter((token: any) => {
@@ -994,8 +950,6 @@ export function TokenGrid() {
           // 交易量需要转换为USD值进行比较
           const tokenVolumeOKB = parseFloat(token.volume24h || '0');
           const tokenVolumeUSD = tokenVolumeOKB * okbPrice;
-
-
 
           // 市值筛选
           if (mcapMin > 0 && tokenMcap < mcapMin) return false;
@@ -1025,7 +979,6 @@ export function TokenGrid() {
         });
       }
 
-      console.log('Final filtered tokens count:', filteredTokens.length);
       setTokens(filteredTokens);
     }
   };
@@ -1566,7 +1519,7 @@ export function TokenGrid() {
             {selectedSort === 'graduated' && (
               <button
                 onClick={async () => {
-                  console.log('🔄 Force refresh for graduated tokens');
+
                   setTokens([]);
                   setLoading(true);
                   setIsUsingAPIFallback(false);
@@ -1575,18 +1528,9 @@ export function TokenGrid() {
                   // 直接调用 API 检查数据
                   try {
                     const response = await tokenAPI.getGraduatedTokens({ network: 'sepolia' });
-                    console.log('🔍 Direct API call result:', {
-                      success: response.success,
-                      tokenCount: response.data?.tokens?.length || 0,
-                      tokens: response.data?.tokens?.map((t: any) => ({
-                        symbol: t.symbol,
-                        phase: t.phase,
-                        has_graduated: t.has_graduated,
-                        graduation_progress: t.graduation_progress
-                      })) || []
-                    });
+
                   } catch (error) {
-                    console.error('🚨 Direct API call failed:', error);
+
                   }
 
                   // 强制重新连接 WebSocket
@@ -1833,7 +1777,7 @@ export function TokenGrid() {
                               if (creatorInfo.avatar_url.startsWith('/media/')) {
                                 return (
                                   <Image
-                                    src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000'}${creatorInfo.avatar_url}?t=${creatorInfo.updated_at || Date.now()}`}
+                                    src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}${creatorInfo.avatar_url}?t=${creatorInfo.updated_at || Date.now()}`}
                                     alt="Creator avatar"
                                     width={20}
                                     height={20}

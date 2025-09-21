@@ -163,16 +163,12 @@ export function TradingPanel({ token }: TradingPanelProps) {
 
       const tokenBalanceStr = tokenBalance.toString();
 
-      console.log('✅ Manual refresh completed:', {
-        token: tokenBalanceStr
-      });
-
       setTokenBalance(tokenBalanceStr);
       // OKB余额会通过useEffect自动更新
 
       toast.success('Balances refreshed', { duration: 2000 });
     } catch (error) {
-      console.error('Failed to refresh balances:', error);
+
       toast.error('Failed to refresh balances');
     } finally {
       setIsRefreshingBalances(false);
@@ -187,7 +183,7 @@ export function TradingPanel({ token }: TradingPanelProps) {
           const price = await getCurrentPrice(token.address);
           setCurrentPrice(price);
         } catch (error) {
-          console.error('Failed to load current price:', error);
+
         }
       }
     };
@@ -232,7 +228,7 @@ export function TradingPanel({ token }: TradingPanelProps) {
           }
         }
       } catch (error) {
-        console.error('Failed to fetch quote:', error);
+
         setBuyQuote(null);
         setSellQuote(null);
         setIsInsufficientLiquidity(true);
@@ -263,7 +259,7 @@ export function TradingPanel({ token }: TradingPanelProps) {
           setAmount(''); // 买入成功后清空输入框
 
         } catch (error) {
-          console.error('Buy after approval error:', error);
+
           toast.error('Failed to execute buy order after approval');
           setLastTransactionType(null); // 重置交易类型
         } finally {
@@ -289,10 +285,10 @@ export function TradingPanel({ token }: TradingPanelProps) {
     if (okbBalanceChain !== undefined) {
       // okbBalanceChain 已经是格式化后的数字，不需要再用 formatEther
       const balanceStr = okbBalanceChain.toString();
-      console.log('💰 TradingPanel: Setting okbBalance to:', balanceStr);
+
       setOkbBalance(balanceStr);
     } else {
-      console.log('❌ TradingPanel: okbBalanceChain is undefined');
+
     }
   }, [okbBalanceChain]);
 
@@ -305,13 +301,13 @@ export function TradingPanel({ token }: TradingPanelProps) {
       }
 
       try {
-        console.log('🔄 Loading initial token balance...');
+
         const tokenBalance = await getTokenBalance(token.address);
         const tokenBalanceStr = tokenBalance.toString();
-        console.log('✅ Initial token balance loaded:', tokenBalanceStr);
+
         setTokenBalance(tokenBalanceStr);
       } catch (error: any) {
-        console.error('Failed to load initial token balance:', error);
+
         setTokenBalance('0'); // 设置默认值
       } finally {
         setIsLoadingBalances(false); // 无论成功还是失败都结束loading
@@ -336,9 +332,7 @@ export function TradingPanel({ token }: TradingPanelProps) {
       } catch (error: any) {
         // 忽略已取消的请求错误
         if (error.name === 'AbortError') return;
-        
-        console.error('Failed to load OKB price:', error);
-        
+
         // 显示用户友好的错误提示
         if (error.message && !error.message.includes('AbortError')) {
           toast.error('Failed to load OKB price', {
@@ -384,7 +378,6 @@ export function TradingPanel({ token }: TradingPanelProps) {
       // 简化的余额刷新 - 延迟刷新避免立即查询
       setTimeout(async () => {
         try {
-          console.log('🔄 Refreshing balances after transaction...');
 
           // 刷新代币余额
           const latestTokenBalance = await getTokenBalance(token.address);
@@ -393,9 +386,8 @@ export function TradingPanel({ token }: TradingPanelProps) {
           // 刷新OKB余额 (会通过useEffect自动更新显示)
           await refetchOkbBalance();
 
-          console.log('✅ Post-transaction balance refresh completed');
         } catch (error) {
-          console.warn('Post-transaction balance refresh failed:', error);
+
         } finally {
           setIsRefreshingBalances(false);
         }
@@ -406,7 +398,6 @@ export function TradingPanel({ token }: TradingPanelProps) {
   // 监听交易成功，刷新余额
   useEffect(() => {
     if (isTradeSuccess && tradeType && address) {
-      console.log(`🎉 ${tradeType} transaction successful, refreshing balances...`);
 
       // 立即显示成功提示
       if (tradeType === 'buy') {
@@ -421,15 +412,15 @@ export function TradingPanel({ token }: TradingPanelProps) {
       // 立即尝试刷新价格（可能还没有更新，但值得尝试）
       getCurrentPrice(token.address).then(price => {
         setCurrentPrice(price);
-        console.log('🔄 Immediate price refresh after trade:', price);
+
       }).catch(err => {
-        console.warn('Immediate price refresh failed:', err);
+
       });
 
       // 延迟刷新余额和价格，给区块链时间确认
       setTimeout(async () => {
         try {
-          console.log('🔄 Refreshing balances and price after trade transaction...');
+
           const [latestTokenBalance, latestPrice] = await Promise.all([
             getTokenBalance(token.address),
             getCurrentPrice(token.address) // 刷新当前价格
@@ -440,13 +431,9 @@ export function TradingPanel({ token }: TradingPanelProps) {
 
           setTokenBalance(latestTokenBalance.toString());
           setCurrentPrice(latestPrice);
-          console.log('✅ Balances and price refreshed after trade', {
-            newTokenBalance: latestTokenBalance.toString(),
-            newPrice: latestPrice,
-            tradeType
-          });
+
         } catch (error) {
-          console.warn('Failed to refresh balances and price after trade:', error);
+
         }
       }, 3000); // 增加到3秒，给更多时间处理
     }
@@ -574,7 +561,7 @@ export function TradingPanel({ token }: TradingPanelProps) {
         setAmount(''); // 买入成功后清空输入框
       }
     } catch (error) {
-      console.error('Buy error:', error);
+
       setLastTransactionType(null); // 重置交易类型
       toast.error('Failed to execute buy order');
     } finally {
@@ -608,7 +595,7 @@ export function TradingPanel({ token }: TradingPanelProps) {
       setAmount(''); // 卖出成功后清空输入框
 
     } catch (error) {
-      console.error('Sell error:', error);
+
       setLastTransactionType(null); // 重置交易类型
       toast.error('Failed to execute sell order');
     } finally {
@@ -698,8 +685,6 @@ export function TradingPanel({ token }: TradingPanelProps) {
           </button>
         </div>
       </div>
-      
-
 
       {/* 输入框 - 增加高度，去掉Amount标签 */}
       <div className="mb-4">
@@ -797,8 +782,6 @@ export function TradingPanel({ token }: TradingPanelProps) {
           </div>
         </div>
       )}
-
-
 
       {/* 交易按钮 */}
       <Button

@@ -31,8 +31,6 @@ export function TokenOverview({ token, okbPrice = 177.6 }: TokenOverviewProps) {
     '0'
   );
 
-
-
   // 供应量信息 - 使用合约设计的固定值
   const tokensTraded = parseFloat(token?.tokens_traded || '0');
   // 根据合约设计：总供应10亿，流通8亿（80%），LP锁仓2亿（20%）
@@ -49,8 +47,6 @@ export function TokenOverview({ token, okbPrice = 177.6 }: TokenOverviewProps) {
     if (num >= 1e3) return `${(num / 1e3).toFixed(decimals)}K`;
     return num.toFixed(decimals);
   };
-
-
 
   const formatAddress = (address: string): string => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`;
@@ -149,8 +145,6 @@ export function TokenOverview({ token, okbPrice = 177.6 }: TokenOverviewProps) {
             </div>
           </div>
         </div>
-
-
 
         {/* Graduation Progress */}
         <div className="space-y-4">

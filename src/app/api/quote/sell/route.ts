@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error getting sell quote:', error);
+
     return NextResponse.json(
       { error: 'Failed to get sell quote' },
       { status: 500 }
