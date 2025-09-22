@@ -5,6 +5,7 @@ import "./globals.css";
 import '@rainbow-me/rainbowkit/styles.css';
 
 import { Providers } from "./providers";
+import { NProgressProvider } from "@/components/common/NProgressProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -71,6 +72,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body className={`${hubotSans.variable} ${exo2.variable} ${inter.variable} font-inter antialiased min-h-screen bg-background text-foreground`}>
         <Providers>
+          <NProgressProvider />
           {children}
         </Providers>
       </body>

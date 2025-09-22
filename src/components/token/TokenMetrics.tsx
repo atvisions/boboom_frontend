@@ -108,7 +108,7 @@ export function TokenMetrics({ token, okbPrice, showCurrentPrice = true, stats24
           </div>
           <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
             <div 
-              className="bg-gradient-to-r from-[#70E000] to-[#5BC000] h-2 rounded-full transition-all duration-500"
+              className="bg-gradient-to-r from-[#D7FE11] to-[#5BC000] h-2 rounded-full transition-all duration-500"
               style={{ width: `${athProgress}%` }}
             ></div>
           </div>

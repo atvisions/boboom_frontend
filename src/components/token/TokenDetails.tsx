@@ -232,7 +232,7 @@ export function TokenDetails({ token }: TokenDetailsProps) {
                   disabled={!token.creator}
                 >
                   {/* 创建者头像 */}
-                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#70E000]/20 to-[#5BC000]/20 flex items-center justify-center overflow-hidden border border-[#5BC000]/30">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#D7FE11]/20 to-[#5BC000]/20 flex items-center justify-center overflow-hidden border border-[#5BC000]/30">
                     {creator?.avatar_url ? (
                       creator.avatar_url.startsWith('/media/') ? (
                         <Image
@@ -315,7 +315,7 @@ export function TokenDetails({ token }: TokenDetailsProps) {
                       href={token.website} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="p-1.5 bg-gray-700/50 hover:bg-[#70E000] rounded-lg transition-all duration-200 border border-gray-600/30 hover:border-[#70E000]/50 group"
+                      className="p-1.5 bg-gray-700/50 hover:bg-[#D7FE11] rounded-lg transition-all duration-200 border border-gray-600/30 hover:border-[#D7FE11]/50 group"
                       title="Website"
                     >
                       <FaGlobe className="h-3.5 w-3.5 text-blue-400 group-hover:text-white transition-colors" />
@@ -326,7 +326,7 @@ export function TokenDetails({ token }: TokenDetailsProps) {
                       href={token.twitter} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="p-1.5 bg-gray-700/50 hover:bg-[#70E000] rounded-lg transition-all duration-200 border border-gray-600/30 hover:border-[#70E000]/50 group"
+                      className="p-1.5 bg-gray-700/50 hover:bg-[#D7FE11] rounded-lg transition-all duration-200 border border-gray-600/30 hover:border-[#D7FE11]/50 group"
                       title="Twitter"
                     >
                       <FaXTwitter className="h-3.5 w-3.5 text-blue-400 group-hover:text-white transition-colors" />
@@ -337,7 +337,7 @@ export function TokenDetails({ token }: TokenDetailsProps) {
                       href={token.telegram} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="p-1.5 bg-gray-700/50 hover:bg-[#70E000] rounded-lg transition-all duration-200 border border-gray-600/30 hover:border-[#70E000]/50 group"
+                      className="p-1.5 bg-gray-700/50 hover:bg-[#D7FE11] rounded-lg transition-all duration-200 border border-gray-600/30 hover:border-[#D7FE11]/50 group"
                       title="Telegram"
                     >
                       <FaTelegram className="h-3.5 w-3.5 text-blue-400 group-hover:text-white transition-colors" />
@@ -348,7 +348,7 @@ export function TokenDetails({ token }: TokenDetailsProps) {
                       href={token.discord} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="p-1.5 bg-gray-700/50 hover:bg-[#70E000] rounded-lg transition-all duration-200 border border-gray-600/30 hover:border-[#70E000]/50 group"
+                      className="p-1.5 bg-gray-700/50 hover:bg-[#D7FE11] rounded-lg transition-all duration-200 border border-gray-600/30 hover:border-[#D7FE11]/50 group"
                       title="Discord"
                     >
                       <FaDiscord className="h-3.5 w-3.5 text-blue-400 group-hover:text-white transition-colors" />
@@ -359,7 +359,7 @@ export function TokenDetails({ token }: TokenDetailsProps) {
                       href={token.github} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="p-1.5 bg-gray-700/50 hover:bg-[#70E000] rounded-lg transition-all duration-200 border border-gray-600/30 hover:border-[#70E000]/50 group"
+                      className="p-1.5 bg-gray-700/50 hover:bg-[#D7FE11] rounded-lg transition-all duration-200 border border-gray-600/30 hover:border-[#D7FE11]/50 group"
                       title="GitHub"
                     >
                       <FaGithub className="h-3.5 w-3.5 text-blue-400 group-hover:text-white transition-colors" />
@@ -384,7 +384,7 @@ export function TokenDetails({ token }: TokenDetailsProps) {
                 toast.success('Link copied to clipboard');
               });
             }}
-            className="p-2.5 bg-gray-700/50 hover:bg-[#70E000] rounded-lg transition-all duration-200 border border-gray-600/30 hover:border-[#70E000]/50"
+            className="p-2.5 bg-gray-700/50 hover:bg-[#D7FE11] rounded-lg transition-all duration-200 border border-gray-600/30 hover:border-[#D7FE11]/50"
             title="Share"
           >
             <Share2 className="h-4 w-4 text-gray-400 hover:text-white transition-colors" />
@@ -396,8 +396,8 @@ export function TokenDetails({ token }: TokenDetailsProps) {
             disabled={isFavoriteLoading}
             className={`p-2.5 rounded-lg transition-all duration-200 border ${
               isFavorited 
-                ? 'bg-[#70E000] border-[#70E000] text-black' 
-                : 'bg-gray-700/50 border-gray-600/30 text-gray-400 hover:bg-[#70E000] hover:border-[#70E000] hover:text-black'
+                ? 'bg-[#D7FE11] border-[#D7FE11] text-black' 
+                : 'bg-gray-700/50 border-gray-600/30 text-gray-400 hover:bg-[#D7FE11] hover:border-[#D7FE11] hover:text-black'
             }`}
             title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
           >

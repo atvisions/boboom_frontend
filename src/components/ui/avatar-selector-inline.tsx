@@ -182,7 +182,7 @@ export function AvatarSelectorInline({ currentAvatar, onSelect, onClose }: Avata
       if (loading) {
         return (
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#70E000]"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#D7FE11]"></div>
           </div>
         );
       }
@@ -195,8 +195,8 @@ export function AvatarSelectorInline({ currentAvatar, onSelect, onClose }: Avata
               onClick={() => handleAvatarSelect(avatar)}
               className={`relative w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
                 selectedAvatar === avatar.url
-                  ? 'border-[#70E000] ring-2 ring-[#70E000]/20'
-                  : 'border-[#232323] hover:border-[#70E000]/50'
+                  ? 'border-[#D7FE11] ring-2 ring-[#D7FE11]/20'
+                  : 'border-[#232323] hover:border-[#D7FE11]/50'
               }`}
             >
               <img
@@ -205,8 +205,8 @@ export function AvatarSelectorInline({ currentAvatar, onSelect, onClose }: Avata
                 className="w-full h-full object-cover"
               />
               {selectedAvatar === avatar.url && (
-                <div className="absolute inset-0 bg-[#70E000]/20 flex items-center justify-center">
-                  <Check className="h-5 w-5 text-[#70E000]" />
+                <div className="absolute inset-0 bg-[#D7FE11]/20 flex items-center justify-center">
+                  <Check className="h-5 w-5 text-[#D7FE11]" />
                 </div>
               )}
             </button>
@@ -222,14 +222,14 @@ export function AvatarSelectorInline({ currentAvatar, onSelect, onClose }: Avata
               onClick={() => handleAvatarSelect(avatar)}
               className={`relative w-12 h-12 rounded-lg border-2 transition-all flex items-center justify-center text-2xl ${
                 selectedAvatar === avatar.url
-                  ? 'border-[#70E000] ring-2 ring-[#70E000]/20 bg-[#70E000]/10'
-                  : 'border-[#232323] hover:border-[#70E000]/50'
+                  ? 'border-[#D7FE11] ring-2 ring-[#D7FE11]/20 bg-[#D7FE11]/10'
+                  : 'border-[#232323] hover:border-[#D7FE11]/50'
               }`}
             >
               {avatar.url}
               {selectedAvatar === avatar.url && (
-                <div className="absolute inset-0 bg-[#70E000]/20 flex items-center justify-center">
-                  <Check className="h-3 w-3 text-[#70E000]" />
+                <div className="absolute inset-0 bg-[#D7FE11]/20 flex items-center justify-center">
+                  <Check className="h-3 w-3 text-[#D7FE11]" />
                 </div>
               )}
             </button>
@@ -257,7 +257,7 @@ export function AvatarSelectorInline({ currentAvatar, onSelect, onClose }: Avata
           onClick={() => setActiveTab('system')}
           className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
             activeTab === 'system'
-              ? 'bg-[#70E000] text-black'
+              ? 'bg-[#D7FE11] text-black'
               : 'text-gray-400 hover:text-white hover:bg-[#232323]'
           }`}
         >
@@ -268,7 +268,7 @@ export function AvatarSelectorInline({ currentAvatar, onSelect, onClose }: Avata
           onClick={() => setActiveTab('emoji')}
           className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
             activeTab === 'emoji'
-              ? 'bg-[#70E000] text-black'
+              ? 'bg-[#D7FE11] text-black'
               : 'text-gray-400 hover:text-white hover:bg-[#232323]'
           }`}
         >
@@ -289,7 +289,7 @@ export function AvatarSelectorInline({ currentAvatar, onSelect, onClose }: Avata
         </button>
         <button
           onClick={handleConfirm}
-          className="px-4 py-2 bg-[#70E000] text-black rounded-lg hover:bg-[#5BC000] transition-colors"
+          className="px-4 py-2 bg-[#D7FE11] text-black rounded-lg hover:bg-[#5BC000] transition-colors"
         >
           Confirm
         </button>

@@ -10,7 +10,7 @@ export function TokenOverview({ token, okbPrice = 177.6 }: TokenOverviewProps) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#70E000] mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#D7FE11] mx-auto mb-4"></div>
           <p className="text-gray-400">Loading overview...</p>
         </div>
       </div>
@@ -175,13 +175,13 @@ export function TokenOverview({ token, okbPrice = 177.6 }: TokenOverviewProps) {
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-gray-400 text-sm">Progress</span>
-                <span className="text-[#70E000] font-medium">{graduationProgress.toFixed(1)}%</span>
+                <span className="text-[#D7FE11] font-medium">{graduationProgress.toFixed(1)}%</span>
               </div>
 
               {/* Progress Bar */}
               <div className="w-full bg-gray-700 rounded-full h-2">
                 <div
-                  className="bg-gradient-to-r from-[#70E000] to-[#5BC000] h-2 rounded-full transition-all duration-300"
+                  className="bg-gradient-to-r from-[#D7FE11] to-[#5BC000] h-2 rounded-full transition-all duration-300"
                   style={{ width: `${Math.min(graduationProgress, 100)}%` }}
                 ></div>
               </div>

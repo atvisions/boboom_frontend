@@ -30,7 +30,7 @@ const TokenIcon = ({ isOKB, token, className = "w-6 h-6" }: TokenIconProps) => {
   if (fallbackError || (imageError && isOKB)) {
     // 显示最终备用图标（文字）
     return (
-      <div className={`${className} rounded-full bg-[#70E000] flex items-center justify-center`}>
+      <div className={`${className} rounded-full bg-[#D7FE11] flex items-center justify-center`}>
         <span className="text-black text-xs font-bold">
           {isOKB ? 'O' : token.symbol?.charAt(0) || 'T'}
         </span>
@@ -635,7 +635,7 @@ export function TradingPanel({ token }: TradingPanelProps) {
           onClick={() => setActiveTab('buy')}
           className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
             activeTab === 'buy'
-              ? 'bg-[#70E000] text-black'
+              ? 'bg-[#D7FE11] text-black'
               : 'text-gray-400 hover:text-white'
           }`}
         >
@@ -694,7 +694,7 @@ export function TradingPanel({ token }: TradingPanelProps) {
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0.00"
-            className="bg-[#0a0a0a] border-[#333333] text-white pr-16 h-14 text-lg focus:border-[#70E000] focus:ring-[#70E000]/20 [appearance:none] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            className="bg-[#0a0a0a] border-[#333333] text-white pr-16 h-14 text-lg focus:border-[#D7FE11] focus:ring-[#D7FE11]/20 [appearance:none] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
             <span className="text-gray-400 text-sm">{activeTab === 'buy' ? 'OKB' : token.symbol}</span>
@@ -789,7 +789,7 @@ export function TradingPanel({ token }: TradingPanelProps) {
         disabled={isLoading || isCreatePending || isCreateConfirming || isApprovalPending || isApprovalConfirming || isTradePending || isTradeConfirming || isRefreshingBalances || !amount || parseFloat(amount) <= 0 || isInsufficientLiquidity}
         className={`w-full py-3 font-medium ${
           activeTab === 'buy'
-            ? 'bg-[#70E000] text-black hover:bg-[#5BC000]'
+            ? 'bg-[#D7FE11] text-black hover:bg-[#5BC000]'
             : 'bg-red-500 text-white hover:bg-red-600'
         } disabled:opacity-50 disabled:cursor-not-allowed`}
       >

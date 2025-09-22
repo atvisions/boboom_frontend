@@ -582,7 +582,7 @@ export function TrendingSection() {
           <p className="text-red-400 text-lg">{error}</p>
           <button 
             onClick={() => window.location.reload()} 
-            className="mt-4 px-6 py-2 bg-[#70E000] text-black rounded-lg hover:bg-[#5BC000] transition-colors"
+            className="mt-4 px-6 py-2 bg-[#D7FE11] text-black rounded-lg hover:bg-[#5BC000] transition-colors"
           >
             Retry
           </button>
@@ -592,11 +592,11 @@ export function TrendingSection() {
           {tokens.map((token) => (
             <div
               key={`${token.address}-${token.name}-${Date.now()}`}
-              className="relative rounded-2xl overflow-hidden group w-full max-w-[380px] h-[420px] mx-auto bg-gradient-to-br from-gray-900/80 to-gray-800/60 backdrop-blur-sm border border-gray-700/50 cursor-pointer hover:border-[#70E000]/30 hover:shadow-[0_0_30px_rgba(112,224,0,0.1)] transition-all duration-300"
+              className="relative rounded-2xl overflow-hidden group w-full max-w-[380px] h-[420px] mx-auto bg-gradient-to-br from-gray-900/80 to-gray-800/60 backdrop-blur-sm border border-gray-700/50 cursor-pointer hover:border-[#D7FE11]/30 hover:shadow-[0_0_30px_rgba(112,224,0,0.1)] transition-all duration-300"
               onClick={() => router.push(`/token/${token.address}`)}
             >
               {/* 顶部装饰条 */}
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#70E000] via-yellow-400 to-orange-500"></div>
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#D7FE11] via-yellow-400 to-orange-500"></div>
 
               {/* 收藏按钮 - 右上角 */}
               <button
@@ -607,8 +607,8 @@ export function TrendingSection() {
                 disabled={isFavoriteLoading}
                 className={`absolute top-4 right-4 z-10 p-2.5 rounded-full transition-all duration-300 ${
                   favorites.has(token.address)
-                    ? 'bg-[#70E000] text-black shadow-lg shadow-[#70E000]/30'
-                    : 'bg-black/30 backdrop-blur-sm hover:bg-[#70E000]/20 text-white hover:text-[#70E000]'
+                    ? 'bg-[#D7FE11] text-black shadow-lg shadow-[#D7FE11]/30'
+                    : 'bg-black/30 backdrop-blur-sm hover:bg-[#D7FE11]/20 text-white hover:text-[#D7FE11]'
                 } ${isFavoriteLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <Star 
@@ -673,7 +673,7 @@ export function TrendingSection() {
                 <div className="mb-6">
                   <div className="flex justify-between items-center mb-3">
                     <span className="text-gray-300 text-sm font-medium">Graduation Progress</span>
-                    <span className="text-[#70E000] font-bold text-lg">
+                    <span className="text-[#D7FE11] font-bold text-lg">
                       {token.graduationProgress.toFixed(1)}%
                     </span>
                   </div>
@@ -681,7 +681,7 @@ export function TrendingSection() {
                   {/* 进度条 */}
                   <div className="w-full h-4 bg-gray-700/50 rounded-full overflow-hidden border border-gray-600/30">
                     <div 
-                      className="bg-gradient-to-r from-[#70E000] via-yellow-400 to-orange-500 h-4 rounded-full transition-all duration-1000 shadow-lg"
+                      className="bg-gradient-to-r from-[#D7FE11] via-yellow-400 to-orange-500 h-4 rounded-full transition-all duration-1000 shadow-lg"
                       style={{ width: `${token.graduationProgress}%` }}
                     ></div>
                   </div>
@@ -792,7 +792,7 @@ export function TrendingSection() {
                           href={token.twitter}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-2 rounded-full bg-gray-800/50 hover:bg-[#70E000] hover:text-black transition-all duration-300 border border-gray-700/30"
+                          className="p-2 rounded-full bg-gray-800/50 hover:bg-[#D7FE11] hover:text-black transition-all duration-300 border border-gray-700/30"
                           onClick={(e) => e.stopPropagation()}
                           title="Twitter"
                         >
@@ -806,7 +806,7 @@ export function TrendingSection() {
                           href={token.telegram}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-2 rounded-full bg-gray-800/50 hover:bg-[#70E000] hover:text-black transition-all duration-300 border border-gray-700/30"
+                          className="p-2 rounded-full bg-gray-800/50 hover:bg-[#D7FE11] hover:text-black transition-all duration-300 border border-gray-700/30"
                           onClick={(e) => e.stopPropagation()}
                           title="Telegram"
                         >
@@ -820,7 +820,7 @@ export function TrendingSection() {
                           href={token.website}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-2 rounded-full bg-gray-800/50 hover:bg-[#70E000] hover:text-black transition-all duration-300 border border-gray-700/30"
+                          className="p-2 rounded-full bg-gray-800/50 hover:bg-[#D7FE11] hover:text-black transition-all duration-300 border border-gray-700/30"
                           onClick={(e) => e.stopPropagation()}
                           title="Website"
                         >

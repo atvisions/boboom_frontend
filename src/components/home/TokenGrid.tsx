@@ -81,7 +81,7 @@ const RangeSlider: React.FC<RangeSliderProps> = ({
       >
         {/* 活跃范围 */}
         <div
-          className="absolute h-2 bg-[#70E000] rounded-full"
+          className="absolute h-2 bg-[#D7FE11] rounded-full"
           style={{
             left: `${getPercentage(value[0])}%`,
             width: `${getPercentage(value[1]) - getPercentage(value[0])}%`
@@ -90,14 +90,14 @@ const RangeSlider: React.FC<RangeSliderProps> = ({
 
         {/* 最小值滑块 */}
         <div
-          className="absolute w-4 h-4 bg-[#70E000] rounded-full transform -translate-y-1 cursor-pointer hover:scale-110 transition-transform"
+          className="absolute w-4 h-4 bg-[#D7FE11] rounded-full transform -translate-y-1 cursor-pointer hover:scale-110 transition-transform"
           style={{ left: `${getPercentage(value[0])}%`, transform: 'translateX(-50%) translateY(-25%)' }}
           onMouseDown={handleMouseDown('min')}
         />
 
         {/* 最大值滑块 */}
         <div
-          className="absolute w-4 h-4 bg-[#70E000] rounded-full transform -translate-y-1 cursor-pointer hover:scale-110 transition-transform"
+          className="absolute w-4 h-4 bg-[#D7FE11] rounded-full transform -translate-y-1 cursor-pointer hover:scale-110 transition-transform"
           style={{ left: `${getPercentage(value[1])}%`, transform: 'translateX(-50%) translateY(-25%)' }}
           onMouseDown={handleMouseDown('max')}
         />
@@ -1064,9 +1064,9 @@ export function TokenGrid() {
       {/* 标题和筛选器 */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+          {/* <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
             <TrendingUp className="h-5 w-5 text-white" />
-          </div>
+          </div> */}
           <div>
             <h2 className="text-3xl font-bold text-white font-hubot-sans">Live Tokens</h2>
           </div>
@@ -1084,7 +1084,7 @@ export function TokenGrid() {
                   variant={selectedSort === option.value ? "default" : "outline"}
                   className={`px-4 py-2 rounded-lg transition-all duration-200 ${
                     selectedSort === option.value
-                      ? "bg-[#70E000] text-black hover:bg-[#70E000]/90 shadow-lg"
+                      ? "bg-[#D7FE11] text-black hover:bg-[#D7FE11]/90 shadow-lg"
                       : "bg-transparent text-gray-400 hover:text-white hover:bg-[#232323] border-0"
                   }`}
                   onClick={() => handleSortChange(option.value)}
@@ -1101,7 +1101,7 @@ export function TokenGrid() {
             <Button
               variant="outline"
               className={`relative ${hasActiveFilters()
-                ? 'bg-[#70E000]/10 border-[#70E000]/50 text-[#70E000] hover:bg-[#70E000]/20'
+                ? 'bg-[#D7FE11]/10 border-[#D7FE11]/50 text-[#D7FE11] hover:bg-[#D7FE11]/20'
                 : 'bg-[#1a1a1a] border-gray-700 text-gray-300 hover:text-white hover:bg-[#232323]'
               }`}
               onClick={() => setShowFilter(!showFilter)}
@@ -1109,7 +1109,7 @@ export function TokenGrid() {
               <Filter className="h-4 w-4 mr-2" />
               Filter
               {hasActiveFilters() && (
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#70E000] rounded-full flex items-center justify-center">
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-[#D7FE11] rounded-full flex items-center justify-center">
                   <div className="w-1.5 h-1.5 bg-black rounded-full"></div>
                 </div>
               )}
@@ -1158,7 +1158,7 @@ export function TokenGrid() {
                           <button
                             key={value}
                             onClick={() => handleFilterChange('mcapMin', value)}
-                            className="px-3 py-1 bg-[#232323] hover:bg-[#70E000]/20 text-gray-300 hover:text-[#70E000] text-xs rounded-lg transition-colors"
+                            className="px-3 py-1 bg-[#232323] hover:bg-[#D7FE11]/20 text-gray-300 hover:text-[#D7FE11] text-xs rounded-lg transition-colors"
                           >
                             ≥ {value}
                           </button>
@@ -1173,7 +1173,7 @@ export function TokenGrid() {
                             placeholder="e.g., 10k, 1m"
                             value={filters.mcapMin}
                             onChange={(e) => handleFilterChange('mcapMin', e.target.value)}
-                            className="w-full px-3 py-2 bg-[#232323] border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-[#70E000]"
+                            className="w-full px-3 py-2 bg-[#232323] border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-[#D7FE11]"
                           />
                         </div>
                         <div>
@@ -1183,7 +1183,7 @@ export function TokenGrid() {
                             placeholder="e.g., 10k, 1m"
                             value={filters.mcapMax}
                             onChange={(e) => handleFilterChange('mcapMax', e.target.value)}
-                            className="w-full px-3 py-2 bg-[#232323] border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-[#70E000]"
+                            className="w-full px-3 py-2 bg-[#232323] border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-[#D7FE11]"
                           />
                         </div>
                       </div>
@@ -1221,7 +1221,7 @@ export function TokenGrid() {
                           <button
                             key={value}
                             onClick={() => handleFilterChange('volumeMin', value)}
-                            className="px-3 py-1 bg-[#232323] hover:bg-[#70E000]/20 text-gray-300 hover:text-[#70E000] text-xs rounded-lg transition-colors"
+                            className="px-3 py-1 bg-[#232323] hover:bg-[#D7FE11]/20 text-gray-300 hover:text-[#D7FE11] text-xs rounded-lg transition-colors"
                           >
                             ≥ {value}
                           </button>
@@ -1236,7 +1236,7 @@ export function TokenGrid() {
                             placeholder="e.g., 5k, 100k"
                             value={filters.volumeMin}
                             onChange={(e) => handleFilterChange('volumeMin', e.target.value)}
-                            className="w-full px-3 py-2 bg-[#232323] border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-[#70E000]"
+                            className="w-full px-3 py-2 bg-[#232323] border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-[#D7FE11]"
                           />
                         </div>
                         <div>
@@ -1246,7 +1246,7 @@ export function TokenGrid() {
                             placeholder="e.g., 5k, 100k"
                             value={filters.volumeMax}
                             onChange={(e) => handleFilterChange('volumeMax', e.target.value)}
-                            className="w-full px-3 py-2 bg-[#232323] border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-[#70E000]"
+                            className="w-full px-3 py-2 bg-[#232323] border border-gray-600 rounded-lg text-white text-sm focus:outline-none focus:border-[#D7FE11]"
                           />
                         </div>
                       </div>
@@ -1272,7 +1272,7 @@ export function TokenGrid() {
                     </div>
                     <Button
                       onClick={applyFilters}
-                      className="bg-[#70E000] text-black hover:bg-[#5BC500] px-6 py-2 font-medium"
+                      className="bg-[#D7FE11] text-black hover:bg-[#5BC500] px-6 py-2 font-medium"
                     >
                       Apply Filters
                     </Button>
@@ -1288,7 +1288,7 @@ export function TokenGrid() {
               variant={viewMode === "grid" ? "default" : "outline"}
               className={`px-3 py-2 rounded-lg transition-all duration-200 ${
                 viewMode === "grid"
-                  ? "bg-[#70E000] text-black hover:bg-[#70E000]/90 shadow-lg"
+                  ? "bg-[#D7FE11] text-black hover:bg-[#D7FE11]/90 shadow-lg"
                   : "bg-transparent text-gray-400 hover:text-white hover:bg-[#232323] border-0"
               }`}
               onClick={() => handleViewModeChange("grid")}
@@ -1299,7 +1299,7 @@ export function TokenGrid() {
               variant={viewMode === "list" ? "default" : "outline"}
               className={`px-3 py-2 rounded-lg transition-all duration-200 ${
                 viewMode === "list"
-                  ? "bg-[#70E000] text-black hover:bg-[#70E000]/90 shadow-lg"
+                  ? "bg-[#D7FE11] text-black hover:bg-[#D7FE11]/90 shadow-lg"
                   : "bg-transparent text-gray-400 hover:text-white hover:bg-[#232323] border-0"
               }`}
               onClick={() => handleViewModeChange("list")}
@@ -1317,12 +1317,12 @@ export function TokenGrid() {
             <span className="text-gray-400 text-sm">
               Showing {tokens.length} token{tokens.length !== 1 ? 's' : ''}
               {hasActiveFilters() && (
-                <span className="text-[#70E000] ml-1">(filtered)</span>
+                <span className="text-[#D7FE11] ml-1">(filtered)</span>
               )}
             </span>
             {isRefreshing && (
-              <div className="flex items-center space-x-2 text-[#70E000] text-sm">
-                <div className="w-3 h-3 border-2 border-[#70E000] border-t-transparent rounded-full animate-spin"></div>
+              <div className="flex items-center space-x-2 text-[#D7FE11] text-sm">
+                <div className="w-3 h-3 border-2 border-[#D7FE11] border-t-transparent rounded-full animate-spin"></div>
                 <span>Updating...</span>
               </div>
             )}
@@ -1335,37 +1335,37 @@ export function TokenGrid() {
                 {filters.mcapMin && (
                   <button
                     onClick={() => removeFilter('mcapMin')}
-                    className="px-2 py-1 bg-[#70E000]/10 text-[#70E000] text-xs rounded-full hover:bg-[#70E000]/20 transition-colors cursor-pointer flex items-center space-x-1"
+                    className="px-2 py-1 bg-[#D7FE11]/10 text-[#D7FE11] text-xs rounded-full hover:bg-[#D7FE11]/20 transition-colors cursor-pointer flex items-center space-x-1"
                   >
                     <span>Mcap ≥ {filters.mcapMin}</span>
-                    <span className="text-[#70E000]/70 hover:text-[#70E000]">×</span>
+                    <span className="text-[#D7FE11]/70 hover:text-[#D7FE11]">×</span>
                   </button>
                 )}
                 {filters.mcapMax && (
                   <button
                     onClick={() => removeFilter('mcapMax')}
-                    className="px-2 py-1 bg-[#70E000]/10 text-[#70E000] text-xs rounded-full hover:bg-[#70E000]/20 transition-colors cursor-pointer flex items-center space-x-1"
+                    className="px-2 py-1 bg-[#D7FE11]/10 text-[#D7FE11] text-xs rounded-full hover:bg-[#D7FE11]/20 transition-colors cursor-pointer flex items-center space-x-1"
                   >
                     <span>Mcap ≤ {filters.mcapMax}</span>
-                    <span className="text-[#70E000]/70 hover:text-[#70E000]">×</span>
+                    <span className="text-[#D7FE11]/70 hover:text-[#D7FE11]">×</span>
                   </button>
                 )}
                 {filters.volumeMin && (
                   <button
                     onClick={() => removeFilter('volumeMin')}
-                    className="px-2 py-1 bg-[#70E000]/10 text-[#70E000] text-xs rounded-full hover:bg-[#70E000]/20 transition-colors cursor-pointer flex items-center space-x-1"
+                    className="px-2 py-1 bg-[#D7FE11]/10 text-[#D7FE11] text-xs rounded-full hover:bg-[#D7FE11]/20 transition-colors cursor-pointer flex items-center space-x-1"
                   >
                     <span>Volume ≥ {filters.volumeMin}</span>
-                    <span className="text-[#70E000]/70 hover:text-[#70E000]">×</span>
+                    <span className="text-[#D7FE11]/70 hover:text-[#D7FE11]">×</span>
                   </button>
                 )}
                 {filters.volumeMax && (
                   <button
                     onClick={() => removeFilter('volumeMax')}
-                    className="px-2 py-1 bg-[#70E000]/10 text-[#70E000] text-xs rounded-full hover:bg-[#70E000]/20 transition-colors cursor-pointer flex items-center space-x-1"
+                    className="px-2 py-1 bg-[#D7FE11]/10 text-[#D7FE11] text-xs rounded-full hover:bg-[#D7FE11]/20 transition-colors cursor-pointer flex items-center space-x-1"
                   >
                     <span>Volume ≤ {filters.volumeMax}</span>
-                    <span className="text-[#70E000]/70 hover:text-[#70E000]">×</span>
+                    <span className="text-[#D7FE11]/70 hover:text-[#D7FE11]">×</span>
                   </button>
                 )}
               </div>
@@ -1445,7 +1445,7 @@ export function TokenGrid() {
               </div>
 
               {/* 悬停效果骨架 */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[#70E000]/5 to-transparent opacity-0 pointer-events-none"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-[#D7FE11]/5 to-transparent opacity-0 pointer-events-none"></div>
             </div>
           ))}
         </div>
@@ -1454,7 +1454,7 @@ export function TokenGrid() {
           <p className="text-red-400 text-lg">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 px-6 py-2 bg-[#70E000] text-black rounded-lg hover:bg-[#5BC000] transition-colors"
+            className="mt-4 px-6 py-2 bg-[#D7FE11] text-black rounded-lg hover:bg-[#5BC000] transition-colors"
           >
             Retry
           </button>
@@ -1511,7 +1511,7 @@ export function TokenGrid() {
             {hasActiveFilters() && (
               <button
                 onClick={clearFilters}
-                className="px-6 py-3 bg-[#70E000] text-black rounded-lg hover:bg-[#5BC000] transition-colors font-medium"
+                className="px-6 py-3 bg-[#D7FE11] text-black rounded-lg hover:bg-[#5BC000] transition-colors font-medium"
               >
                 Clear All Filters
               </button>
@@ -1660,7 +1660,7 @@ export function TokenGrid() {
                   disabled={isFavoriteLoading}
                   className={`p-1.5 rounded-full transition-all duration-200 ${
                     favorites.has(token.address)
-                      ? 'bg-[#70E000] text-black'
+                      ? 'bg-[#D7FE11] text-black'
                       : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
                   } ${isFavoriteLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
@@ -1678,7 +1678,7 @@ export function TokenGrid() {
           {tokens.map((token, index) => (
             <div
               key={token.address}
-              className={`group relative bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#70E000]/50 hover:shadow-xl hover:shadow-[#70E000]/10 transition-all duration-300 cursor-pointer`}
+              className={`group relative bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer`}
               onClick={() => {
                 router.push(`/token/${token.address}`);
               }}
@@ -1692,7 +1692,7 @@ export function TokenGrid() {
                 disabled={isFavoriteLoading}
                 className={`absolute top-4 right-4 z-10 p-2.5 rounded-full transition-all duration-200 ${
                   favorites.has(token.address)
-                    ? 'bg-[#70E000] text-black shadow-lg'
+                    ? 'bg-[#D7FE11] text-black shadow-lg'
                     : 'bg-black/20 backdrop-blur-sm text-gray-400 hover:text-white hover:bg-black/40'
                 } ${isFavoriteLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
@@ -1770,7 +1770,7 @@ export function TokenGrid() {
                           }
                         }}
                       >
-                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#70E000]/20 to-[#5BC000]/20 flex items-center justify-center overflow-hidden">
+                        <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#D7FE11]/20 to-[#5BC000]/20 flex items-center justify-center overflow-hidden">
                           {(() => {
                             const creatorInfo = creators[token.creator];
                             if (creatorInfo?.avatar_url && creatorInfo.avatar_url.trim() !== '') {
@@ -1840,7 +1840,7 @@ export function TokenGrid() {
                 {/* 市值和交易量 */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <div className="text-[#70E000] font-bold text-lg mb-1">
+                    <div className="text-[#D7FE11] font-bold text-lg mb-1">
                       ${utilsFormatNumber(parseFloat(token.marketCap || '0'))}
                     </div>
                     <div className="text-gray-400 text-xs">
@@ -1866,7 +1866,7 @@ export function TokenGrid() {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-gray-400 text-sm font-medium">Progress</span>
-                    <span className="text-[#70E000] font-bold text-sm">{token.graduationProgress.toFixed(1)}%</span>
+                    <span className="text-[#D7FE11] font-bold text-sm">{token.graduationProgress.toFixed(1)}%</span>
                   </div>
                   <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
                     <div 
@@ -1878,7 +1878,7 @@ export function TokenGrid() {
               </div>
 
               {/* 悬停效果 */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[#70E000]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-[#D7FE11]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
             </div>
           ))}
         </div>

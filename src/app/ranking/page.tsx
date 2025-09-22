@@ -290,7 +290,7 @@ export default function RankingPage() {
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
                       activeTab === tab.id
-                        ? "bg-[#70E000] text-black shadow-lg"
+                        ? "bg-[#D7FE11] text-black shadow-lg"
                         : "text-gray-400 hover:text-white hover:bg-[#232323]"
                     }`}
                   >
@@ -313,7 +313,7 @@ export default function RankingPage() {
                           variant={tokenSort === option.value ? "default" : "outline"}
                           className={`px-4 py-2 rounded-lg transition-all duration-200 ${
                             tokenSort === option.value
-                              ? "bg-[#70E000] text-black hover:bg-[#70E000]/90 shadow-lg"
+                              ? "bg-[#D7FE11] text-black hover:bg-[#D7FE11]/90 shadow-lg"
                               : "bg-transparent text-gray-400 hover:text-white hover:bg-[#232323] border-0"
                           }`}
                           onClick={() => setTokenSort(option.value)}
@@ -339,7 +339,7 @@ export default function RankingPage() {
                           variant={creatorSort === option.value ? "default" : "outline"}
                           className={`px-4 py-2 rounded-lg transition-all duration-200 ${
                             creatorSort === option.value
-                              ? "bg-[#70E000] text-black hover:bg-[#70E000]/90 shadow-lg"
+                              ? "bg-[#D7FE11] text-black hover:bg-[#D7FE11]/90 shadow-lg"
                               : "bg-transparent text-gray-400 hover:text-white hover:bg-[#232323] border-0"
                           }`}
                           onClick={() => setCreatorSort(option.value)}
@@ -382,7 +382,7 @@ export default function RankingPage() {
                     <p className="text-red-400 text-lg">{error}</p>
                     <button 
                       onClick={() => window.location.reload()} 
-                      className="mt-4 px-6 py-2 bg-[#70E000] text-black rounded-lg hover:bg-[#5BC000] transition-colors"
+                      className="mt-4 px-6 py-2 bg-[#D7FE11] text-black rounded-lg hover:bg-[#5BC000] transition-colors"
                     >
                       Retry
                     </button>
@@ -397,7 +397,7 @@ export default function RankingPage() {
                     .map((token, index) => (
                     <div
                       key={token.address}
-                      className="group relative bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#70E000]/50 hover:shadow-xl hover:shadow-[#70E000]/10 transition-all duration-300 cursor-pointer"
+                      className="group relative bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer"
                       onClick={() => router.push(`/token/${token.address}`)}
                     >
                       {/* 收藏按钮 */}
@@ -409,7 +409,7 @@ export default function RankingPage() {
                         disabled={isFavoriteLoading.has(token.address)}
                         className={`absolute top-4 right-4 z-10 p-2.5 rounded-full transition-all duration-200 ${
                           favorites.has(token.address)
-                            ? 'bg-[#70E000] text-black shadow-lg'
+                            ? 'bg-[#D7FE11] text-black shadow-lg'
                             : 'bg-black/20 backdrop-blur-sm text-gray-400 hover:text-white hover:bg-black/40'
                         } ${isFavoriteLoading.has(token.address) ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
@@ -483,7 +483,7 @@ export default function RankingPage() {
                                 router.push(`/profile/${token.creator}`);
                               }}
                             >
-                              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#70E000]/20 to-[#5BC000]/20 flex items-center justify-center overflow-hidden">
+                              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#D7FE11]/20 to-[#5BC000]/20 flex items-center justify-center overflow-hidden">
                                 {(() => {
                                   const creatorData = creatorInfo[token.creator];
                                   if (creatorData?.avatar_url && creatorData.avatar_url.trim() !== '') {
@@ -536,7 +536,7 @@ export default function RankingPage() {
                           {/* 市场数据 */}
                           <div className="grid grid-cols-4 gap-4">
                             <div>
-                              <div className="text-[#70E000] font-bold text-lg">${parseFloat(token.marketCap || '0').toFixed(2)}</div>
+                              <div className="text-[#D7FE11] font-bold text-lg">${parseFloat(token.marketCap || '0').toFixed(2)}</div>
                               <div className="text-gray-400 text-xs">Market Cap</div>
                             </div>
                             <div>
@@ -556,7 +556,7 @@ export default function RankingPage() {
                       </div>
 
                       {/* 悬停效果 */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-[#70E000]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#D7FE11]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
                     </div>
                   ))
                 )}
@@ -589,7 +589,7 @@ export default function RankingPage() {
                     <p className="text-red-400 text-lg">{error}</p>
                     <button 
                       onClick={() => window.location.reload()} 
-                      className="mt-4 px-6 py-2 bg-[#70E000] text-black rounded-lg hover:bg-[#5BC000] transition-colors"
+                      className="mt-4 px-6 py-2 bg-[#D7FE11] text-black rounded-lg hover:bg-[#5BC000] transition-colors"
                     >
                       Retry
                     </button>
@@ -598,7 +598,7 @@ export default function RankingPage() {
                   creators.map((creator, index) => (
                     <div
                       key={creator.address}
-                      className="group relative bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#70E000]/50 hover:shadow-xl hover:shadow-[#70E000]/10 transition-all duration-300 cursor-pointer"
+                      className="group relative bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer"
                       onClick={() => {
                         router.push(`/profile/${creator.address}`);
                       }}
@@ -610,7 +610,7 @@ export default function RankingPage() {
                         </div>
 
                         {/* 头像 */}
-                        <div className="flex-shrink-0 w-16 h-16 rounded-2xl bg-gradient-to-br from-[#70E000]/20 to-[#5BC000]/20 flex items-center justify-center shadow-lg">
+                        <div className="flex-shrink-0 w-16 h-16 rounded-2xl bg-gradient-to-br from-[#D7FE11]/20 to-[#5BC000]/20 flex items-center justify-center shadow-lg">
                           {creator.avatar_url && creator.avatar_url.trim() !== '' ? (
                             creator.avatar_url.startsWith('/media/') ? (
                               <img
@@ -634,7 +634,7 @@ export default function RankingPage() {
                               {creator.is_verified && (
                                 <div className="relative group/icon">
                                   <div className="flex items-center justify-center cursor-help">
-                                    <BadgeCheck className="w-4 h-4 text-[#70E000]" />
+                                    <BadgeCheck className="w-4 h-4 text-[#D7FE11]" />
                                   </div>
                                   {/* 悬停提示 */}
                                   <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/90 text-white text-xs rounded-lg opacity-0 group-hover/icon:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
@@ -649,7 +649,7 @@ export default function RankingPage() {
                           {/* 统计数据 */}
                           <div className="grid grid-cols-3 gap-4">
                             <div>
-                              <div className="text-[#70E000] font-bold text-lg">{creator.tokens_created || 0}</div>
+                              <div className="text-[#D7FE11] font-bold text-lg">{creator.tokens_created || 0}</div>
                               <div className="text-gray-400 text-xs">Tokens Created</div>
                             </div>
                             <div>
@@ -665,7 +665,7 @@ export default function RankingPage() {
                       </div>
 
                       {/* 悬停效果 */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-[#70E000]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#D7FE11]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
                     </div>
                   ))
                 )}

@@ -325,22 +325,22 @@ function CreateTokenForm() {
         {/* Basic Information */}
         <div className="bg-[#151515] rounded-lg p-6 mb-6">
           <h2 className="text-xl font-semibold text-white mb-4 flex items-center">
-            <Rocket className="mr-2 h-5 w-5 text-[#70E000]" />
+            <Rocket className="mr-2 h-5 w-5 text-[#D7FE11]" />
             Basic Information
           </h2>
           
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Token Name *</label>
-              <Input type="text" placeholder="e.g., ShibaBNB" value={formData.tokenName} onChange={(e) => handleInputChange("tokenName", e.target.value)} className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#70E000] focus:ring-[#70E000]" required />
+              <Input type="text" placeholder="e.g., ShibaBNB" value={formData.tokenName} onChange={(e) => handleInputChange("tokenName", e.target.value)} className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#D7FE11] focus:ring-[#D7FE11]" required />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Token Symbol *</label>
-              <Input type="text" placeholder="e.g., SHIB" value={formData.tokenSymbol} onChange={(e) => handleInputChange("tokenSymbol", e.target.value)} className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#70E000] focus:ring-[#70E000]" required />
+              <Input type="text" placeholder="e.g., SHIB" value={formData.tokenSymbol} onChange={(e) => handleInputChange("tokenSymbol", e.target.value)} className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#D7FE11] focus:ring-[#D7FE11]" required />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
-              <Textarea placeholder="Describe your token project..." value={formData.description} onChange={(e) => handleInputChange("description", e.target.value)} className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#70E000] focus:ring-[#70E000] min-h-[100px]" rows={4} />
+              <Textarea placeholder="Describe your token project..." value={formData.description} onChange={(e) => handleInputChange("description", e.target.value)} className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#D7FE11] focus:ring-[#D7FE11] min-h-[100px]" rows={4} />
             </div>
           </div>
         </div>
@@ -348,15 +348,15 @@ function CreateTokenForm() {
         {/* Token Image */}
         <div className="bg-[#151515] rounded-lg p-6 mb-6">
           <h2 className="text-xl font-semibold text-white mb-4 flex items-center">
-            <Image className="mr-2 h-5 w-5 text-[#70E000]" />
+            <Image className="mr-2 h-5 w-5 text-[#D7FE11]" />
             Token Image *
           </h2>
           <div className="space-y-4">
             {!imagePreview ? (
               <label htmlFor="image-upload" className="block cursor-pointer">
-                <div className="border-2 border-dashed border-[#232323] rounded-lg p-8 text-center hover:border-[#70E000] transition-colors">
+                <div className="border-2 border-dashed border-[#232323] rounded-lg p-8 text-center hover:border-[#D7FE11] transition-colors">
                   <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <div className="text-gray-400 mb-2"><span className="text-[#70E000] hover:text-[#5BC000]">Click to upload</span> or drag and drop</div>
+                  <div className="text-gray-400 mb-2"><span className="text-[#D7FE11] hover:text-[#5BC000]">Click to upload</span> or drag and drop</div>
                   <p className="text-sm text-gray-500">PNG, JPG, GIF up to 5MB</p>
                 </div>
                 <input id="image-upload" type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
@@ -373,7 +373,7 @@ function CreateTokenForm() {
             )}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Or provide image URL</label>
-              <Input type="url" placeholder="https://example.com/token-image.png" value={formData.imageUrl} onChange={(e) => handleInputChange("imageUrl", e.target.value)} className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#70E000] focus:ring-[#70E000]" />
+              <Input type="url" placeholder="https://example.com/token-image.png" value={formData.imageUrl} onChange={(e) => handleInputChange("imageUrl", e.target.value)} className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#D7FE11] focus:ring-[#D7FE11]" />
             </div>
           </div>
         </div>
@@ -381,21 +381,21 @@ function CreateTokenForm() {
         {/* Social Links */}
         <div className="bg-[#151515] rounded-lg p-6 mb-6">
           <h2 className="text-xl font-semibold text-white mb-4 flex items-center">
-            <Rocket className="mr-2 h-5 w-5 text-[#70E000]" />
+            <Rocket className="mr-2 h-5 w-5 text-[#D7FE11]" />
             Social Links (Optional)
           </h2>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Website</label>
-              <Input type="url" placeholder="https://yourwebsite.com" value={formData.website} onChange={(e) => handleInputChange("website", e.target.value)} className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#70E000] focus:ring-[#70E000]" />
+              <Input type="url" placeholder="https://yourwebsite.com" value={formData.website} onChange={(e) => handleInputChange("website", e.target.value)} className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#D7FE11] focus:ring-[#D7FE11]" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Twitter/X</label>
-              <Input type="url" placeholder="https://twitter.com/yourhandle" value={formData.twitter} onChange={(e) => handleInputChange("twitter", e.target.value)} className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#70E000] focus:ring-[#70E000]" />
+              <Input type="url" placeholder="https://twitter.com/yourhandle" value={formData.twitter} onChange={(e) => handleInputChange("twitter", e.target.value)} className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#D7FE11] focus:ring-[#D7FE11]" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Telegram</label>
-              <Input type="url" placeholder="https://t.me/yourgroup" value={formData.telegram} onChange={(e) => handleInputChange("telegram", e.target.value)} className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#70E000] focus:ring-[#70E000]" />
+              <Input type="url" placeholder="https://t.me/yourgroup" value={formData.telegram} onChange={(e) => handleInputChange("telegram", e.target.value)} className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#D7FE11] focus:ring-[#D7FE11]" />
             </div>
           </div>
         </div>
@@ -403,7 +403,7 @@ function CreateTokenForm() {
         {/* Initial Purchase */}
         <div className="bg-[#151515] rounded-lg p-6 mb-6">
           <h2 className="text-xl font-semibold text-white mb-4 flex items-center">
-            <Rocket className="mr-2 h-5 w-5 text-[#70E000]" />
+            <Rocket className="mr-2 h-5 w-5 text-[#D7FE11]" />
             Initial Purchase (Required)
           </h2>
           <div className="space-y-4">
@@ -417,7 +417,7 @@ function CreateTokenForm() {
                   </div>
                 )}
               </div>
-              <Input type="number" placeholder="0.1" value={initialPurchase.toString()} onChange={(e) => setInitialPurchase(Number(e.target.value) || 0.1)} className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#70E000] focus:ring-[#70E000]" min="0.1" step="0.1" required />
+              <Input type="number" placeholder="0.1" value={initialPurchase.toString()} onChange={(e) => setInitialPurchase(Number(e.target.value) || 0.1)} className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#D7FE11] focus:ring-[#D7FE11]" min="0.1" step="0.1" required />
               <div className="mt-2 space-y-1">
                 <p className="text-sm text-gray-400">Required. Minimum initial purchase: 0.1 OKB.</p>
                 {isConnected && (okbBalance || 0) === 0 && (<p className="text-sm text-red-400 flex items-center"><span className="mr-1">⚠️</span>You have no OKB tokens. You cannot create a token.</p>)}
@@ -431,7 +431,7 @@ function CreateTokenForm() {
 
         {/* Submit Button */}
         <div className="flex justify-end">
-          <Button type="submit" disabled={!isFormValid() || isUploading || isCreatePending || isCreateConfirming || isApprovalPending || isApprovalConfirming} className="font-semibold px-8 py-3 rounded-lg flex items-center disabled:opacity-50 bg-[#70E000] hover:bg-[#5BC000] text-black disabled:bg-gray-600 disabled:text-gray-400">
+          <Button type="submit" disabled={!isFormValid() || isUploading || isCreatePending || isCreateConfirming || isApprovalPending || isApprovalConfirming} className="font-semibold px-8 py-3 rounded-lg flex items-center disabled:opacity-50 bg-[#D7FE11] hover:bg-[#5BC000] text-black disabled:bg-gray-600 disabled:text-gray-400">
             {isUploading ? (<><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>Uploading...</>) : (<><Rocket className="mr-2 h-5 w-5" />Create Token</>)}
           </Button>
         </div>

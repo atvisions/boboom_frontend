@@ -460,7 +460,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
           <SearchHeader />
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#70E000] mx-auto mb-4"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#D7FE11] mx-auto mb-4"></div>
               <p className="text-gray-400">Loading profile...</p>
             </div>
           </div>
@@ -588,7 +588,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-6">
                   {/* Avatar */}
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#70E000]/20 to-[#5BC000]/20 flex items-center justify-center text-2xl">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#D7FE11]/20 to-[#5BC000]/20 flex items-center justify-center text-2xl">
                     {userData?.avatar_url && userData.avatar_url.trim() !== '' ? (
                       userData.avatar_url.startsWith('/media/') ? (
                         <img
@@ -613,7 +613,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                       {userData?.is_verified && (
                         <div className="relative group/icon">
                           <div className="flex items-center justify-center cursor-help">
-                            <BadgeCheck className="w-5 h-5 text-[#70E000]" />
+                            <BadgeCheck className="w-5 h-5 text-[#D7FE11]" />
                           </div>
                           {/* 悬停提示 */}
                           <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/90 text-white text-xs rounded-lg opacity-0 group-hover/icon:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
@@ -691,11 +691,11 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                     )}
                     
                     <div className="flex items-center space-x-4 text-sm text-gray-400">
-                      <span><span className="text-[#70E000] font-bold">{userStats?.tokens_created || 0}</span> tokens created</span>
+                      <span><span className="text-[#D7FE11] font-bold">{userStats?.tokens_created || 0}</span> tokens created</span>
                       <span>•</span>
-                      <span><span className="text-[#70E000] font-bold">{followerCount}</span> followers</span>
+                      <span><span className="text-[#D7FE11] font-bold">{followerCount}</span> followers</span>
                       <span>•</span>
-                      <span><span className="text-[#70E000] font-bold">{followingCount}</span> following</span>
+                      <span><span className="text-[#D7FE11] font-bold">{followingCount}</span> following</span>
                     </div>
                   </div>
                 </div>
@@ -705,7 +705,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                   {isOwnProfile ? (
                     <Button
                       onClick={() => setShowEditModal(true)}
-                      className="bg-[#70E000] text-black hover:bg-[#5BC000]"
+                      className="bg-[#D7FE11] text-black hover:bg-[#5BC000]"
                     >
                       <Edit className="h-4 w-4 mr-2" />
                       Edit Profile
@@ -717,7 +717,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                       className={`${
                         isFollowing 
                           ? 'bg-gray-600 hover:bg-gray-700 text-white' 
-                          : 'bg-[#70E000] hover:bg-[#5BC000] text-black'
+                          : 'bg-[#D7FE11] hover:bg-[#5BC000] text-black'
                       } transition-colors`}
                     >
                       {followLoading.has(targetAddress || '') ? (
@@ -752,7 +752,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                     onClick={() => handleTabChange(tab.id)}
                     className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
                       activeTab === tab.id
-                        ? 'bg-[#70E000] text-black'
+                        ? 'bg-[#D7FE11] text-black'
                         : 'text-gray-400 hover:text-white hover:bg-[#232323]'
                     }`}
                   >
@@ -804,8 +804,8 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                           createdTokens.slice(0, 6).map((token, index) => (
                             <div key={index} className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded-lg">
                               <div className="flex items-center space-x-3">
-                                <div className="w-8 h-8 bg-[#70E000]/20 rounded-full flex items-center justify-center">
-                                  <Rocket className="h-4 w-4 text-[#70E000]" />
+                                <div className="w-8 h-8 bg-[#D7FE11]/20 rounded-full flex items-center justify-center">
+                                  <Rocket className="h-4 w-4 text-[#D7FE11]" />
                                 </div>
                                 <div>
                                   <p className="text-white text-sm">Created {token.name} ({token.symbol})</p>
@@ -813,7 +813,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                                 </div>
                               </div>
                               <div className="text-right">
-                                <span className="text-[#70E000] text-sm">+{token.progress}%</span>
+                                <span className="text-[#D7FE11] text-sm">+{token.progress}%</span>
                                 <p className="text-gray-400 text-xs">{token.holders} holders</p>
                               </div>
                             </div>
@@ -844,7 +844,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                       <div key={index} className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#70E000]/20 to-[#5BC000]/20 flex items-center justify-center text-2xl">
+                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#D7FE11]/20 to-[#5BC000]/20 flex items-center justify-center text-2xl">
                               {balance.logo}
                             </div>
                             <div>
@@ -884,7 +884,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                           {holdingTokens.map((token) => (
                             <div 
                               key={token.id} 
-                              className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#70E000]/50 hover:shadow-xl hover:shadow-[#70E000]/10 transition-all duration-300 cursor-pointer"
+                              className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer"
                               onClick={() => router.push(`/token/${token.address}`)}
                             >
                               <div className="flex items-center justify-between">
@@ -901,11 +901,11 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                                   <div className="flex items-center justify-end space-x-2 mt-1">
                                     <div className="w-20 h-2 bg-gray-700 rounded-full overflow-hidden">
                                       <div 
-                                        className="h-full bg-gradient-to-r from-[#70E000] to-[#5BC000] rounded-full"
+                                        className="h-full bg-gradient-to-r from-[#D7FE11] to-[#5BC000] rounded-full"
                                         style={{ width: `${token.progress}%` }}
                                       ></div>
                                     </div>
-                                    <span className="text-[#70E000] text-sm font-bold">{token.progress}%</span>
+                                    <span className="text-[#D7FE11] text-sm font-bold">{token.progress}%</span>
                                   </div>
                                 </div>
                               </div>
@@ -924,7 +924,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                       createdTokens.map((token) => (
                       <div 
                         key={token.id} 
-                        className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#70E000]/50 hover:shadow-xl hover:shadow-[#70E000]/10 transition-all duration-300 cursor-pointer"
+                        className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer"
                         onClick={() => router.push(`/token/${token.address}`)}
                       >
                         <div className="flex items-center justify-between">
@@ -941,11 +941,11 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                             <div className="flex items-center justify-end space-x-2 mt-1">
                               <div className="w-20 h-2 bg-gray-700 rounded-full overflow-hidden">
                                 <div 
-                                  className="h-full bg-gradient-to-r from-[#70E000] to-[#5BC000] rounded-full"
+                                  className="h-full bg-gradient-to-r from-[#D7FE11] to-[#5BC000] rounded-full"
                                   style={{ width: `${token.progress}%` }}
                                 ></div>
                               </div>
-                              <span className="text-[#70E000] text-sm font-bold">{token.progress}%</span>
+                              <span className="text-[#D7FE11] text-sm font-bold">{token.progress}%</span>
                             </div>
                           </div>
                         </div>
@@ -973,7 +973,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                       favoriteTokens.map((token) => (
                       <div 
                         key={token.id} 
-                        className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#70E000]/50 hover:shadow-xl hover:shadow-[#70E000]/10 transition-all duration-300 cursor-pointer"
+                        className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer"
                         onClick={() => router.push(`/token/${token.address}`)}
                       >
                         <div className="flex items-center justify-between">
@@ -995,14 +995,14 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                                   className={`p-1.5 rounded-full transition-all duration-200 ${
                                     favoriteLoading.has(token.address) 
                                       ? 'opacity-50 cursor-not-allowed' 
-                                      : 'hover:bg-[#70E000]/20'
+                                      : 'hover:bg-[#D7FE11]/20'
                                   }`}
                                 >
                                   <Star 
                                     className={`h-4 w-4 ${
                                       favoriteLoading.has(token.address) 
                                         ? 'animate-pulse text-gray-400' 
-                                        : 'text-[#70E000] fill-current'
+                                        : 'text-[#D7FE11] fill-current'
                                     }`}
                                   />
                                 </button>
@@ -1019,7 +1019,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                                   style={{ width: `${token.progress}%` }}
                                 ></div>
                               </div>
-                              <span className="text-[#70E000] text-sm font-bold">{token.progress}%</span>
+                              <span className="text-[#D7FE11] text-sm font-bold">{token.progress}%</span>
                             </div>
                           </div>
                         </div>
@@ -1053,7 +1053,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                                 className="flex items-center space-x-3 flex-1 cursor-pointer hover:bg-[#232323] rounded-lg p-2 transition-colors"
                                 onClick={() => router.push(`/profile/${follow.user.address}`)}
                               >
-                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#70E000]/20 to-[#5BC000]/20 flex items-center justify-center">
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#D7FE11]/20 to-[#5BC000]/20 flex items-center justify-center">
                                   {follow.user.avatar_url && follow.user.avatar_url.trim() !== '' ? (
                                     follow.user.avatar_url.startsWith('/media/') ? (
                                       <img
@@ -1074,7 +1074,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                                     {follow.user.is_verified && (
                                       <div className="relative group/icon">
                                         <div className="flex items-center justify-center cursor-help">
-                                          <BadgeCheck className="w-4 h-4 text-[#70E000]" />
+                                          <BadgeCheck className="w-4 h-4 text-[#D7FE11]" />
                                         </div>
                                         {/* 悬停提示 */}
                                         <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/90 text-white text-xs rounded-lg opacity-0 group-hover/icon:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
@@ -1085,7 +1085,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                                     )}
                                   </div>
                                   <p className="text-gray-400 text-sm">{follow.user.bio || "No bio"}</p>
-                                  <p className="text-gray-500 text-xs"><span className="text-[#70E000] font-bold">{follow.user.tokens_created}</span> tokens created</p>
+                                  <p className="text-gray-500 text-xs"><span className="text-[#D7FE11] font-bold">{follow.user.tokens_created}</span> tokens created</p>
                                 </div>
                               </div>
                               <div className="flex items-center space-x-2">
@@ -1127,7 +1127,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                                 className="flex items-center space-x-3 flex-1 cursor-pointer hover:bg-[#232323] rounded-lg p-2 transition-colors"
                                 onClick={() => router.push(`/profile/${follower.user.address}`)}
                               >
-                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#70E000]/20 to-[#5BC000]/20 flex items-center justify-center">
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#D7FE11]/20 to-[#5BC000]/20 flex items-center justify-center">
                                   {follower.user.avatar_url && follower.user.avatar_url.trim() !== '' ? (
                                     follower.user.avatar_url.startsWith('/media/') ? (
                                       <img
@@ -1148,7 +1148,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                                     {follower.user.is_verified && (
                                       <div className="relative group/icon">
                                         <div className="flex items-center justify-center cursor-help">
-                                          <BadgeCheck className="w-4 h-4 text-[#70E000]" />
+                                          <BadgeCheck className="w-4 h-4 text-[#D7FE11]" />
                                         </div>
                                         {/* 悬停提示 */}
                                         <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black/90 text-white text-xs rounded-lg opacity-0 group-hover/icon:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
@@ -1159,7 +1159,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                                     )}
                                   </div>
                                   <p className="text-gray-400 text-sm">{follower.user.bio || "No bio"}</p>
-                                  <p className="text-gray-500 text-xs"><span className="text-[#70E000] font-bold">{follower.user.tokens_created}</span> tokens created</p>
+                                  <p className="text-gray-500 text-xs"><span className="text-[#D7FE11] font-bold">{follower.user.tokens_created}</span> tokens created</p>
                                 </div>
                               </div>
                               <div className="flex items-center space-x-2">
@@ -1174,7 +1174,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                                       handleFollowToggle(follower.user.address);
                                     }}
                                     disabled={followLoading.has(follower.user.address)}
-                                    className="text-[#70E000] hover:text-[#5BC000] transition-colors p-1"
+                                    className="text-[#D7FE11] hover:text-[#5BC000] transition-colors p-1"
                                   >
                                     <UserPlus className="h-4 w-4" />
                                   </button>
@@ -1202,7 +1202,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                           className="flex items-center space-x-2 flex-1 cursor-pointer hover:bg-[#232323] rounded-lg p-2 transition-colors"
                           onClick={() => router.push(`/profile/${user.address}`)}
                         >
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#70E000]/20 to-[#5BC000]/20 flex items-center justify-center flex-shrink-0">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#D7FE11]/20 to-[#5BC000]/20 flex items-center justify-center flex-shrink-0">
                             {user.avatar_url && user.avatar_url.trim() !== '' ? (
                               user.avatar_url.startsWith('/media/') ? (
                                 <img
@@ -1219,7 +1219,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-white text-sm font-medium truncate">{user.username}</p>
-                            <p className="text-gray-400 text-xs truncate"><span className="text-[#70E000] font-bold">{user.follower_count}</span> followers</p>
+                            <p className="text-gray-400 text-xs truncate"><span className="text-[#D7FE11] font-bold">{user.follower_count}</span> followers</p>
                           </div>
                         </div>
                         <button
@@ -1231,7 +1231,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                           className={`flex items-center space-x-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors flex-shrink-0 ${
                             user.is_following
                               ? 'bg-gray-700 text-gray-300 hover:bg-red-600 hover:text-white'
-                              : 'bg-[#70E000] text-black hover:bg-[#5BC000]'
+                              : 'bg-[#D7FE11] text-black hover:bg-[#5BC000]'
                           } ${followLoading.has(user.address) ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                           {followLoading.has(user.address) ? (
@@ -1276,7 +1276,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Avatar</label>
                 <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#70E000]/20 to-[#5BC000]/20 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#D7FE11]/20 to-[#5BC000]/20 flex items-center justify-center">
                     {editForm.avatar ? (
                       editForm.avatar.startsWith('/media/') ? (
                         <img 
@@ -1372,7 +1372,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                 <Button
                   type="submit"
                   disabled={isEditLoading}
-                  className="bg-[#70E000] text-black hover:bg-[#5BC000] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-[#D7FE11] text-black hover:bg-[#5BC000] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isEditLoading ? 'Saving...' : 'Save Changes'}
                 </Button>

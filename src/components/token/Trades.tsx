@@ -281,7 +281,7 @@ export function TradesAndHolders({ tokenAddress, token, okbPrice }: TradesAndHol
       <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6">
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#70E000] mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#D7FE11] mx-auto mb-4"></div>
             <p className="text-gray-400">Loading {activeTab}...</p>
           </div>
         </div>
@@ -297,7 +297,7 @@ export function TradesAndHolders({ tokenAddress, token, okbPrice }: TradesAndHol
             <p className="text-red-400 text-lg mb-4">{error}</p>
             <button 
               onClick={() => activeTab === 'trades' ? loadTransactions() : loadHolders()} 
-              className="px-6 py-2 bg-[#70E000] text-black rounded-lg hover:bg-[#5BC000] transition-colors"
+              className="px-6 py-2 bg-[#D7FE11] text-black rounded-lg hover:bg-[#5BC000] transition-colors"
             >
               Retry
             </button>
@@ -316,7 +316,7 @@ export function TradesAndHolders({ tokenAddress, token, okbPrice }: TradesAndHol
             onClick={() => setActiveTab('overview')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === 'overview'
-                ? 'bg-[#70E000] text-black'
+                ? 'bg-[#D7FE11] text-black'
                 : 'text-gray-400 hover:text-white'
             }`}
           >
@@ -327,7 +327,7 @@ export function TradesAndHolders({ tokenAddress, token, okbPrice }: TradesAndHol
             onClick={() => setActiveTab('trades')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === 'trades'
-                ? 'bg-[#70E000] text-black'
+                ? 'bg-[#D7FE11] text-black'
                 : 'text-gray-400 hover:text-white'
             }`}
           >
@@ -338,7 +338,7 @@ export function TradesAndHolders({ tokenAddress, token, okbPrice }: TradesAndHol
             onClick={() => setActiveTab('holders')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === 'holders'
-                ? 'bg-[#70E000] text-black'
+                ? 'bg-[#D7FE11] text-black'
                 : 'text-gray-400 hover:text-white'
             }`}
           >
@@ -370,7 +370,7 @@ export function TradesAndHolders({ tokenAddress, token, okbPrice }: TradesAndHol
           {transactions.map((tx, index) => (
             <div 
               key={tx.id || index}
-              className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded-lg border border-[#232323] hover:border-[#70E000]/30 transition-all duration-200"
+              className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded-lg border border-[#232323] hover:border-[#D7FE11]/30 transition-all duration-200"
             >
               {/* 左侧：交易类型和用户 */}
               <div className="flex items-center space-x-3">
@@ -403,7 +403,7 @@ export function TradesAndHolders({ tokenAddress, token, okbPrice }: TradesAndHol
                         href={`https://sepolia.etherscan.io/tx/${tx.transaction_hash.startsWith('0x') ? tx.transaction_hash : '0x' + tx.transaction_hash}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[#70E000] hover:text-[#5BC000] transition-colors cursor-pointer"
+                        className="text-[#D7FE11] hover:text-[#5BC000] transition-colors cursor-pointer"
                         title="Click to view on Etherscan"
                       >
                         {tx.transaction_hash.startsWith('0x') ? tx.transaction_hash.slice(2, 10) : tx.transaction_hash.slice(0, 8)}...{tx.transaction_hash.slice(-6)}
@@ -416,7 +416,7 @@ export function TradesAndHolders({ tokenAddress, token, okbPrice }: TradesAndHol
                         {copiedHash === tx.transaction_hash ? (
                           <Check className="h-3 w-3 text-green-500" />
                         ) : (
-                          <Copy className="h-3 w-3 text-gray-400 hover:text-[#70E000]" />
+                          <Copy className="h-3 w-3 text-gray-400 hover:text-[#D7FE11]" />
                         )}
                       </button>
                     </div>
@@ -445,7 +445,7 @@ export function TradesAndHolders({ tokenAddress, token, okbPrice }: TradesAndHol
                href={`https://sepolia.etherscan.io/tx/${tx.hash.startsWith('0x') ? tx.hash : '0x' + tx.hash}`}
                target="_blank"
                rel="noopener noreferrer"
-               className="inline-flex items-center space-x-1 text-[#70E000] hover:text-[#5BC000] transition-colors text-xs"
+               className="inline-flex items-center space-x-1 text-[#D7FE11] hover:text-[#5BC000] transition-colors text-xs"
                title="View on Etherscan"
              >
                <span>View</span>
@@ -463,7 +463,7 @@ export function TradesAndHolders({ tokenAddress, token, okbPrice }: TradesAndHol
               <button
                 onClick={loadMoreTrades}
                 disabled={loadingMore}
-                className="px-6 py-3 bg-[#70E000] text-black rounded-lg hover:bg-[#5BC000] transition-colors font-medium flex items-center mx-auto space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3 bg-[#D7FE11] text-black rounded-lg hover:bg-[#5BC000] transition-colors font-medium flex items-center mx-auto space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loadingMore ? (
                   <>
@@ -488,7 +488,7 @@ export function TradesAndHolders({ tokenAddress, token, okbPrice }: TradesAndHol
           {holders.map((holder, index) => (
             <div 
               key={holder.address}
-              className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded-lg border border-[#232323] hover:border-[#70E000]/30 transition-all duration-200"
+              className="flex items-center justify-between p-3 bg-[#1a1a1a] rounded-lg border border-[#232323] hover:border-[#D7FE11]/30 transition-all duration-200"
             >
               {/* 左侧：排名和地址 */}
               <div className="flex items-center space-x-3">
@@ -505,7 +505,7 @@ export function TradesAndHolders({ tokenAddress, token, okbPrice }: TradesAndHol
                   
                   {/* 创建者标识 */}
                   {holder.rank === 1 && (
-                    <span className="px-2 py-1 bg-[#70E000]/20 text-[#70E000] text-xs rounded-full font-medium">
+                    <span className="px-2 py-1 bg-[#D7FE11]/20 text-[#D7FE11] text-xs rounded-full font-medium">
                       Creator
                     </span>
                   )}
@@ -520,7 +520,7 @@ export function TradesAndHolders({ tokenAddress, token, okbPrice }: TradesAndHol
                 </div>
                 
                 {/* 百分比 */}
-                <div className="text-[#70E000] text-xs font-medium">
+                <div className="text-[#D7FE11] text-xs font-medium">
                   {parseFloat(holder.percentage).toFixed(2)}%
                 </div>
               </div>
@@ -533,7 +533,7 @@ export function TradesAndHolders({ tokenAddress, token, okbPrice }: TradesAndHol
               <button
                 onClick={loadMoreHolders}
                 disabled={loadingMore}
-                className="px-6 py-3 bg-[#70E000] text-black rounded-lg hover:bg-[#5BC000] transition-colors font-medium flex items-center mx-auto space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3 bg-[#D7FE11] text-black rounded-lg hover:bg-[#5BC000] transition-colors font-medium flex items-center mx-auto space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loadingMore ? (
                   <>

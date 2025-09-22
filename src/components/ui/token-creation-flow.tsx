@@ -273,7 +273,7 @@ export function TokenCreationFlow(props: TokenCreationFlowProps) {
               href={`https://sepolia.etherscan.io/tx/${st.hash}`}
               target="_blank"
               rel="noreferrer"
-              className="text-xs text-[#70E000] hover:text-[#5BC000] inline-flex items-center gap-1 mt-1"
+              className="text-xs text-[#D7FE11] hover:text-[#5BC000] inline-flex items-center gap-1 mt-1"
             >
               View Transaction <ExternalLink className="h-3 w-3" />
             </a>
@@ -287,7 +287,7 @@ export function TokenCreationFlow(props: TokenCreationFlowProps) {
                 Open Wallet
               </Button>
               {key === 'APPROVAL' && (
-                <Button size="sm" className="bg-[#70E000] text-black hover:bg-[#5BC000]" onClick={() => {
+                <Button size="sm" className="bg-[#D7FE11] text-black hover:bg-[#5BC000]" onClick={() => {
                   startedApproval.current = false;
                   setStates(s => ({ ...s, APPROVAL: { ...s.APPROVAL, status: 'loading', message: 'Retrying authorization...', hint: 'Please confirm in MetaMask' }}));
                   if (approvalTimeoutRef.current) clearTimeout(approvalTimeoutRef.current);
@@ -303,7 +303,7 @@ export function TokenCreationFlow(props: TokenCreationFlowProps) {
                 </Button>
               )}
               {key === 'CREATE' && (
-                <Button size="sm" className="bg-[#70E000] text-black hover:bg-[#5BC000]" onClick={() => {
+                <Button size="sm" className="bg-[#D7FE11] text-black hover:bg-[#5BC000]" onClick={() => {
                   startedCreate.current = false;
                   setStates(s => ({ ...s, CREATE: { ...s.CREATE, status: 'loading', message: 'Retrying creation...', hint: 'Please confirm in MetaMask' } }));
                   if (creationTimeoutRef.current) clearTimeout(creationTimeoutRef.current);
@@ -330,7 +330,7 @@ export function TokenCreationFlow(props: TokenCreationFlowProps) {
       <DialogContent className="bg-[#151515] border-[#232323] text-white max-w-md" showCloseButton={false}>
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-white flex items-center">
-            <Rocket className="mr-2 h-6 w-6 text-[#70E000]" />
+            <Rocket className="mr-2 h-6 w-6 text-[#D7FE11]" />
             Creating Token
           </DialogTitle>
         </DialogHeader>

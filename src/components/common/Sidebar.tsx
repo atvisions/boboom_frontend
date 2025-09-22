@@ -11,6 +11,7 @@ import {
 import { FaXTwitter, FaTelegram, FaDiscord, FaGithub } from "react-icons/fa6";
 import { cn } from "@/lib/utils";
 import { useWalletAuth } from "@/hooks/useWalletAuth";
+import NProgress from 'nprogress';
 
 const navigation = [
   { name: "Home", href: "/", icon: Home },
@@ -29,20 +30,32 @@ export function Sidebar() {
   const pathname = usePathname();
   const { address, isAuthenticated, isClient } = useWalletAuth();
 
+  // 处理链接点击，启动进度条
+  const handleLinkClick = (href: string) => {
+    // 只有当目标路径与当前路径不同时才启动进度条
+    if (href !== pathname) {
+      NProgress.start();
+    }
+  };
+
   return (
     <div className="w-64 fixed left-0 top-0 h-screen bg-[#151515] flex flex-col z-10">
       {/* 品牌标志 */}
       <div className="p-6">
-        <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity duration-200">
+        <Link 
+          href="/" 
+          className="flex items-center space-x-2 hover:opacity-80 transition-opacity duration-200"
+          onClick={() => handleLinkClick("/")}
+        >
           <Image
-            src="/logo.png"
+            src="/logo.svg"
             alt="BOBOOM Logo"
             width={32}
             height={32}
-            className=""
-            style={{ width: '32px', height: '32px' }}
+            className="w-40"
+            style={{  height: '32px' }}
           />
-          <span className="text-white text-xl font-bold font-inter">BOBOOM</span>
+          {/* <span className="text-white text-xl font-bold font-inter">BOBOOM</span> */}
         </Link>
       </div>
 
@@ -55,22 +68,23 @@ export function Sidebar() {
               <li key={item.name}>
                 <Link
                   href={item.href}
+                  onClick={() => handleLinkClick(item.href)}
                   className={cn(
-                    "flex items-center space-x-3 px-4 py-3 rounded-lg font-medium",
+                    "flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-all duration-200",
                     isActive
-                      ? "text-[#70E000] bg-[#70E000]/10 border-l-4 border-[#70E000]"
-                      : "text-gray-400 hover:text-[#70E000] hover:bg-gray-800/30"
+                      ? "text-[#D7FE11] bg-[#D7FE11]/10 border-l-4 border-[#D7FE11]"
+                      : "text-gray-400 hover:text-[#D7FE11] hover:bg-gray-800/30"
                   )}
                 >
                   <item.icon className={cn(
                     "h-5 w-5",
                     isActive 
-                      ? "text-[#70E000]" 
+                      ? "text-[#D7FE11]" 
                       : "text-gray-400"
                   )} />
                   <span className={cn(
                     isActive 
-                      ? "font-semibold text-[#70E000]" 
+                      ? "font-semibold text-[#D7FE11]" 
                       : "font-medium text-gray-400"
                   )}>{item.name}</span>
                 </Link>
@@ -82,22 +96,23 @@ export function Sidebar() {
           <li>
             <Link
               href={isClient && address ? `/profile/${address}/` : "/profile/"}
+              onClick={() => handleLinkClick(isClient && address ? `/profile/${address}/` : "/profile/")}
               className={cn(
-                "flex items-center space-x-3 px-4 py-3 rounded-lg font-medium",
+                "flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-all duration-200",
                 pathname.startsWith("/profile")
-                  ? "text-[#70E000] bg-[#70E000]/10 border-l-4 border-[#70E000]"
-                  : "text-gray-400 hover:text-[#70E000] hover:bg-gray-800/30"
+                  ? "text-[#D7FE11] bg-[#D7FE11]/10 border-l-4 border-[#D7FE11]"
+                  : "text-gray-400 hover:text-[#D7FE11] hover:bg-gray-800/30"
               )}
             >
               <User className={cn(
                 "h-5 w-5",
                 pathname.startsWith("/profile") 
-                  ? "text-[#70E000]" 
+                  ? "text-[#D7FE11]" 
                   : "text-gray-400"
               )} />
               <span className={cn(
                 pathname.startsWith("/profile") 
-                  ? "font-semibold text-[#70E000]" 
+                  ? "font-semibold text-[#D7FE11]" 
                   : "font-medium text-gray-400"
               )}>Profile</span>
             </Link>
@@ -113,7 +128,7 @@ export function Sidebar() {
             <Link
               key={social.name}
               href={social.href}
-              className="flex-1 flex justify-center text-gray-400 hover:text-[#70E000] transition-colors"
+              className="flex-1 flex justify-center text-gray-400 hover:text-[#D7FE11] transition-colors"
             >
               <social.icon className="h-6 w-6" />
             </Link>

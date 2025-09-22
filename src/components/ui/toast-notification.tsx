@@ -23,7 +23,7 @@ export const toast = {
       description: config?.description,
       action: config?.action,
       style: {
-        background: '#70E000',
+        background: '#D7FE11',
         color: '#000000',
         border: 'none',
         fontWeight: '600',

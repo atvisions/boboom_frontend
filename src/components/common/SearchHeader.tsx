@@ -196,7 +196,7 @@ export function SearchHeader() {
           <Button 
             variant="outline" 
             onClick={handleCreateToken}
-            className="h-[40px] px-[34px] py-4 border-2 border-[#70E000] text-[#70E000] hover:bg-[#70E000] hover:text-black font-light rounded-[15px]"
+            className="h-[40px] px-[34px] py-4 border-2 border-[#D7FE11] text-[#D7FE11] hover:bg-[#D7FE11] hover:text-black font-light rounded-[15px]"
           >
             <Rocket className="mr-2 h-4 w-4" />
             Create Token
