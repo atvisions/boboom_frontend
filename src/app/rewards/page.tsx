@@ -5,14 +5,7 @@ import { Gift } from "lucide-react";
 
 export default function RewardsPage() {
   return (
-    <div className="flex h-screen bg-[#0E0E0E]">
-      <Sidebar />
-      
-      <div className="flex-1 ml-64 flex flex-col">
-        <SearchHeader />
-        
-        <div className="flex-1 overflow-y-auto bg-[#0E0E0E]">
-          <div className="px-6 py-6">
+     <div className="px-6 py-6">
             {/* 简单的内容区域 */}
             <div className="flex items-center justify-center min-h-[60vh]">
               <div className="text-center">
@@ -29,8 +22,5 @@ export default function RewardsPage() {
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
   );
 }

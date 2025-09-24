@@ -869,6 +869,9 @@ export function CandlestickChart({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showTimeDropdown]);
 
+
+  
+
   return (
     <div className="space-y-6">
       {/* 图表标题和控制按钮 */}

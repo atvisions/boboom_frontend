@@ -1,7 +1,5 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Sidebar } from "@/components/common/Sidebar";
-import { SearchHeader } from "@/components/common/SearchHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -276,7 +274,7 @@ function CreateTokenForm() {
   };
 
   return (
-    <div className="flex-1 px-6 py-6">
+    <div className="flex-1 p-6">
       {/* 全自动创建流程弹窗 */}
       {pendingTokenData && (
         <TokenCreationFlow
@@ -444,16 +442,6 @@ function CreateTokenForm() {
 // 主页面组件
 export default function CreateTokenPage() {
   return (
-    <div className="flex h-screen bg-[#0E0E0E]">
-      <Sidebar />
-      <div className="flex-1 ml-64 flex flex-col">
-        {/* Top Search Header */}
-        <SearchHeader />
-        {/* Main Content */}
-        <div className="flex-1 overflow-y-auto p-8">
-          <CreateTokenForm />
-        </div>
-      </div>
-    </div>
+      <CreateTokenForm />
   );
 }

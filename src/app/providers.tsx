@@ -15,7 +15,7 @@ import {
 } from '@rainbow-me/rainbowkit/wallets';
 
 const config = getDefaultConfig({
-  appName: 'BoBoom',
+  appName: 'BoBoom Launchpad',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'your-project-id',
   chains: [xLayer, sepolia],
   transports: {

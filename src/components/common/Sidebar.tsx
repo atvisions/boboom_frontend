@@ -39,7 +39,8 @@ export function Sidebar() {
   };
 
   return (
-    <div className="w-64 fixed left-0 top-0 h-screen bg-[#151515] flex flex-col z-10">
+    //屏幕尺寸显示
+    <div className="w-64 h-screen bg-[#151515] flex-col z-10 hidden md:flex" >
       {/* 品牌标志 */}
       <div className="p-6">
         <Link 
