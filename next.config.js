@@ -1,7 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   trailingSlash: true,
-  // 移除静态导出配置，使用服务器模式
+  // 静态导出配置 - 用于 AWS S3 部署
+  output: 'export',
+  distDir: 'out',
+  // 禁用静态优化以支持动态路由
+  experimental: {
+    missingSuspenseWithCSRBailout: false,
+  },
+  // 跳过构建时的静态检查，允许运行时动态路由
+  skipTrailingSlashRedirect: true,
+  // 生成静态页面时跳过动态路由
+  generateBuildId: async () => {
+    return 'build-' + Date.now()
+  },
   images: {
     remotePatterns: [
       {
