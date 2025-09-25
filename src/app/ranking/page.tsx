@@ -425,7 +425,7 @@ export default function RankingPage() {
                   <div
                     key={token.address}
                     className="group relative bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer"
-                    onClick={() => router.push(`/token/${token.address}`)}
+                    onClick={() => router.push(`/token?address=${token.address}`)}
                   >
                     {/* 收藏按钮 */}
                     <button
@@ -527,7 +527,7 @@ export default function RankingPage() {
                             className="flex items-center space-x-2 hover:bg-[#232323] rounded-lg px-2 py-1 transition-colors"
                             onClick={(e) => {
                               e.stopPropagation();
-                              router.push(`/profile/${token.creator}`);
+                              router.push(`/profile/other?address=${token.creator}`);
                             }}
                           >
                             <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#D7FE11]/20 to-[#5BC000]/20 flex items-center justify-center overflow-hidden">
@@ -706,7 +706,7 @@ export default function RankingPage() {
                   key={creator.address}
                   className="group relative bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer"
                   onClick={() => {
-                    router.push(`/profile/${creator.address}`);
+                    router.push(`/profile/other?address=${creator.address}`);
                   }}
                 >
                   <div className="flex items-center space-x-6">

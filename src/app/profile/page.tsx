@@ -481,20 +481,14 @@ export default function ProfilePage({
   // 如果钱包未连接，显示连接提示
   if (!address && !targetAddress) {
     return (
-      <div className="flex h-screen bg-[#0E0E0E]">
-        <Sidebar />
-        <div className="flex-1  flex flex-col">
-          <SearchHeader />
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-white mb-4">
-                Connect Your Wallet
-              </h2>
-              <p className="text-gray-400 mb-6">
-                Please connect your wallet to view your profile
-              </p>
-            </div>
-          </div>
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-white mb-4">
+            Connect Your Wallet
+          </h2>
+          <p className="text-gray-400 mb-6">
+            Please connect your wallet to view your profile
+          </p>
         </div>
       </div>
     );
@@ -503,16 +497,10 @@ export default function ProfilePage({
   // 如果正在加载认证状态
   if (authLoading) {
     return (
-      <div className="flex h-screen bg-[#0E0E0E]">
-        <Sidebar />
-        <div className="flex-1  flex flex-col">
-          <SearchHeader />
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#D7FE11] mx-auto mb-4"></div>
-              <p className="text-gray-400">Loading profile...</p>
-            </div>
-          </div>
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#D7FE11] mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading profile...</p>
         </div>
       </div>
     );
@@ -1063,7 +1051,9 @@ export default function ProfilePage({
                         <div
                           key={token.id}
                           className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer"
-                          onClick={() => router.push(`/token/${token.address}`)}
+                          onClick={() =>
+                            router.push(`/token?address=${token.address}`)
+                          }
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-4">
@@ -1116,7 +1106,9 @@ export default function ProfilePage({
                     <div
                       key={token.id}
                       className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer"
-                      onClick={() => router.push(`/token/${token.address}`)}
+                      onClick={() =>
+                        router.push(`/token?address=${token.address}`)
+                      }
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
@@ -1181,7 +1173,9 @@ export default function ProfilePage({
                     <div
                       key={token.id}
                       className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer"
-                      onClick={() => router.push(`/token/${token.address}`)}
+                      onClick={() =>
+                        router.push(`/token?address=${token.address}`)
+                      }
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
@@ -1283,7 +1277,9 @@ export default function ProfilePage({
                           <div
                             className="flex items-center space-x-3 flex-1 cursor-pointer hover:bg-[#232323] rounded-lg p-2 transition-colors"
                             onClick={() =>
-                              router.push(`/profile/${follow.user.address}`)
+                              router.push(
+                                `/profile/other?address=${follow.user.address}`
+                              )
                             }
                           >
                             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#D7FE11]/20 to-[#5BC000]/20 flex items-center justify-center">
@@ -1385,7 +1381,9 @@ export default function ProfilePage({
                           <div
                             className="flex items-center space-x-3 flex-1 cursor-pointer hover:bg-[#232323] rounded-lg p-2 transition-colors"
                             onClick={() =>
-                              router.push(`/profile/${follower.user.address}`)
+                              router.push(
+                                `/profile/other?address=${follower.user.address}`
+                              )
                             }
                           >
                             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#D7FE11]/20 to-[#5BC000]/20 flex items-center justify-center">
@@ -1491,7 +1489,9 @@ export default function ProfilePage({
                   >
                     <div
                       className="flex items-center space-x-2 flex-1 cursor-pointer hover:bg-[#232323] rounded-lg p-2 transition-colors"
-                      onClick={() => router.push(`/profile/${user.address}`)}
+                      onClick={() =>
+                        router.push(`/profile/other?address=${user.address}`)
+                      }
                     >
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#D7FE11]/20 to-[#5BC000]/20 flex items-center justify-center flex-shrink-0">
                         {user.avatar_url && user.avatar_url.trim() !== "" ? (

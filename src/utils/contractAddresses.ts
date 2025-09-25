@@ -4,11 +4,11 @@
 
 // 已知的合约地址列表 - 使用环境变量获取最新地址
 export const CONTRACT_ADDRESSES = [
-  process.env.NEXT_PUBLIC_TOKEN_FACTORY_V1_ADDRESS?.toLowerCase() || '0xF7b8eF600A699cB0c7327F4576aF30B62b0AD9eE'.toLowerCase(),
-  process.env.NEXT_PUBLIC_BONDING_CURVE_V1_ADDRESS?.toLowerCase() || '0x0DfA50998227518D42Fec00e046f065c48ebe02F'.toLowerCase(),
+  process.env.NEXT_PUBLIC_TOKEN_FACTORY_V1_ADDRESS?.toLowerCase() || '0x7a340e069845a1F4e716384F2216feD4D93593Fd'.toLowerCase(),
+  process.env.NEXT_PUBLIC_BONDING_CURVE_V1_ADDRESS?.toLowerCase() || '0x6Cdb61d8fA763804351A8A58E19e075aE7D5EaF3'.toLowerCase(),
   process.env.NEXT_PUBLIC_IZUMI_INTEGRATION_ADDRESS?.toLowerCase() || '0xfC87BD3bEAaD192bf469BAaF9C9a7EE9655a8447'.toLowerCase(),
   process.env.NEXT_PUBLIC_OKB_TOKEN_ADDRESS?.toLowerCase() || '0xABB9779ab5D36780c03133776CE0a003e4A5b7e8'.toLowerCase(),
-  process.env.NEXT_PUBLIC_MOCK_POSITION_MANAGER_ADDRESS?.toLowerCase() || '0xA2EC04A65cbab0c03A955Bd6A20BD3438CDB3614'.toLowerCase(),
+  process.env.NEXT_PUBLIC_MOCK_POSITION_MANAGER_ADDRESS?.toLowerCase() || '0x80e96F05F4f5607Aee602e45B37abE1565DeF5d3'.toLowerCase(),
 ].filter(Boolean); // 过滤掉空值
 
 /**

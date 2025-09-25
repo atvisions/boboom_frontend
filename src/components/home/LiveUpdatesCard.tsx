@@ -146,7 +146,7 @@ export function LiveUpdatesCard() {
   // 处理卡片点击跳转
   const handleCardClick = (tokenAddress: string) => {
     if (tokenAddress && tokenAddress !== "Unknown") {
-      router.push(`/token/${tokenAddress}`);
+      router.push(`/token?address=${tokenAddress}`);
     }
   };
 
@@ -621,7 +621,7 @@ export function LiveUpdatesCard() {
             { color: 'blue', label: 'New Token' },
             { color: 'purple', label: 'Whale Alert' }
           ].map((cardType, i) => (
-            <div key={i} className={`relative w-80 rounded-2xl p-6 backdrop-blur-sm border flex-shrink-0 animate-pulse ${
+            <div key={i} className={`relative w-70 rounded-2xl p-6 backdrop-blur-sm border flex-shrink-0 animate-pulse ${
               cardType.color === 'emerald' ? 'bg-gradient-to-br from-emerald-900/40 via-emerald-800/30 to-green-900/50 border-emerald-500/20' :
               cardType.color === 'red' ? 'bg-gradient-to-br from-red-900/40 via-red-800/30 to-rose-900/50 border-red-500/20' :
               cardType.color === 'blue' ? 'bg-gradient-to-br from-blue-900/40 via-indigo-800/30 to-purple-900/50 border-blue-500/20' :

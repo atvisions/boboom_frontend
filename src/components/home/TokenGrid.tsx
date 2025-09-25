@@ -1569,7 +1569,7 @@ export function TokenGrid() {
             <div
               key={token.address}
               className="grid grid-cols-12 gap-2 px-4 py-4 border-b border-gray-800 hover:bg-[#232323]/50 transition-colors cursor-pointer"
-              onClick={() => router.push(`/token/${token.address}`)}
+              onClick={() => router.push(`/token?address=${token.address}`)}
             >
               {/* 排名 */}
               <div className="col-span-1 flex items-center text-gray-400 text-sm">
@@ -1680,7 +1680,7 @@ export function TokenGrid() {
               key={token.address}
               className={`group relative bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer`}
               onClick={() => {
-                router.push(`/token/${token.address}`);
+                router.push(`/token?address=${token.address}`);
               }}
             >
               {/* 收藏按钮 - 右上角 */}
@@ -1766,7 +1766,7 @@ export function TokenGrid() {
                             ? token.creator 
                             : token.creator?.address;
                           if (creatorAddress) {
-                            router.push(`/profile/${creatorAddress}`);
+                            router.push(`/profile/other?address=${creatorAddress}`);
                           }
                         }}
                       >

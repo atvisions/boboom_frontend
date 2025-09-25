@@ -593,7 +593,7 @@ export function TrendingSection() {
             <div
               key={`${token.address}-${token.name}-${Date.now()}`}
               className="relative rounded-2xl overflow-hidden group w-full max-w-[380px] h-[420px] mx-auto bg-gradient-to-br from-gray-900/80 to-gray-800/60 backdrop-blur-sm border border-gray-700/50 cursor-pointer hover:border-[#D7FE11]/30 hover:shadow-[0_0_30px_rgba(112,224,0,0.1)] transition-all duration-300"
-              onClick={() => router.push(`/token/${token.address}`)}
+              onClick={() => router.push(`/token?address=${token.address}`)}
             >
               {/* 顶部装饰条 */}
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#D7FE11] via-yellow-400 to-orange-500"></div>
@@ -725,7 +725,7 @@ export function TrendingSection() {
                           ? token.creator
                           : token.creator?.address;
                         if (creatorAddress) {
-                          router.push(`/profile/${creatorAddress}/`);
+                          router.push(`/profile/other?address=${creatorAddress}/`);
                         }
                       }}
                     >

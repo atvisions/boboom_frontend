@@ -325,16 +325,10 @@ export default function TokenDetailPageClient({
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-[#0E0E0E]">
-        <Sidebar />
-        <div className="flex-1  flex flex-col">
-          <SearchHeader />
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#70E000] mx-auto mb-4"></div>
-              <p className="text-gray-400">Loading token details...</p>
-            </div>
-          </div>
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#70E000] mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading token details...</p>
         </div>
       </div>
     );
@@ -342,23 +336,15 @@ export default function TokenDetailPageClient({
 
   if (error || !token) {
     return (
-      <div className="flex h-screen bg-[#0E0E0E]">
-        <Sidebar />
-        <div className="flex-1  flex flex-col">
-          <SearchHeader />
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <p className="text-red-400 text-lg">
-                {error || "Token not found"}
-              </p>
-              <button
-                onClick={() => window.location.reload()}
-                className="mt-4 px-6 py-2 bg-[#70E000] text-black rounded-lg hover:bg-[#5BC000] transition-colors"
-              >
-                Retry
-              </button>
-            </div>
-          </div>
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-400 text-lg">{error || "Token not found"}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-6 py-2 bg-[#70E000] text-black rounded-lg hover:bg-[#5BC000] transition-colors"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );

@@ -76,7 +76,7 @@ export function SearchHeader() {
 
   // 处理搜索结果点击
   const handleResultClick = (token: any) => {
-    router.push(`/token/${token.address}`);
+    router.push(`/token?address=${token.address}`);
     setShowResults(false);
     setSearchQuery("");
   };

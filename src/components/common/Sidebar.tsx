@@ -96,8 +96,8 @@ export function Sidebar() {
           {/* Profile 链接 - 需要用户地址 */}
           <li>
             <Link
-              href={isClient && address ? `/profile/${address}/` : "/profile/"}
-              onClick={() => handleLinkClick(isClient && address ? `/profile/${address}/` : "/profile/")}
+              href={isClient && address ? `/profile?other=${address}/` : "/profile/"}
+              onClick={() => handleLinkClick(isClient && address ? `/profile?other=${address}` : "/profile/")}
               className={cn(
                 "flex items-center space-x-3 px-4 py-3 rounded-lg font-medium transition-all duration-200",
                 pathname.startsWith("/profile")

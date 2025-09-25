@@ -16,7 +16,7 @@ import {
 
 const config = getDefaultConfig({
   appName: 'BoBoom Launchpad',
-  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'your-project-id',
+  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '5ae73c9aae56aec3fa7cad4817817d32',
   chains: [xLayer, sepolia],
   transports: {
     [xLayer.id]: http("https://rpc.xlayer.tech"),
