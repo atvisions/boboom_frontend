@@ -14,6 +14,7 @@ interface TokenDetailsProps {
 
 export function TokenDetails({ token }: TokenDetailsProps) {
   const router = useRouter();
+ 
   const { address, isAuthenticated } = useWalletAuth();
   const [creator, setCreator] = useState<any>(null);
   const [isFavorited, setIsFavorited] = useState(false);
@@ -104,6 +105,7 @@ export function TokenDetails({ token }: TokenDetailsProps) {
   }, []);
 
   // 早期返回检查 - 如果token不存在，显示加载状态
+
   if (!token) {
     return (
       <div className="bg-[#1B1B1B] rounded-2xl p-6 border border-gray-700/50">
@@ -236,7 +238,7 @@ export function TokenDetails({ token }: TokenDetailsProps) {
                     {creator?.avatar_url ? (
                       creator.avatar_url.startsWith('/media/') ? (
                         <Image
-                          src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}${creator.avatar_url}`}
+                          src={`${process.env.NEXT_PUBLIC_BACKEND_URL || ''}${creator.avatar_url}`}
                           alt="Creator avatar"
                           width={24}
                           height={24}

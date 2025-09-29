@@ -90,7 +90,7 @@ export function LiveUpdatesCard() {
         if (userInfo.avatar_url.startsWith('/media/')) {
           return (
             <Image
-              src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}${userInfo.avatar_url}?t=${userInfo.updated_at || Date.now()}`}
+              src={`${process.env.NEXT_PUBLIC_BACKEND_URL || ''}${userInfo.avatar_url}?t=${userInfo.updated_at || Date.now()}`}
               alt="User avatar"
               width={32}
               height={32}
@@ -175,7 +175,7 @@ export function LiveUpdatesCard() {
     try {
 
       // 加载最近交易
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const transactionsResponse = await fetch(`${backendUrl}/api/transactions/recent/?limit=20`);
       if (transactionsResponse.ok) {
         const transactionsData = await transactionsResponse.json();

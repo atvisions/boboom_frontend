@@ -544,7 +544,7 @@ export default function RankingPage() {
                                       <Image
                                         src={`${
                                           process.env.NEXT_PUBLIC_BACKEND_URL ||
-                                          "http://localhost:8000"
+                                          ""
                                         }${creatorData.avatar_url}?t=${
                                           creatorData.updated_at || Date.now()
                                         }`}
@@ -723,7 +723,7 @@ export default function RankingPage() {
                           <img
                             src={`${
                               process.env.NEXT_PUBLIC_BACKEND_URL ||
-                              "http://localhost:8000"
+                              ""
                             }${creator.avatar_url}`}
                             alt="Avatar"
                             className="w-full h-full rounded-2xl object-cover"

@@ -30,7 +30,6 @@ class WebSocketService {
     const websocketUrl = process.env.NEXT_PUBLIC_WEBSOCKET_URL;
     if (websocketUrl) {
       this.baseUrl = websocketUrl;
-
     } else {
       // 生产环境的默认WebSocket地址
       this.baseUrl = 'wss://api.boboom.fun/ws';

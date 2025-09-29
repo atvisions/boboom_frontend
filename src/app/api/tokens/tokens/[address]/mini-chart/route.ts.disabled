@@ -11,7 +11,7 @@ export async function GET(
 ) {
   try {
     const { searchParams } = new URL(request.url);
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '';
     
     const response = await fetch(
       `${backendUrl}/api/tokens/tokens/${params.address}/mini-chart/?${searchParams.toString()}`,

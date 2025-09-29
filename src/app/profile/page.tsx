@@ -657,7 +657,7 @@ export default function ProfilePage({
                     <img
                       src={`${
                         process.env.NEXT_PUBLIC_BACKEND_URL ||
-                        "http://localhost:8000"
+                        ""
                       }${userData.avatar_url}`}
                       alt="Avatar"
                       className="w-full h-full rounded-full object-cover"
@@ -1289,7 +1289,7 @@ export default function ProfilePage({
                                   <img
                                     src={`${
                                       process.env.NEXT_PUBLIC_BACKEND_URL ||
-                                      "http://localhost:8000"
+                                      ""
                                     }${follow.user.avatar_url}`}
                                     alt="Avatar"
                                     className="w-full h-full rounded-full object-cover"
@@ -1395,7 +1395,7 @@ export default function ProfilePage({
                                   <img
                                     src={`${
                                       process.env.NEXT_PUBLIC_BACKEND_URL ||
-                                      "http://localhost:8000"
+                                      ""
                                     }${follower.user.avatar_url}`}
                                     alt="Avatar"
                                     className="w-full h-full rounded-full object-cover"
@@ -1499,7 +1499,7 @@ export default function ProfilePage({
                             <img
                               src={`${
                                 process.env.NEXT_PUBLIC_BACKEND_URL ||
-                                "http://localhost:8000"
+                                ""
                               }${user.avatar_url}`}
                               alt="Avatar"
                               className="w-full h-full rounded-full object-cover"

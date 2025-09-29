@@ -1777,7 +1777,7 @@ export function TokenGrid() {
                               if (creatorInfo.avatar_url.startsWith('/media/')) {
                                 return (
                                   <Image
-                                    src={`${process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8000'}${creatorInfo.avatar_url}?t=${creatorInfo.updated_at || Date.now()}`}
+                                    src={`${process.env.NEXT_PUBLIC_BACKEND_URL || ''}${creatorInfo.avatar_url}?t=${creatorInfo.updated_at || Date.now()}`}
                                     alt="Creator avatar"
                                     width={20}
                                     height={20}
