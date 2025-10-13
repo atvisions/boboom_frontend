@@ -348,7 +348,7 @@ export function TradesAndHolders({ tokenAddress, token, okbPrice }: TradesAndHol
         </div>
 
         {/* 右侧信息 */}
-        <div className="text-gray-400 text-sm">
+        <div className="text-gray-400 text-sm max-md:hidden">
           {activeTab === 'overview' ? (
             <span>Token Information</span>
           ) : activeTab === 'trades' ? (

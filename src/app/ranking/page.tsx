@@ -296,7 +296,7 @@ export default function RankingPage() {
         </div>
 
         {/* 标签页导航和排序选项 - 最高层级 */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex   justify-between mb-6 flex-col md:flex-row items-start md:items-center gap-4">
           {/* 标签页导航 */}
           <div className="flex space-x-1 bg-[#151515] rounded-xl p-1 border border-[#232323]">
             {rankingTabs.map((tab) => (
@@ -317,11 +317,11 @@ export default function RankingPage() {
 
           {/* 排序选项 - 右侧 */}
           {activeTab === "tokens" && (
-            <div className="flex items-center space-x-3">
-              <span className="text-gray-400 text-sm font-medium">
+            <div className="flex items-center space-x-1">
+              <span className="text-gray-400 text-sm font-medium hidden md:block">
                 Sort by:
               </span>
-              <div className="flex space-x-2 bg-[#1a1a1a] rounded-xl p-1">
+              <div className="flex space-x-2 bg-[#1a1a1a] rounded-xl py-1 pr-1">
                 {tokenSortOptions.map((option) => {
                   const IconComponent = option.icon;
                   return (
@@ -347,11 +347,11 @@ export default function RankingPage() {
           )}
 
           {activeTab === "creators" && (
-            <div className="flex items-center space-x-3">
-              <span className="text-gray-400 text-sm font-medium">
+            <div className="flex items-center space-x-1">
+              <span className="text-gray-400 text-sm font-medium hidden md:block">
                 Sort by:
               </span>
-              <div className="flex space-x-2 bg-[#1a1a1a] rounded-xl p-1">
+              <div className="flex space-x-2 bg-[#1a1a1a] rounded-xl py-1 pr-1">
                 {creatorSortOptions.map((option) => {
                   const IconComponent = option.icon;
                   return (
@@ -425,7 +425,9 @@ export default function RankingPage() {
                   <div
                     key={token.address}
                     className="group relative bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer"
-                    onClick={() => router.push(`/token?address=${token.address}`)}
+                    onClick={() =>
+                      router.push(`/token?address=${token.address}`)
+                    }
                   >
                     {/* 收藏按钮 */}
                     <button
@@ -461,45 +463,47 @@ export default function RankingPage() {
                         {getRankIcon(index + 1)}
                       </div>
 
-                      {/* Logo */}
-                      <div className="flex-shrink-0 w-16 h-16 rounded-2xl overflow-hidden bg-gradient-to-br from-[#1B1B1B] to-[#232323] flex items-center justify-center shadow-lg">
-                        {token.imageUrl && token.imageUrl.trim() !== "" ? (
-                          <Image
-                            src={token.imageUrl}
-                            alt={`${token.name} logo`}
-                            width={64}
-                            height={64}
-                            className="object-contain"
-                            style={{ width: "64px", height: "64px" }}
-                            unoptimized={true}
-                            onError={(e) => {
-                              // 隐藏图片，显示文字
-                              e.currentTarget.style.display = "none";
-                              const nextElement = e.currentTarget
-                                .nextElementSibling as HTMLElement;
-                              if (nextElement) {
-                                nextElement.style.display = "block";
-                              }
-                            }}
-                          />
-                        ) : null}
-                        <span
-                          className="text-2xl font-bold text-white"
-                          style={{
-                            display:
-                              token.imageUrl && token.imageUrl.trim() !== ""
-                                ? "none"
-                                : "block",
-                          }}
-                        >
-                          {token.symbol?.slice(0, 2) || "TK"}
-                        </span>
-                      </div>
-
                       {/* 代币信息 */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center space-x-2">
+                            {/* Logo */}
+                            <div className="flex-shrink-0 w-8 h-8 rounded-2xl overflow-hidden bg-gradient-to-br from-[#1B1B1B] to-[#232323] flex items-center justify-center shadow-lg">
+                              {token.imageUrl &&
+                              token.imageUrl.trim() !== "" ? (
+                                <Image
+                                  src={token.imageUrl}
+                                  alt={`${token.name} logo`}
+                                  width={64}
+                                  height={64}
+                                  className="object-contain"
+                                  style={{ width: "64px", height: "64px" }}
+                                  unoptimized={true}
+                                  onError={(e) => {
+                                    // 隐藏图片，显示文字
+                                    e.currentTarget.style.display = "none";
+                                    const nextElement = e.currentTarget
+                                      .nextElementSibling as HTMLElement;
+                                    if (nextElement) {
+                                      nextElement.style.display = "block";
+                                    }
+                                  }}
+                                />
+                              ) : null}
+                              <span
+                                className="text-base font-bold text-white"
+                                style={{
+                                  display:
+                                    token.imageUrl &&
+                                    token.imageUrl.trim() !== ""
+                                      ? "none"
+                                      : "block",
+                                }}
+                              >
+                                {token.symbol?.slice(0, 2) || "TK"}
+                              </span>
+                            </div>
+
                             <h3 className="text-xl font-bold text-white">
                               {token.name}
                             </h3>
@@ -527,7 +531,9 @@ export default function RankingPage() {
                             className="flex items-center space-x-2 hover:bg-[#232323] rounded-lg px-2 py-1 transition-colors"
                             onClick={(e) => {
                               e.stopPropagation();
-                              router.push(`/profile/other?address=${token.creator}`);
+                              router.push(
+                                `/profile/other?address=${token.creator}`
+                              );
                             }}
                           >
                             <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#D7FE11]/20 to-[#5BC000]/20 flex items-center justify-center overflow-hidden">
@@ -621,7 +627,7 @@ export default function RankingPage() {
                         </div>
 
                         {/* 市场数据 */}
-                        <div className="grid grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                           <div>
                             <div className="text-[#D7FE11] font-bold text-lg">
                               ${parseFloat(token.marketCap || "0").toFixed(2)}
@@ -715,31 +721,32 @@ export default function RankingPage() {
                       {getRankIcon(index + 1)}
                     </div>
 
-                    {/* 头像 */}
-                    <div className="flex-shrink-0 w-16 h-16 rounded-2xl bg-gradient-to-br from-[#D7FE11]/20 to-[#5BC000]/20 flex items-center justify-center shadow-lg">
-                      {creator.avatar_url &&
-                      creator.avatar_url.trim() !== "" ? (
-                        creator.avatar_url.startsWith("/media/") ? (
-                          <img
-                            src={`${
-                              process.env.NEXT_PUBLIC_BACKEND_URL ||
-                              ""
-                            }${creator.avatar_url}`}
-                            alt="Avatar"
-                            className="w-full h-full rounded-2xl object-cover"
-                          />
-                        ) : (
-                          <span className="text-2xl">{creator.avatar_url}</span>
-                        )
-                      ) : (
-                        <span className="text-2xl">👤</span>
-                      )}
-                    </div>
-
                     {/* 创建者信息 */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-2">
+                          {/* 头像 */}
+                          <div className="flex-shrink-0 w-8 h-8 rounded-2xl bg-gradient-to-br from-[#D7FE11]/20 to-[#5BC000]/20 flex items-center justify-center shadow-lg">
+                            {creator.avatar_url &&
+                            creator.avatar_url.trim() !== "" ? (
+                              creator.avatar_url.startsWith("/media/") ? (
+                                <img
+                                  src={`${
+                                    process.env.NEXT_PUBLIC_BACKEND_URL || ""
+                                  }${creator.avatar_url}`}
+                                  alt="Avatar"
+                                  className="w-full h-full rounded-2xl object-cover"
+                                />
+                              ) : (
+                                <span className="text-2xl">
+                                  {creator.avatar_url}
+                                </span>
+                              )
+                            ) : (
+                              <span className="text-2xl">👤</span>
+                            )}
+                          </div>
+
                           <h3 className="text-xl font-bold text-white">
                             {creator.username || "Anonymous"}
                           </h3>

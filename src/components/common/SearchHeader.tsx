@@ -15,6 +15,7 @@ export function SearchHeader() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
   const handleCreateToken = () => {
@@ -79,6 +80,7 @@ export function SearchHeader() {
     router.push(`/token?address=${token.address}`);
     setShowResults(false);
     setSearchQuery("");
+    setIsSearchFocused(false);
   };
 
   // 清空搜索
@@ -86,6 +88,25 @@ export function SearchHeader() {
     setSearchQuery("");
     setSearchResults([]);
     setShowResults(false);
+    setIsSearchFocused(false);
+  };
+
+  // 处理搜索框获得焦点
+  const handleSearchFocus = () => {
+    setIsSearchFocused(true);
+    if (searchQuery) {
+      setShowResults(true);
+    }
+  };
+
+  // 处理搜索框失去焦点
+  const handleSearchBlur = () => {
+    // 延迟执行，以便点击搜索结果能够生效
+    setTimeout(() => {
+      // 失去焦点时收起搜索框
+      setIsSearchFocused(false);
+      setShowResults(false);
+    }, 200);
   };
 
   // 点击外部关闭搜索结果
@@ -103,34 +124,58 @@ export function SearchHeader() {
   }, []);
 
   return (
-    <div className="bg-[#0E0E0E] p-6">
+    <div className="bg-[#0E0E0E]/80 backdrop-blur-md p-6 md:pl-6 pl-20">
       {/* 搜索栏和按钮 */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-end gap-4">
         {/* 搜索框 */}
-        <div className="w-[410px] relative" ref={searchRef}>
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-            <Input
-              type="text"
-              placeholder="Search tokens by name, symbol, or full address..."
-              value={searchQuery}
-              onChange={handleSearchChange}
-              onFocus={() => searchQuery && setShowResults(true)}
-              className="h-[40px] pl-12 pr-10 py-4 bg-[#151515] border-0 text-white placeholder-gray-400 focus:border-0 focus:ring-0 font-light text-base rounded-[15px]"
-            />
-            {searchQuery && (
+        <div 
+          className="relative transition-all duration-300 flex-1" 
+          ref={searchRef}
+        >
+          <div className="relative w-full flex justify-end">
+            {/* 移动端未聚焦时只显示搜索图标按钮 */}
+            {!isSearchFocused && (
               <button
-                onClick={clearSearch}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                onClick={() => {
+                  setIsSearchFocused(true);
+                  // 聚焦到输入框
+                  setTimeout(() => {
+                    const input = searchRef.current?.querySelector('input');
+                    input?.focus();
+                  }, 0);
+                }}
+                className="md:hidden flex items-center justify-center w-[40px] h-[40px] bg-[#151515] rounded-[15px] text-gray-400 hover:text-white transition-colors"
               >
-                <X className="h-4 w-4" />
+                <Search className="h-5 w-5" />
               </button>
             )}
-            {isSearching && (
-              <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
-              </div>
-            )}
+            
+            {/* 完整搜索输入框 */}
+            <div className={`${!isSearchFocused ? 'hidden md:block w-full' : 'block w-full'}`}>
+              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search tokens..."
+                value={searchQuery}
+                onChange={handleSearchChange}
+                onFocus={handleSearchFocus}
+                onBlur={handleSearchBlur}
+                className="h-[40px] pl-12 pr-10 py-4 bg-[#151515] border-0 text-white placeholder-gray-400 focus:border-0 focus:ring-0 font-light text-base rounded-[15px] w-full"
+              />
+              {searchQuery && (
+                <button
+                  onClick={clearSearch}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+              {isSearching && (
+                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* 搜索结果下拉框 */}
@@ -191,15 +236,17 @@ export function SearchHeader() {
           )}
         </div>
 
-        {/* 按钮组 - 放到最右侧 */}
-        <div className="flex items-center gap-4">
+        {/* 按钮组 - 放到最右侧，移动端聚焦时隐藏 */}
+        <div className={`flex items-center gap-4 md:w-auto justify-end transition-all duration-300 ${
+          isSearchFocused ? 'hidden md:flex' : 'flex'
+        }`}>
           <Button 
             variant="outline" 
             onClick={handleCreateToken}
-            className="h-[40px] px-[34px] py-4 border-2 border-[#D7FE11] text-[#D7FE11] hover:bg-[#D7FE11] hover:text-black font-light rounded-[15px]"
+            className="h-[40px] md:px-[34px] px-3 py-4 border-2 border-[#D7FE11] text-[#D7FE11] hover:bg-[#D7FE11] hover:text-black font-light rounded-[15px]"
           >
-            <Rocket className="mr-2 h-4 w-4" />
-            Create Token
+            <Rocket className="md:mr-2 h-4 w-4" />
+            <span className="hidden md:inline">Create Token</span>
           </Button>
           
           <div className="h-[40px]">

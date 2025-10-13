@@ -613,7 +613,7 @@ export function LiveUpdatesCard() {
         {/* 背景装饰 */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse"></div>
 
-        <div className="flex gap-6 py-6 px-2 overflow-x-auto">
+        <div className="grid  items-center grid-cols-1 justify-items-center md:justify-items-start  md:grid-cols-2 lg:grid-cols-4 gap-6 py-6 px-2 overflow-x-auto">
           {/* 加载骨架屏 - 4种不同颜色的卡片类型 */}
           {[
             { color: 'emerald', label: 'Live Buy' },
@@ -719,7 +719,7 @@ export function LiveUpdatesCard() {
       {/* 背景装饰 */}
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-pulse"></div>
       
-      <div className="flex gap-6 py-6 px-2 overflow-x-auto">
+      <div className="grid grid-cols-1 justify-items-center md:justify-items-start md:grid-cols-1 lg:grid-cols-4 gap-6 py-6 px-2 overflow-x-auto">
         {/* 买入卡片 */}
         {buys.length > 0 && (
         <div 

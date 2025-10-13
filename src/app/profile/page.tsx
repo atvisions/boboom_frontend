@@ -649,16 +649,15 @@ export default function ProfilePage({
         {/* Profile Header */}
         <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 mb-6">
           <div className="flex items-start justify-between">
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-6 w-full">
               {/* Avatar */}
               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#D7FE11]/20 to-[#5BC000]/20 flex items-center justify-center text-2xl">
                 {userData?.avatar_url && userData.avatar_url.trim() !== "" ? (
                   userData.avatar_url.startsWith("/media/") ? (
                     <img
-                      src={`${
-                        process.env.NEXT_PUBLIC_BACKEND_URL ||
-                        ""
-                      }${userData.avatar_url}`}
+                      src={`${process.env.NEXT_PUBLIC_BACKEND_URL || ""}${
+                        userData.avatar_url
+                      }`}
                       alt="Avatar"
                       className="w-full h-full rounded-full object-cover"
                     />
@@ -671,9 +670,9 @@ export default function ProfilePage({
               </div>
 
               {/* User Info */}
-              <div className="flex-1">
+              <div className="flex-1 overflow-hidden">
                 <div className="flex items-center space-x-3 mb-2">
-                  <h1 className="text-2xl font-bold text-white">
+                  <h1 className="text-2xl font-bold text-white text-nowrap overflow-hidden text-ellipsis">
                     {userData?.username || "User"}
                   </h1>
                   {userData?.is_verified && (
@@ -688,6 +687,52 @@ export default function ProfilePage({
                       </div>
                     </div>
                   )}
+
+                  {/* Action Buttons */}
+                  <div className="flex items-center space-x-3">
+                    {isOwnProfile ? (
+                      <Button
+                        onClick={() => setShowEditModal(true)}
+                        className="bg-[#D7FE11] text-black hover:bg-[#5BC000]"
+                      >
+                        <Edit className="h-4 w-4 mr-2" />
+                       <span className="hidden md:block">Edit Profile</span>
+                      </Button>
+                    ) : address && isAuthenticated ? (
+                      <Button
+                        onClick={handleTargetUserFollowToggle}
+                        disabled={followLoading.has(targetAddress || "")}
+                        className={`${
+                          isFollowing
+                            ? "bg-gray-600 hover:bg-gray-700 text-white"
+                            : "bg-[#D7FE11] hover:bg-[#5BC000] text-black"
+                        } transition-colors`}
+                      >
+                        {followLoading.has(targetAddress || "") ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                        ) : isFollowing ? (
+                          <UserMinus className="h-4 w-4 mr-2" />
+                        ) : (
+                          <UserPlus className="h-4 w-4 mr-2" />
+                        )}
+                        <span className="hidden md:block">
+                          {isFollowing ? "Unfollow" : "Follow"}
+                        </span>
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() =>
+                          toast.info(
+                            "Please connect your wallet to follow users"
+                          )
+                        }
+                        className="bg-gray-600 hover:bg-gray-700 text-white"
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        <span className="hidden md:block">Follow</span>
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 {/* 钱包地址 */}
@@ -809,53 +854,11 @@ export default function ProfilePage({
                 </div>
               </div>
             </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center space-x-3">
-              {isOwnProfile ? (
-                <Button
-                  onClick={() => setShowEditModal(true)}
-                  className="bg-[#D7FE11] text-black hover:bg-[#5BC000]"
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit Profile
-                </Button>
-              ) : address && isAuthenticated ? (
-                <Button
-                  onClick={handleTargetUserFollowToggle}
-                  disabled={followLoading.has(targetAddress || "")}
-                  className={`${
-                    isFollowing
-                      ? "bg-gray-600 hover:bg-gray-700 text-white"
-                      : "bg-[#D7FE11] hover:bg-[#5BC000] text-black"
-                  } transition-colors`}
-                >
-                  {followLoading.has(targetAddress || "") ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-                  ) : isFollowing ? (
-                    <UserMinus className="h-4 w-4 mr-2" />
-                  ) : (
-                    <UserPlus className="h-4 w-4 mr-2" />
-                  )}
-                  {isFollowing ? "Unfollow" : "Follow"}
-                </Button>
-              ) : (
-                <Button
-                  onClick={() =>
-                    toast.info("Please connect your wallet to follow users")
-                  }
-                  className="bg-gray-600 hover:bg-gray-700 text-white"
-                >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Follow
-                </Button>
-              )}
-            </div>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex space-x-1 mb-6">
+        <div className="flex space-x-1 mb-6 overflow-x-scroll">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
@@ -1288,8 +1291,7 @@ export default function ProfilePage({
                                 follow.user.avatar_url.startsWith("/media/") ? (
                                   <img
                                     src={`${
-                                      process.env.NEXT_PUBLIC_BACKEND_URL ||
-                                      ""
+                                      process.env.NEXT_PUBLIC_BACKEND_URL || ""
                                     }${follow.user.avatar_url}`}
                                     alt="Avatar"
                                     className="w-full h-full rounded-full object-cover"
@@ -1394,8 +1396,7 @@ export default function ProfilePage({
                                 ) ? (
                                   <img
                                     src={`${
-                                      process.env.NEXT_PUBLIC_BACKEND_URL ||
-                                      ""
+                                      process.env.NEXT_PUBLIC_BACKEND_URL || ""
                                     }${follower.user.avatar_url}`}
                                     alt="Avatar"
                                     className="w-full h-full rounded-full object-cover"
@@ -1477,7 +1478,7 @@ export default function ProfilePage({
 
           {/* Right Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 max-w-sm">
+            <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 max-w-full md:max-w-sm">
               <h3 className="text-lg font-semibold text-white mb-4">
                 Who to follow
               </h3>
@@ -1498,8 +1499,7 @@ export default function ProfilePage({
                           user.avatar_url.startsWith("/media/") ? (
                             <img
                               src={`${
-                                process.env.NEXT_PUBLIC_BACKEND_URL ||
-                                ""
+                                process.env.NEXT_PUBLIC_BACKEND_URL || ""
                               }${user.avatar_url}`}
                               alt="Avatar"
                               className="w-full h-full rounded-full object-cover"

@@ -22,24 +22,6 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
-      {
-        protocol: 'http',
-        hostname: '127.0.0.1',
-        port: '3000',
-        pathname: '/media/**',
-      },
-      {
-        protocol: 'http',
-        hostname: 'localhost',
-        port: '3000',
-        pathname: '/media/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'api.boboom.fun',
-        port: '',
-        pathname: '/media/**',
-      },
     ],
   },
   // 允许外部 API 调用
@@ -102,10 +84,14 @@ const nextConfig = {
         source: '/api/analytics/:path*',
         destination: `${backendUrl}/api/analytics/:path*/`,
       },
-      // 代理媒体文件到后端服务器
+      // 代理媒体文件到后端服务器（修复：去掉 destination 末尾的斜杠）
+      {
+        source: '/media/:path*/',
+        destination: `${backendUrl}/media/:path*`,
+      },
       {
         source: '/media/:path*',
-        destination: `${backendUrl}/media/:path*/`,
+        destination: `${backendUrl}/media/:path*`,
       },
     ];
   },

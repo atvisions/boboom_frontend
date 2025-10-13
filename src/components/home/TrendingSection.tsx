@@ -393,7 +393,7 @@ export function TrendingSection() {
     };
   }, [isClient, handleTokenListData]);
 
-  // 加载用户收藏状态
+  // 加载用户收藏状态   
   useEffect(() => {
     if (!isClient) return; // 只在客户端运行
     
