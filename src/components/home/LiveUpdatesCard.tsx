@@ -621,7 +621,7 @@ export function LiveUpdatesCard() {
             { color: 'blue', label: 'New Token' },
             { color: 'purple', label: 'Whale Alert' }
           ].map((cardType, i) => (
-            <div key={i} className={`relative w-70 rounded-2xl p-6 backdrop-blur-sm border flex-shrink-0 animate-pulse ${
+            <div key={i} className={`relative w-full md:w-70 rounded-2xl p-6 backdrop-blur-sm border flex-shrink-0 animate-pulse ${
               cardType.color === 'emerald' ? 'bg-gradient-to-br from-emerald-900/40 via-emerald-800/30 to-green-900/50 border-emerald-500/20' :
               cardType.color === 'red' ? 'bg-gradient-to-br from-red-900/40 via-red-800/30 to-rose-900/50 border-red-500/20' :
               cardType.color === 'blue' ? 'bg-gradient-to-br from-blue-900/40 via-indigo-800/30 to-purple-900/50 border-blue-500/20' :
@@ -723,7 +723,7 @@ export function LiveUpdatesCard() {
         {/* 买入卡片 */}
         {buys.length > 0 && (
         <div 
-          className={`relative w-80 rounded-2xl p-6 bg-gradient-to-br from-emerald-900/40 via-emerald-800/30 to-green-900/50 backdrop-blur-sm border border-emerald-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${pulse.buy ? 'jitter-on' : ''} ${isAnimating && pulse.buy ? 'animate-pulse' : ''} fade-in group flex-shrink-0`}
+          className={`relative w-full md:w-80  rounded-2xl p-6 bg-gradient-to-br from-emerald-900/40 via-emerald-800/30 to-green-900/50 backdrop-blur-sm border border-emerald-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${pulse.buy ? 'jitter-on' : ''} ${isAnimating && pulse.buy ? 'animate-pulse' : ''} fade-in group flex-shrink-0`}
           onClick={() => handleCardClick(buys[0].tokenAddress)}
         >
           {/* 发光效果 */}
@@ -788,7 +788,7 @@ export function LiveUpdatesCard() {
         {/* 卖出卡片 */}
         {sells.length > 0 && (
         <div 
-          className={`relative w-80 rounded-2xl p-6 bg-gradient-to-br from-red-900/40 via-red-800/30 to-rose-900/50 backdrop-blur-sm border border-red-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${pulse.sell ? 'jitter-on' : ''} ${isAnimating && pulse.sell ? 'animate-pulse' : ''} fade-in group flex-shrink-0`}
+          className={`relative w-full md:w-80  rounded-2xl p-6 bg-gradient-to-br from-red-900/40 via-red-800/30 to-rose-900/50 backdrop-blur-sm border border-red-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${pulse.sell ? 'jitter-on' : ''} ${isAnimating && pulse.sell ? 'animate-pulse' : ''} fade-in group flex-shrink-0`}
           onClick={() => handleCardClick(sells[0].tokenAddress)}
         >
           {/* 发光效果 */}
@@ -853,7 +853,7 @@ export function LiveUpdatesCard() {
         {/* 新代币卡片 */}
         {news.length > 0 && (
         <div 
-          className={`relative w-80 rounded-2xl p-6 bg-gradient-to-br from-blue-900/40 via-indigo-800/30 to-purple-900/50 backdrop-blur-sm border border-blue-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${pulse.news ? 'jitter-on' : ''} ${isAnimating && pulse.news ? 'animate-pulse' : ''} fade-in group flex-shrink-0`}
+          className={`relative w-full md:w-80  rounded-2xl p-6 bg-gradient-to-br from-blue-900/40 via-indigo-800/30 to-purple-900/50 backdrop-blur-sm border border-blue-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${pulse.news ? 'jitter-on' : ''} ${isAnimating && pulse.news ? 'animate-pulse' : ''} fade-in group flex-shrink-0`}
           onClick={() => handleCardClick(news[0].fullAddress)}
         >
           {/* 发光效果 */}
@@ -918,7 +918,7 @@ export function LiveUpdatesCard() {
         {/* 巨鲸交易卡片 */}
         {whales.length > 0 && (
         <div 
-          className={`relative w-80 rounded-2xl p-6 bg-gradient-to-br from-purple-900/40 via-violet-800/30 to-fuchsia-900/50 backdrop-blur-sm border border-purple-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${pulse.whale ? 'jitter-on' : ''} ${isAnimating && pulse.whale ? 'animate-pulse' : ''} fade-in group flex-shrink-0`}
+          className={`relative w-full md:w-80  rounded-2xl p-6 bg-gradient-to-br from-purple-900/40 via-violet-800/30 to-fuchsia-900/50 backdrop-blur-sm border border-purple-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${pulse.whale ? 'jitter-on' : ''} ${isAnimating && pulse.whale ? 'animate-pulse' : ''} fade-in group flex-shrink-0`}
           onClick={() => handleCardClick(whales[0].fullAddress)}
         >
           {/* 发光效果 */}
