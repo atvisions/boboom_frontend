@@ -1221,6 +1221,7 @@ export function TokenGrid() {
                 <div
                   className="fixed inset-0 bg-black/50 z-[9998] md:bg-transparent md:pointer-events-none"
                   onClick={(e) => {
+                      e.preventDefault();
                     e.stopPropagation();
                     setShowFilter(false);
                   }}
@@ -1228,7 +1229,10 @@ export function TokenGrid() {
                 {/* 弹窗内容 - 桌面端右侧弹出，移动端全屏 */}
                 <div
                   className="fixed md:absolute top-0 md:top-full left-0 right-0 md:left-auto md:right-0 md:mt-2 h-full md:h-auto bg-[#0E0E0E] md:bg-[#1a1a1a] border-0 md:border border-gray-700 md:rounded-xl p-6 z-[9999] md:min-w-[400px] md:max-w-[400px] shadow-2xl overflow-y-auto"
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                     e.preventDefault();  
+                    e.stopPropagation()
+                  }}
                 >
                   {/* 移动端标题栏 */}
                   <div className="flex md:hidden items-center justify-between mb-6 pb-4 border-b border-gray-700">
@@ -1821,6 +1825,7 @@ export function TokenGrid() {
                 <div className="col-span-1 flex items-center justify-center">
                   <button
                     onClick={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
                       toggleFavorite(token.address, token.name);
                     }}
@@ -1859,6 +1864,7 @@ export function TokenGrid() {
               {/* 收藏按钮 - 右上角 */}
               <button
                 onClick={(e) => {
+                    e.preventDefault();
                   e.stopPropagation();
                   toggleFavorite(token.address, token.name);
                 }}
@@ -1949,6 +1955,7 @@ export function TokenGrid() {
                       <button
                         className="flex items-center space-x-2 hover:bg-[#232323] rounded-lg px-2 py-1 transition-colors"
                         onClick={(e) => {
+                            e.preventDefault();
                           e.stopPropagation();
                           const creatorAddress =
                             typeof token.creator === "string"

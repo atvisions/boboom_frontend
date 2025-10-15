@@ -106,9 +106,10 @@ export function LiveUpdatesCard() {
     const userInfo = userAvatars[userAddress];
 
     const handleUserClick = (e: React.MouseEvent) => {
+      e.preventDefault();
       e.stopPropagation(); // 阻止事件冒泡到卡片点击
       // 跳转到用户主页
-      window.open(`/profile/${userAddress}`, "_blank");
+      window.open(`/profile/?address=${userAddress}`, "_blank");
     };
 
     const avatarContent = () => {

@@ -643,6 +643,7 @@ export function TrendingSection() {
               {/* 收藏按钮 - 右上角 */}
               <button
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   toggleFavorite(token.address, token.name);
                 }}
@@ -786,6 +787,7 @@ export function TrendingSection() {
                     <button
                       className="flex items-center space-x-3 hover:bg-white/5 rounded-xl px-3 py-2 transition-colors"
                       onClick={(e) => {
+                        e.preventDefault();
                         e.stopPropagation();
                         const creatorAddress =
                           typeof token.creator === "string"
@@ -894,7 +896,10 @@ export function TrendingSection() {
                           href={token.twitter}
                           rel="noopener noreferrer"
                           className="p-2 rounded-full bg-gray-800/50 hover:bg-[#D7FE11] hover:text-black transition-all duration-300 border border-gray-700/30"
-                          onClick={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
                           title="Twitter"
                         >
                           <FaXTwitter className="h-4 w-4 text-white" />
@@ -907,7 +912,10 @@ export function TrendingSection() {
                           href={token.telegram}
                           rel="noopener noreferrer"
                           className="p-2 rounded-full bg-gray-800/50 hover:bg-[#D7FE11] hover:text-black transition-all duration-300 border border-gray-700/30"
-                          onClick={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
                           title="Telegram"
                         >
                           <FaTelegram className="h-4 w-4 text-white" />
@@ -920,7 +928,10 @@ export function TrendingSection() {
                           href={token.website}
                           rel="noopener noreferrer"
                           className="p-2 rounded-full bg-gray-800/50 hover:bg-[#D7FE11] hover:text-black transition-all duration-300 border border-gray-700/30"
-                          onClick={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
                           title="Website"
                         >
                           <FaGlobe className="h-4 w-4 text-white" />

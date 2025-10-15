@@ -14,74 +14,6 @@ interface CandlestickChartProps {
   stats24h?: any; // 接收父组件传递的24小时统计数据
 }
 
-// 数据验证函数
-function validateChartData(data: any[]): boolean {
-  if (!Array.isArray(data)) {
-    return false;
-  }
-  if (data.length === 0) return true; // 空数组是有效的
-  if (data.length > 10000) {
-    return false;
-  }
-
-  for (let i = 0; i < data.length; i++) {
-    const item = data[i];
-    if (!item || typeof item !== "object") {
-      return false;
-    }
-    if (typeof item.x !== "number") {
-      return false;
-    }
-    if (!Array.isArray(item.y) || item.y.length !== 4) {
-      return false;
-    }
-    for (let j = 0; j < item.y.length; j++) {
-      const val = item.y[j];
-      if (typeof val !== "number" || !isFinite(val) || val <= 0) {
-        return false;
-      }
-    }
-  }
-
-  return true;
-}
-
-function validateVolumeData(data: any[]): boolean {
-  if (!Array.isArray(data)) {
-    return false;
-  }
-  if (data.length === 0) return true; // 空数组是有效的
-  if (data.length > 10000) {
-    return false;
-  }
-
-  for (let i = 0; i < data.length; i++) {
-    const item = data[i];
-    if (!item || typeof item !== "object") {
-      return false;
-    }
-    if (typeof item.x !== "number") {
-      return false;
-    }
-    if (typeof item.y !== "number" || !isFinite(item.y) || item.y < 0) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-// 清理数据函数：确保所有数据都使用正确的索引格式
-function cleanChartData(data: any[]): any[] {
-  return data.map((item, index) => ({
-    x: index,
-    y: item.y,
-    timestamp: item.timestamp,
-  }));
-}
-
-
-
 export function CandlestickChart({
   tokenAddress,
   stats24h,
@@ -202,125 +134,30 @@ export function CandlestickChart({
       ) {
         // 转换数据格式为ApexCharts需要的格式，并根据货币进行转换
         // 首先按时间排序，确保K线从旧到新的正确顺序
-        const sortedCandles = response.data.candles
-          .filter((candle: any) => {
-            // 数据验证：确保所有必需字段存在且为有效数值
-            return (
-              candle &&
-              candle.open != null &&
-              isFinite(candle.open) &&
-              candle.open > 0 &&
-              candle.high != null &&
-              isFinite(candle.high) &&
-              candle.high > 0 &&
-              candle.low != null &&
-              isFinite(candle.low) &&
-              candle.low > 0 &&
-              candle.close != null &&
-              isFinite(candle.close) &&
-              candle.close > 0
-            );
-          })
-          .sort(
-            (a: any, b: any) =>
-              new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-          ); // 从旧到新排序
 
-        const candles = sortedCandles
-          .map((candle: any, index: number) => {
-            let open: number, high: number, low: number, close: number, volume: number;
-
-            try {
-              if (currency === "OKB" && okbPrice > 0) {
-                // 转换为OKB价格
-                open = candle.open / okbPrice;
-                high = candle.high / okbPrice;
-                low = candle.low / okbPrice;
-                close = candle.close / okbPrice;
-                volume = candle.volume / okbPrice;
-              } else {
-                // USD价格
-                open = candle.open;
-                high = candle.high;
-                low = candle.low;
-                close = candle.close;
-                volume = candle.volume;
-              }
-
-              // Validate converted data
-              if (
-                !isFinite(open) ||
-                !isFinite(high) ||
-                !isFinite(low) ||
-                !isFinite(close) ||
-                open <= 0 ||
-                high <= 0 ||
-                low <= 0 ||
-                close <= 0
-              ) {
-                return null;
-              }
-
-              const candleData = {
-                x: index, // 使用索引而不是时间，确保K线连续
-                open: open,
-                high: high,
-                low: low,
-                close: close,
-                volume: candle.volume,
-                timestamp: candle.timestamp, // 保存时间戳用于tooltip显示
-              };
-
-              return candleData;
-            } catch (error) {
-              return null;
-            }
-          })
-          .filter(Boolean); // 移除null值
-
-        // 新的事件驱动系统已经处理了数据过滤，不需要额外过滤
-        // 使用相同的排序后的数据确保K线和交易量数据一致
-        const volumes = sortedCandles
-          .filter((candle: any) => {
-            // 验证交易量数据
-            return (
-              candle &&
-              candle.volume != null &&
-              isFinite(candle.volume) &&
-              candle.volume >= 0
-            );
-          })
-          .map((candle: any, index: number) => {
+        const sortedCandles =
+          response.data.candles?.map((item) => {
             return {
-              x: index, // 使用索引保持与K线数据一致
-              y: candle.volume || 0,
+              // close: 0.000004916585405247,
+              // high: 0.000004842417790972,
+              // is_complete: false,
+              // low: 0.000004842417790921,
+              // open: 0.000004842417790921,
+              // timestamp: "2025-10-14T02:52:00+00:00",
+              // total_okb_volume: 2.1,
+              // total_token_volume: 80124437.1618393,
+              // trade_count: 3,
+              // volume: 2.1,
+              timestamp: new Date(item.timestamp).valueOf(),
+              open: item.open,
+              high: item.high,
+              low: item.low,
+              close: item.close,
+              volume: item.volume,
             };
-          });
+          }) || [];
 
-        const isCandleDataValid = validateChartData(candles);
-        const isVolumeDataValid = validateVolumeData(volumes);
-
-        if (isCandleDataValid && isVolumeDataValid) {
-          // 最后一次安全检查，确保数据不会导致ApexCharts错误
-          try {
-            if (
-              candles.length > 0 &&
-              candles.length < 10000 &&
-              volumes.length < 10000
-            ) {
-              // 清理数据确保正确的索引格式
-              const cleanedCandles = cleanChartData(candles);
-
-              setCandlestickData(cleanedCandles);
-            } else {
-              setCandlestickData([]);
-            }
-          } catch (error) {
-            setCandlestickData([]);
-          }
-        } else {
-          setCandlestickData([]);
-        }
+        setCandlestickData(sortedCandles);
       } else {
         // API成功但没有数据，显示空图表
         setCandlestickData([]);
@@ -396,22 +233,19 @@ export function CandlestickChart({
         }
         // 处理K线数据
         else if (data?.type === "candles_snapshot" && data.data?.candles) {
-          const transformed = data.data.candles.map(
-            (candle: any, index: number) => {
-              const factor = currency === "OKB" ? 1 / okbPrice : 1;
-              return {
-                x: index, // 使用索引保持与API调用一致
-                open: (candle.open || 0) * factor,
-                high: (candle.high || 0) * factor,
-                low: (candle.low || 0) * factor,
-                close: (candle.close || 0) * factor,
-                volume: (candle.volume || 0) * factor,
-                timestamp: candle.timestamp, // 保存时间戳用于tooltip
-              };
-            }
-          );
+          const transformed = data.data.candles.map((candle: any) => {
+            const factor = currency === "OKB" ? 1 / okbPrice : 1;
+            return {
+              open: (candle.open || 0) * factor,
+              high: (candle.high || 0) * factor,
+              low: (candle.low || 0) * factor,
+              close: (candle.close || 0) * factor,
+              volume: (candle.volume || 0) * factor,
+              timestamp: new Date(candle.timestamp).valueOf(), // 保存时间戳用于tooltip
+            };
+          });
           // 清理数据确保正确的索引格式
-          setCandlestickData(cleanChartData(transformed));
+          setCandlestickData(transformed);
         } else if (data?.type === "candles_update" && data.data?.candles) {
           const updates = data.data.candles as any[];
           const factor = currency === "OKB" ? 1 / okbPrice : 1;
@@ -419,12 +253,6 @@ export function CandlestickChart({
           setCandlestickData((prev) => {
             const next = [...prev];
             updates.forEach((c) => {
-              const ts = new Date(c.timestamp).getTime();
-              const idx = next.findIndex(
-                (item) =>
-                  item.timestamp && new Date(item.timestamp).getTime() === ts
-              );
-
               // 安全地提取价格数据，确保不会出现0值
               const open = parseFloat(c.open || c.open_price) || null;
               const high = parseFloat(c.high || c.high_price) || null;
@@ -450,23 +278,14 @@ export function CandlestickChart({
               }
 
               const newItem = {
-                x: idx >= 0 ? idx : next.length, // 使用索引而不是时间戳
                 open: open * factor,
                 high: high * factor,
                 low: low * factor,
                 close: close * factor,
                 volume: volume * factor,
-                timestamp: c.timestamp, // 保存时间戳用于tooltip
+                timestamp: new Date(c.timestamp).valueOf(), // 保存时间戳用于tooltip
               };
-              if (idx >= 0) {
-                next[idx] = newItem;
-              } else {
-                next.push(newItem);
-              }
-            });
-            // 重新分配索引以确保连续性
-            next.forEach((item, index) => {
-              item.x = index;
+              next.push(newItem);
             });
             return next;
           });
@@ -510,6 +329,10 @@ export function CandlestickChart({
     const chart = init("chart");
     chartRef.current = chart;
     // 去掉虚线：将网格与十字线样式改为实线
+
+    // ✅ 设置价格与成交量精度
+    chart.setPrecision({ price: 8, volume: 4 });
+
     chart.setStyles({
       grid: {
         show: false,
@@ -689,7 +512,7 @@ export function CandlestickChart({
       </div>
 
       {/* 主图表区域 */}
-      <div className="bg-[#1a1a1a] rounded-lg p-6">
+      <div className="bg-[#1a1a1a] rounded-lg px-6 pt-6">
         <div className="w-full aspect-[5/3]">
           <div id="chart" className="w-full h-full"></div>
         </div>

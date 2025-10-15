@@ -244,7 +244,7 @@ export function TokenDetails({ token }: TokenDetailsProps) {
         </div>
 
         {/* 2. 代币信息 */}
-        <div className="space-y-3">
+        <div className="space-y-3 flex-1">
           {/* 代币名称 */}
           <div className="flex justify-between">
             <div className="flex-1">
