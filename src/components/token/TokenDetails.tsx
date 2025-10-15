@@ -226,7 +226,7 @@ export function TokenDetails({ token }: TokenDetailsProps) {
     token.github;
 
   return (
-    <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6">
+    <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-4 md:p-6">
       {/* 主要内容 */}
       {/* <div className="flex items-start justify-between"> */}
       {/* 左侧内容 */}
@@ -247,11 +247,11 @@ export function TokenDetails({ token }: TokenDetailsProps) {
         <div className="space-y-3 flex-1">
           {/* 代币名称 */}
           <div className="flex justify-between">
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-white">
+            <div className="flex-1 overflow-hidden">
+              <h1 className="text-2xl font-bold text-white overflow-hidden text-ellipsis whitespace-nowrap">
                 {token?.name || "Loading..."}
               </h1>
-              <p className="text-gray-400 text-base font-medium">
+              <p className="text-gray-400 text-base font-medium overflow-hidden text-ellipsis whitespace-nowrap">
                 {token?.symbol || "Loading..."}
               </p>
             </div>
@@ -388,9 +388,9 @@ export function TokenDetails({ token }: TokenDetailsProps) {
           )}
 
           {/* 5. 合约地址和社交媒体 - 一行显示 */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-start md:items-center space-x-3 flex-col md:flex-row gap-3">
             {/* 合约地址 */}
-            <div className="flex items-center space-x-2 bg-gray-700/50 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-gray-600/30">
+            <div className="flex items-center  bg-gray-700/50 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-gray-600/30 w-max">
               <span className="text-white text-sm font-mono">
                 {token.address.slice(0, 6)}...{token.address.slice(-4)}
               </span>
@@ -416,7 +416,7 @@ export function TokenDetails({ token }: TokenDetailsProps) {
 
             {/* 社交媒体图标 */}
             {hasSocialLinks && (
-              <div className="flex items-center space-x-1.5">
+              <div className="flex items-center gap-3 !ml-0">
                 {token.website && (
                   <a
                     href={token.website}

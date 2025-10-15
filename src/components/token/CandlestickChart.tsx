@@ -334,18 +334,44 @@ export function CandlestickChart({
     chart.setPrecision({ price: 8, volume: 4 });
 
     chart.setStyles({
+      separator: {
+        size: 1,
+        color: "#444",
+        fill: true,
+        activeBackgroundColor: "#666",
+      },
+      xAxis: {
+        show: true,
+        axisLine: {
+          color: "#444",
+        },
+        tickLine: {
+          color: "#444",
+        },
+      },
+      yAxis: {
+        show: true,
+        axisLine: {
+          color: "#444",
+        },
+        tickLine: {
+          color: "#444",
+        },
+      },
       grid: {
         show: false,
-        horizontal: {
-          show: true,
-          size: 1,
-          style: LineType.Solid,
-        },
-        vertical: {
-          show: true,
-          size: 1,
-          style: LineType.Solid,
-        },
+        // horizontal: {
+        //   style: LineType.Dashed,
+        //   size: 1,
+        //   color: "#444",
+        //   dashedValue: [],
+        // },
+        // vertical: {
+        //   style: LineType.Dashed,
+        //   size: 1,
+        //   color: "#444",
+        //   dashedValue: [],
+        // },
       },
     });
     // 初始不灌入示例数据，等待真实数据
@@ -371,14 +397,14 @@ export function CandlestickChart({
     <div className="space-y-6">
       {/* 图表标题和控制按钮 */}
       <div className="bg-[#1a1a1a] rounded-lg p-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-start md:items-center justify-between flex-col md:flex-row gap-3">
           {/* 左侧标题 */}
-          <h3 className="text-lg font-bold text-white">
+          <h3 className="text-lg font-bold text-white ">
             {tokenAddress.slice(0, 6)}...{tokenAddress.slice(-4)} • {timeframe}
           </h3>
 
           {/* 右侧控制按钮 */}
-          <div className="flex items-center space-x-2">
+          <div className="flex space-x-2 items-start md:items-center flex-col md:flex-row gap-3">
             {/* 时间框架快捷按钮 - 显示5个主要时间间隔 */}
             <div className="flex items-center space-x-1 mr-2">
               {["1m", "5m", "1h", "4h", "all"].map((tf) => (
@@ -398,130 +424,132 @@ export function CandlestickChart({
               ))}
             </div>
 
-            {/* 高级时间选择器 */}
-            <div className="relative time-dropdown">
+            <div className="flex items-center space-x-1 !ml-0">
+              {/* 高级时间选择器 */}
+              <div className="relative time-dropdown">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowTimeDropdown(!showTimeDropdown)}
+                  className="border-gray-600 text-gray-400 hover:text-white"
+                >
+                  <Clock className="h-4 w-4 mr-1" />
+                  More
+                </Button>
+
+                {showTimeDropdown && (
+                  <div className="absolute top-full right-0 mt-1 bg-[#1a1a1a] border border-gray-600 rounded-lg p-2 shadow-lg z-10 min-w-32">
+                    <div className="space-y-1">
+                      <div className="text-xs text-gray-500 font-medium px-2 py-1">
+                        MINUTES
+                      </div>
+                      {["1m", "5m", "15m", "30m"].map((tf) => (
+                        <button
+                          key={tf}
+                          onClick={() => {
+                            setTimeframe(tf); // 保持原始大小写
+                            setShowTimeDropdown(false);
+                          }}
+                          className={`w-full text-left px-2 py-1 rounded text-sm hover:bg-gray-700 ${
+                            timeframe === tf
+                              ? "text-white bg-gray-600"
+                              : "text-gray-400"
+                          }`}
+                        >
+                          {tf}
+                        </button>
+                      ))}
+
+                      <div className="text-xs text-gray-500 font-medium px-2 py-1 mt-2">
+                        HOURS
+                      </div>
+                      {["1h", "4h"].map((tf) => (
+                        <button
+                          key={tf}
+                          onClick={() => {
+                            setTimeframe(tf); // 保持原始大小写
+                            setShowTimeDropdown(false);
+                          }}
+                          className={`w-full text-left px-2 py-1 rounded text-sm hover:bg-gray-700 ${
+                            timeframe === tf
+                              ? "text-white bg-gray-600"
+                              : "text-gray-400"
+                          }`}
+                        >
+                          {tf}
+                        </button>
+                      ))}
+
+                      <div className="text-xs text-gray-500 font-medium px-2 py-1 mt-2">
+                        DAYS & MORE
+                      </div>
+                      {["1d", "7d", "1month", "1y", "all"].map((tf) => (
+                        <button
+                          key={tf}
+                          onClick={() => {
+                            setTimeframe(tf); // 保持原始大小写，不要toLowerCase()
+                            setShowTimeDropdown(false);
+                          }}
+                          className={`w-full text-left px-2 py-1 rounded text-sm hover:bg-gray-700 ${
+                            timeframe === tf
+                              ? "text-white bg-gray-600"
+                              : "text-gray-400"
+                          }`}
+                        >
+                          {tf === "1month"
+                            ? "1 Month"
+                            : tf === "1y"
+                            ? "1 Year"
+                            : tf === "all"
+                            ? "All Time"
+                            : tf}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 重置缩放按钮 */}
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setShowTimeDropdown(!showTimeDropdown)}
+                onClick={resetChartZoom}
                 className="border-gray-600 text-gray-400 hover:text-white"
+                title="Reset chart zoom"
               >
-                <Clock className="h-4 w-4 mr-1" />
-                More
+                <RotateCcw className="w-4 h-4" />
               </Button>
 
-              {showTimeDropdown && (
-                <div className="absolute top-full right-0 mt-1 bg-[#1a1a1a] border border-gray-600 rounded-lg p-2 shadow-lg z-10 min-w-32">
-                  <div className="space-y-1">
-                    <div className="text-xs text-gray-500 font-medium px-2 py-1">
-                      MINUTES
-                    </div>
-                    {["1m", "5m", "15m", "30m"].map((tf) => (
-                      <button
-                        key={tf}
-                        onClick={() => {
-                          setTimeframe(tf); // 保持原始大小写
-                          setShowTimeDropdown(false);
-                        }}
-                        className={`w-full text-left px-2 py-1 rounded text-sm hover:bg-gray-700 ${
-                          timeframe === tf
-                            ? "text-white bg-gray-600"
-                            : "text-gray-400"
-                        }`}
-                      >
-                        {tf}
-                      </button>
-                    ))}
-
-                    <div className="text-xs text-gray-500 font-medium px-2 py-1 mt-2">
-                      HOURS
-                    </div>
-                    {["1h", "4h"].map((tf) => (
-                      <button
-                        key={tf}
-                        onClick={() => {
-                          setTimeframe(tf); // 保持原始大小写
-                          setShowTimeDropdown(false);
-                        }}
-                        className={`w-full text-left px-2 py-1 rounded text-sm hover:bg-gray-700 ${
-                          timeframe === tf
-                            ? "text-white bg-gray-600"
-                            : "text-gray-400"
-                        }`}
-                      >
-                        {tf}
-                      </button>
-                    ))}
-
-                    <div className="text-xs text-gray-500 font-medium px-2 py-1 mt-2">
-                      DAYS & MORE
-                    </div>
-                    {["1d", "7d", "1month", "1y", "all"].map((tf) => (
-                      <button
-                        key={tf}
-                        onClick={() => {
-                          setTimeframe(tf); // 保持原始大小写，不要toLowerCase()
-                          setShowTimeDropdown(false);
-                        }}
-                        className={`w-full text-left px-2 py-1 rounded text-sm hover:bg-gray-700 ${
-                          timeframe === tf
-                            ? "text-white bg-gray-600"
-                            : "text-gray-400"
-                        }`}
-                      >
-                        {tf === "1month"
-                          ? "1 Month"
-                          : tf === "1y"
-                          ? "1 Year"
-                          : tf === "all"
-                          ? "All Time"
-                          : tf}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* 货币切换按钮 */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrency(currency === "USD" ? "OKB" : "USD")}
+                className={`border-gray-600 ${
+                  currency === "USD"
+                    ? "text-white bg-gray-600"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                {currency === "USD" ? "USD" : "OKB"}
+              </Button>
             </div>
-
-            {/* 重置缩放按钮 */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={resetChartZoom}
-              className="border-gray-600 text-gray-400 hover:text-white"
-              title="Reset chart zoom"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </Button>
-
-            {/* 货币切换按钮 */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrency(currency === "USD" ? "OKB" : "USD")}
-              className={`border-gray-600 ${
-                currency === "USD"
-                  ? "text-white bg-gray-600"
-                  : "text-gray-400 hover:text-white"
-              }`}
-            >
-              {currency === "USD" ? "USD" : "OKB"}
-            </Button>
           </div>
         </div>
       </div>
 
       {/* 主图表区域 */}
-      <div className="bg-[#1a1a1a] rounded-lg px-6 pt-6">
+      <div className="bg-[#1a1a1a] rounded-lg md:px-6 md:pt-6 ">
         <div className="w-full aspect-[5/3]">
           <div id="chart" className="w-full h-full"></div>
         </div>
       </div>
 
       {/* 24小时统计数据 */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-3 gap-3 md:gap-4  md:grid-cols-5">
         {/* 当前价格卡片 */}
-        <div className="bg-[#0E0E0E] rounded-lg p-4">
+        <div className="bg-[#0E0E0E] rounded-lg p-3 md:p-4">
           <div className="text-gray-400 text-xs mb-1">Current Price</div>
           <div className="text-white font-bold text-sm">
             {loading ? (
@@ -536,7 +564,7 @@ export function CandlestickChart({
           </div>
         </div>
 
-        <div className="bg-[#0E0E0E] rounded-lg p-4">
+        <div className="bg-[#0E0E0E] rounded-lg p-3 md:p-4">
           <div className="text-gray-400 text-xs mb-1">24h High</div>
           <div className="text-white font-bold text-sm">
             {loading ? (
@@ -547,7 +575,7 @@ export function CandlestickChart({
           </div>
         </div>
 
-        <div className="bg-[#0E0E0E] rounded-lg p-4">
+        <div className="bg-[#0E0E0E] rounded-lg p-3 md:p-4">
           <div className="text-gray-400 text-xs mb-1">24h Low</div>
           <div className="text-white font-bold text-sm">
             {loading ? (
@@ -558,7 +586,7 @@ export function CandlestickChart({
           </div>
         </div>
 
-        <div className="bg-[#0E0E0E] rounded-lg p-4">
+        <div className="bg-[#0E0E0E] rounded-lg p-3 md:p-4">
           <div className="text-gray-400 text-xs mb-1">24h Change</div>
           {loading ? (
             <div className="animate-pulse bg-gray-600 h-4 w-16 rounded"></div>
@@ -583,7 +611,7 @@ export function CandlestickChart({
           )}
         </div>
 
-        <div className="bg-[#0E0E0E] rounded-lg p-4">
+        <div className="bg-[#0E0E0E] rounded-lg p-3 md:p-4">
           <div className="text-gray-400 text-xs mb-1">24h Volume</div>
           <div className="text-white font-bold text-sm">
             {loading ? (

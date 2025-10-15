@@ -178,7 +178,7 @@ export function Sidebar() {
           onClick={toggleDrawer}
           className="bg-[#151515] p-3 rounded-lg hover:bg-[#D7FE11]/10 transition-colors"
         >
-          <Menu className="h-6 w-6 text-[#D7FE11]" />
+          <Menu className="h-4 w-4 text-[#D7FE11]" />
         </button>
       </div>
 

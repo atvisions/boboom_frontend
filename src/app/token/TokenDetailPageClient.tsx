@@ -378,7 +378,7 @@ export default function TokenDetailPageClient({
 
           {/* 图表区域 */}
           <div className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl">
-            <div className="p-6">
+            <div className="p-3 md:p-6">
               <CandlestickChart
                 tokenAddress={tokenAddress}
                 stats24h={stats24h}

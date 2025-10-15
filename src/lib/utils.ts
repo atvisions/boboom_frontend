@@ -1,8 +1,8 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 /**
@@ -10,19 +10,26 @@ export function cn(...inputs: ClassValue[]) {
  * 根据价格大小自动选择合适的小数位数
  */
 export function formatPrice(price: number | string): string {
-  const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+  const numPrice = typeof price === "string" ? parseFloat(price) : price;
 
-  if (isNaN(numPrice) || numPrice === 0) return '0.000000';
+  if (isNaN(numPrice) || numPrice === 0) return "0.000000";
 
   // 根据价格大小选择小数位数
   if (numPrice >= 1) return numPrice.toFixed(2);
   if (numPrice >= 0.01) return numPrice.toFixed(4);
   if (numPrice >= 0.0001) return numPrice.toFixed(6);
-  if (numPrice >= 0.000001) return numPrice.toFixed(8);
-  if (numPrice >= 0.00000001) return numPrice.toFixed(10);
-
-  // 对于极小的数字，使用科学计数法
-  return numPrice.toExponential(6);
+  if (numPrice >= 0.00001) return numPrice.toFixed(7);
+  if (numPrice < 0.00001) {
+    let normal = numPrice.toFixed(20);
+    normal = normal.replace(/0+$/, "");
+    const match = normal.match(/^0\.0+(?=[1-9])/);
+    if (match) {
+      const zeroCount = match[0].length - 3; 
+      const rest = normal.slice(match[0].length - 1).slice(0, 3);
+      return `0.0{${zeroCount}}${rest}`;
+    }
+    return normal;
+  }
 }
 
 /**
