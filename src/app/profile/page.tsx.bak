@@ -796,7 +796,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                             <div 
                               key={token.id} 
                               className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer"
-                              onClick={() => router.push(`/token?address=${token.address}`)}
+                              onClick={() => router.push(`/token/?address=${token.address}`)}
                             >
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-4">
@@ -835,7 +835,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                       <div 
                         key={token.id} 
                         className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer"
-                        onClick={() => router.push(`/token?address=${token.address}`)}
+                        onClick={() => router.push(`/token/?address=${token.address}`)}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">
@@ -884,7 +884,7 @@ export default function ProfilePage({ params }: { params?: { address?: string } 
                       <div 
                         key={token.id} 
                         className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer"
-                        onClick={() => router.push(`/token?address=${token.address}`)}
+                        onClick={() => router.push(`/token/?address=${token.address}`)}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-4">

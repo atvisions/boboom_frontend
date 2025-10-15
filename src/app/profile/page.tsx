@@ -1055,7 +1055,7 @@ export default function ProfilePage({
                           key={token.id}
                           className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer"
                           onClick={() =>
-                            router.push(`/token?address=${token.address}`)
+                            router.push(`/token/?address=${token.address}`)
                           }
                         >
                           <div className="flex items-center justify-between">
@@ -1110,7 +1110,7 @@ export default function ProfilePage({
                       key={token.id}
                       className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer"
                       onClick={() =>
-                        router.push(`/token?address=${token.address}`)
+                        router.push(`/token/?address=${token.address}`)
                       }
                     >
                       <div className="flex items-center justify-between">
@@ -1177,7 +1177,7 @@ export default function ProfilePage({
                       key={token.id}
                       className="bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer"
                       onClick={() =>
-                        router.push(`/token?address=${token.address}`)
+                        router.push(`/token/?address=${token.address}`)
                       }
                     >
                       <div className="flex items-center justify-between">
@@ -1281,7 +1281,7 @@ export default function ProfilePage({
                             className="flex items-center space-x-3 flex-1 cursor-pointer hover:bg-[#232323] rounded-lg p-2 transition-colors"
                             onClick={() =>
                               router.push(
-                                `/profile/other?address=${follow.user.address}`
+                                `/profile/other/?address=${follow.user.address}`
                               )
                             }
                           >
@@ -1384,7 +1384,7 @@ export default function ProfilePage({
                             className="flex items-center space-x-3 flex-1 cursor-pointer hover:bg-[#232323] rounded-lg p-2 transition-colors"
                             onClick={() =>
                               router.push(
-                                `/profile/other?address=${follower.user.address}`
+                                `/profile/other/?address=${follower.user.address}`
                               )
                             }
                           >
@@ -1491,7 +1491,7 @@ export default function ProfilePage({
                     <div
                       className="flex items-center space-x-2 flex-1 cursor-pointer hover:bg-[#232323] rounded-lg p-2 transition-colors"
                       onClick={() =>
-                        router.push(`/profile/other?address=${user.address}`)
+                        router.push(`/profile/other/?address=${user.address}`)
                       }
                     >
                       <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#D7FE11]/20 to-[#5BC000]/20 flex items-center justify-center flex-shrink-0">

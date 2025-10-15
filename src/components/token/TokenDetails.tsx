@@ -318,7 +318,7 @@ export function TokenDetails({ token }: TokenDetailsProps) {
                       ? token.creator
                       : token.creator.address;
                   if (creatorAddress) {
-                    router.push(`/profile/other?address=${creatorAddress}`);
+                    router.push(`/profile/other/?address=${creatorAddress}`);
                   }
                 }}
                 disabled={!token.creator}

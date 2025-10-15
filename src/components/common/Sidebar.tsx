@@ -105,13 +105,13 @@ export function Sidebar() {
             <Link
               href={
                 isClient && address
-                  ? `/profile?other=${address}/`
+                  ? `/profile/?other=${address}`
                   : "/profile/"
               }
               onClick={() =>
                 handleLinkClick(
                   isClient && address
-                    ? `/profile?other=${address}`
+                    ? `/profile/?other=${address}`
                     : "/profile/"
                 )
               }
@@ -173,7 +173,7 @@ export function Sidebar() {
       </div>
 
       {/* 移动端菜单按钮 */}
-      <div className="fixed top-4 left-4 z-50 md:hidden">
+      <div className="fixed top-3 left-3 z-50 md:hidden">
         <button
           onClick={toggleDrawer}
           className="bg-[#151515] p-3 rounded-lg hover:bg-[#D7FE11]/10 transition-colors"

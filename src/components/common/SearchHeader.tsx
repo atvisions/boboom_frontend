@@ -77,7 +77,7 @@ export function SearchHeader() {
 
   // 处理搜索结果点击
   const handleResultClick = (token: any) => {
-    router.push(`/token?address=${token.address}`);
+    router.push(`/token/?address=${token.address}`);
     setShowResults(false);
     setSearchQuery("");
     setIsSearchFocused(false);
@@ -124,7 +124,7 @@ export function SearchHeader() {
   }, []);
 
   return (
-    <div className="bg-[#0E0E0E]/80 backdrop-blur-md p-6 md:pl-6 pl-20">
+    <div className="bg-[#0E0E0E]/80 backdrop-blur-md p-3 md:p-6 md:pl-6 pl-20">
       {/* 搜索栏和按钮 */}
       <div className="flex items-center justify-end gap-4">
         {/* 搜索框 */}

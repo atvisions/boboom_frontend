@@ -195,7 +195,7 @@ setup_cloudfront() {
     "Comment": "BOBOOM Frontend $ENVIRONMENT",
     "DefaultRootObject": "index.html",
     "Origins": {
-        "Quantity": 1,
+        "Quantity": 2,
         "Items": [
             {
                 "Id": "S3-$BUCKET_NAME",
@@ -204,6 +204,19 @@ setup_cloudfront() {
                     "HTTPPort": 80,
                     "HTTPSPort": 443,
                     "OriginProtocolPolicy": "http-only"
+                }
+            },
+            {
+                "Id": "API-Backend",
+                "DomainName": "api.boboom.fun",
+                "CustomOriginConfig": {
+                    "HTTPPort": 80,
+                    "HTTPSPort": 443,
+                    "OriginProtocolPolicy": "https-only",
+                    "OriginSslProtocols": {
+                        "Quantity": 1,
+                        "Items": ["TLSv1.2"]
+                    }
                 }
             }
         ]
@@ -215,16 +228,86 @@ setup_cloudfront() {
         "DefaultTTL": 86400,
         "MaxTTL": 31536000,
         "ForwardedValues": {
-            "QueryString": false,
+            "QueryString": true,
+            "QueryStringCacheKeys": {
+                "Quantity": 1,
+                "Items": ["address"]
+            },
             "Cookies": {
                 "Forward": "none"
+            },
+            "Headers": {
+                "Quantity": 0
             }
         },
         "TrustedSigners": {
             "Enabled": false,
             "Quantity": 0
         },
-        "Compress": true
+        "Compress": true,
+        "AllowedMethods": {
+            "Quantity": 2,
+            "Items": ["HEAD", "GET"],
+            "CachedMethods": {
+                "Quantity": 2,
+                "Items": ["HEAD", "GET"]
+            }
+        }
+    },
+    "CacheBehaviors": {
+        "Quantity": 2,
+        "Items": [
+            {
+                "PathPattern": "/api/*",
+                "TargetOriginId": "API-Backend",
+                "ViewerProtocolPolicy": "https-only",
+                "AllowedMethods": {
+                    "Quantity": 7,
+                    "Items": ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"],
+                    "CachedMethods": {
+                        "Quantity": 2,
+                        "Items": ["GET", "HEAD"]
+                    }
+                },
+                "ForwardedValues": {
+                    "QueryString": true,
+                    "Cookies": {
+                        "Forward": "all"
+                    },
+                    "Headers": {
+                        "Quantity": 4,
+                        "Items": ["Origin", "Access-Control-Request-Headers", "Access-Control-Request-Method", "Authorization"]
+                    }
+                },
+                "MinTTL": 0,
+                "DefaultTTL": 0,
+                "MaxTTL": 0,
+                "Compress": false
+            },
+            {
+                "PathPattern": "/media/*",
+                "TargetOriginId": "API-Backend",
+                "ViewerProtocolPolicy": "https-only",
+                "AllowedMethods": {
+                    "Quantity": 2,
+                    "Items": ["GET", "HEAD"],
+                    "CachedMethods": {
+                        "Quantity": 2,
+                        "Items": ["GET", "HEAD"]
+                    }
+                },
+                "ForwardedValues": {
+                    "QueryString": false,
+                    "Cookies": {
+                        "Forward": "none"
+                    }
+                },
+                "MinTTL": 0,
+                "DefaultTTL": 86400,
+                "MaxTTL": 31536000,
+                "Compress": true
+            }
+        ]
     },
     "CustomErrorResponses": {
         "Quantity": 3,

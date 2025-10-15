@@ -8,6 +8,7 @@ import { useTokenFactoryWorking as useTokenFactory } from "@/hooks/useTokenFacto
 import { useWalletAuth } from "@/hooks/useWalletAuth";
 import { toast } from "sonner";
 import { TokenCreationFlow } from "../../components/ui/token-creation-flow";
+import { API_CONFIG } from "@/config/api";
 // 删除旧的 TokenCreationStepsModal 引用
 // 定义本地类型，满足 TokenCreationFlow 要求
 export type ModalTokenData = {
@@ -101,7 +102,7 @@ function CreateTokenForm() {
     try {
       const formData = new FormData();
       formData.append('image', file);
-      const response = await fetch('/api/tokens/upload-image', { method: 'POST', body: formData });
+      const response = await fetch(`${API_CONFIG.BASE_URL}/api/tokens/upload-image/`, { method: 'POST', body: formData });
       if (!response.ok) throw new Error('Upload failed');
       const data = await response.json();
 

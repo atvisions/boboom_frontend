@@ -1703,157 +1703,158 @@ export function TokenGrid() {
       ) : viewMode === "list" ? (
         // 列表视图
         <div className="bg-[#1a1a1a] rounded-xl border border-gray-700  overflow-x-scroll md:overflow-hidden">
-         <div className="w-max md:w-full">
-           {/* 列表头部 */}
-           <div className="grid grid-cols-12 gap-2 px-4 py-4 bg-[#232323] border-b border-gray-700 text-sm font-medium text-gray-300">
-            <div className="col-span-1">#</div>
-            <div className="col-span-2">COIN</div>
-            <div className="col-span-1">GRAPH</div>
-            <div className="col-span-1">MCAP</div>
-            <div className="col-span-1">ATH</div>
-            <div className="col-span-1">AGE</div>
-            <div className="col-span-1">TXNS</div>
-            <div className="col-span-1">24H VOL</div>
-            <div className="col-span-1">TRADERS</div>
-            <div className="col-span-1">24H</div>
-            <div className="col-span-1 text-center">FAVORITE</div>
-          </div>
-
-          {/* 列表内容 */}
-          {tokens.map((token, index) => (
-            <div
-              key={token.address}
-              className="grid grid-cols-12 gap-2 px-4 py-4 border-b border-gray-800 hover:bg-[#232323]/50 transition-colors cursor-pointer"
-              onClick={() => router.push(`/token?address=${token.address}`)}
-            >
-              {/* 排名 */}
-              <div className="col-span-1 flex items-center text-gray-400 text-sm">
-                #{index + 1}
-              </div>
-
-              {/* 代币信息 */}
-              <div className="col-span-2 flex items-center space-x-2">
-                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center overflow-hidden">
-                  {token.imageUrl ? (
-                    <img
-                      src={token.imageUrl}
-                      alt={`${token.name} logo`}
-                      className="w-5 h-5 object-contain rounded-full"
-                    />
-                  ) : (
-                    <div className="text-xs font-bold text-white">
-                      {token.symbol.slice(0, 2)}
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <div className="text-white font-medium text-sm truncate">
-                    {token.name}
-                  </div>
-                  <div className="text-gray-400 text-xs">{token.symbol}</div>
-                </div>
-              </div>
-
-              {/* 图表 */}
-              <div className="col-span-1 flex items-center">
-                <MiniChart
-                  width={48}
-                  height={24}
-                  color={
-                    parseFloat(token.change24h || "0") >= 0
-                      ? "#10B981"
-                      : "#EF4444"
-                  }
-                  className="opacity-80"
-                  useRealData={true}
-                  tokenAddress={token.address}
-                />
-              </div>
-
-              {/* 市值 */}
-              <div className="col-span-1 flex items-center text-white text-sm">
-                ${utilsFormatNumber(parseFloat(token.marketCap || "0"))}
-              </div>
-
-              {/* ATH */}
-              <div className="col-span-1 flex items-center text-white text-sm">
-                ${formatPrice(parseFloat(token.ath || "0"))}
-              </div>
-
-              {/* 年龄 */}
-              <div className="col-span-1 flex items-center text-gray-400 text-sm">
-                {getTimeAgo(token.createdAt)}
-              </div>
-
-              {/* 交易数 */}
-              <div className="col-span-1 flex items-center text-gray-400 text-sm">
-                {token.transactionCount || "-"}
-              </div>
-
-              {/* 24小时交易量 */}
-              <div className="col-span-1 flex items-center text-gray-400 text-sm">
-                <AnimatedVolume
-                  value={parseFloat(token.volume24h || "0") * okbPrice}
-                  className="text-gray-400"
-                  showChangeIndicator={false}
-                />
-              </div>
-
-              {/* 交易者数 */}
-              <div className="col-span-1 flex items-center text-gray-400 text-sm">
-                {token.holderCount || "-"}
-              </div>
-
-              {/* 24小时变化 */}
-              <div className="col-span-1 flex items-center text-sm">
-                <AnimatedPercentage
-                  value={parseFloat(token.change24h || "0")}
-                  className={
-                    parseFloat(token.change24h || "0") >= 0
-                      ? "text-green-400"
-                      : "text-red-400"
-                  }
-                  showChangeIndicator={true}
-                />
-              </div>
-
-              {/* 收藏按钮 */}
-              <div className="col-span-1 flex items-center justify-center">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleFavorite(token.address, token.name);
-                  }}
-                  disabled={isFavoriteLoading}
-                  className={`p-1.5 rounded-full transition-all duration-200 ${
-                    favorites.has(token.address)
-                      ? "bg-[#D7FE11] text-black"
-                      : "text-gray-400 hover:text-white hover:bg-gray-700/50"
-                  } ${
-                    isFavoriteLoading ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
-                >
-                  <Star
-                    className={`h-4 w-4 ${
-                      favorites.has(token.address) ? "fill-current" : ""
-                    }`}
-                  />
-                </button>
-              </div>
+          <div className="w-max md:w-full">
+            {/* 列表头部 */}
+            <div className="grid grid-cols-12 gap-2 px-4 py-4 bg-[#232323] border-b border-gray-700 text-sm font-medium text-gray-300">
+              <div className="col-span-1">#</div>
+              <div className="col-span-2">COIN</div>
+              <div className="col-span-1">GRAPH</div>
+              <div className="col-span-1">MCAP</div>
+              <div className="col-span-1">ATH</div>
+              <div className="col-span-1">AGE</div>
+              <div className="col-span-1">TXNS</div>
+              <div className="col-span-1">24H VOL</div>
+              <div className="col-span-1">TRADERS</div>
+              <div className="col-span-1">24H</div>
+              <div className="col-span-1 text-center">FAVORITE</div>
             </div>
-          ))}
-         </div>
+
+            {/* 列表内容 */}
+            {tokens.map((token, index) => (
+              <div
+                key={token.address}
+                className="grid grid-cols-12 gap-2 px-4 py-4 border-b border-gray-800 hover:bg-[#232323]/50 transition-colors cursor-pointer"
+                onClick={() => router.push(`/token/?address=${token.address}`)}
+              >
+                {/* 排名 */}
+                <div className="col-span-1 flex items-center text-gray-400 text-sm">
+                  #{index + 1}
+                </div>
+
+                {/* 代币信息 */}
+                <div className="col-span-2 flex items-center space-x-2">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center overflow-hidden">
+                    {token.imageUrl ? (
+                      <img
+                        src={token.imageUrl}
+                        alt={`${token.name} logo`}
+                        className="w-5 h-5 object-contain rounded-full"
+                      />
+                    ) : (
+                      <div className="text-xs font-bold text-white">
+                        {token.symbol.slice(0, 2)}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-white font-medium text-sm truncate">
+                      {token.name}
+                    </div>
+                    <div className="text-gray-400 text-xs">{token.symbol}</div>
+                  </div>
+                </div>
+
+                {/* 图表 */}
+                <div className="col-span-1 flex items-center">
+                  <MiniChart
+                    width={48}
+                    height={24}
+                    color={
+                      parseFloat(token.change24h || "0") >= 0
+                        ? "#10B981"
+                        : "#EF4444"
+                    }
+                    className="opacity-80"
+                    useRealData={true}
+                    tokenAddress={token.address}
+                  />
+                </div>
+
+                {/* 市值 */}
+                <div className="col-span-1 flex items-center text-white text-sm">
+                  ${utilsFormatNumber(parseFloat(token.marketCap || "0"))}
+                </div>
+
+                {/* ATH */}
+                <div className="col-span-1 flex items-center text-white text-sm">
+                  ${formatPrice(parseFloat(token.ath || "0"))}
+                </div>
+
+                {/* 年龄 */}
+                <div className="col-span-1 flex items-center text-gray-400 text-sm">
+                  {getTimeAgo(token.createdAt)}
+                </div>
+
+                {/* 交易数 */}
+                <div className="col-span-1 flex items-center text-gray-400 text-sm">
+                  {token.transactionCount || "-"}
+                </div>
+
+                {/* 24小时交易量 */}
+                <div className="col-span-1 flex items-center text-gray-400 text-sm">
+                  <AnimatedVolume
+                    value={parseFloat(token.volume24h || "0") * okbPrice}
+                    className="text-gray-400"
+                    showChangeIndicator={false}
+                  />
+                </div>
+
+                {/* 交易者数 */}
+                <div className="col-span-1 flex items-center text-gray-400 text-sm">
+                  {token.holderCount || "-"}
+                </div>
+
+                {/* 24小时变化 */}
+                <div className="col-span-1 flex items-center text-sm">
+                  <AnimatedPercentage
+                    value={parseFloat(token.change24h || "0")}
+                    className={
+                      parseFloat(token.change24h || "0") >= 0
+                        ? "text-green-400"
+                        : "text-red-400"
+                    }
+                    showChangeIndicator={true}
+                  />
+                </div>
+
+                {/* 收藏按钮 */}
+                <div className="col-span-1 flex items-center justify-center">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFavorite(token.address, token.name);
+                    }}
+                    disabled={isFavoriteLoading}
+                    className={`p-1.5 rounded-full transition-all duration-200 ${
+                      favorites.has(token.address)
+                        ? "bg-[#D7FE11] text-black"
+                        : "text-gray-400 hover:text-white hover:bg-gray-700/50"
+                    } ${
+                      isFavoriteLoading ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                  >
+                    <Star
+                      className={`h-4 w-4 ${
+                        favorites.has(token.address) ? "fill-current" : ""
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
         // 网格视图
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
           {tokens.map((token, index) => (
-            <div
+            <a
               key={token.address}
               className={`group relative bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer`}
-              onClick={() => {
-                router.push(`/token?address=${token.address}`);
-              }}
+              // onClick={() => {
+              //   router.push(`/token/?address=${token.address}`);
+              // }}
+              href={`/token/?address=${token.address}`}
             >
               {/* 收藏按钮 - 右上角 */}
               <button
@@ -1955,7 +1956,7 @@ export function TokenGrid() {
                               : token.creator?.address;
                           if (creatorAddress) {
                             router.push(
-                              `/profile/other?address=${creatorAddress}`
+                              `/profile/other/?address=${creatorAddress}`
                             );
                           }
                         }}
@@ -2096,7 +2097,7 @@ export function TokenGrid() {
 
               {/* 悬停效果 */}
               <div className="absolute inset-0 bg-gradient-to-br from-[#D7FE11]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
-            </div>
+            </a>
           ))}
         </div>
       )}

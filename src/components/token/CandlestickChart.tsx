@@ -1,38 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, TrendingDown, Clock, RotateCcw } from "lucide-react";
 import { tokenAPI } from "@/services/api";
 import { connectToTokenCandles } from "@/services/websocket";
 import { formatPrice } from "@/lib/utils";
 import websocketService from "@/services/websocket";
-import {
-  ChartErrorBoundary,
-  ChartErrorFallback,
-} from "@/components/ui/ChartErrorBoundary";
-
-// Dynamic import ApexCharts to avoid SSR issues
-const Chart = dynamic(
-  () =>
-    import("react-apexcharts").catch(() => {
-      // If import fails, return an empty component
-      return {
-        default: () => (
-          <div className="text-center text-gray-500 py-8">
-            Chart failed to load, please refresh the page
-          </div>
-        ),
-      };
-    }),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="text-center text-gray-500 py-8">Loading chart...</div>
-    ),
-  }
-);
+import { init, dispose, LineType } from "klinecharts";
 
 interface CandlestickChartProps {
   tokenAddress: string;
@@ -105,29 +80,21 @@ function cleanChartData(data: any[]): any[] {
   }));
 }
 
-function cleanVolumeData(data: any[]): any[] {
-  return data.map((item, index) => ({
-    x: index,
-    y: item.y,
-    timestamp: item.timestamp,
-  }));
-}
+
 
 export function CandlestickChart({
   tokenAddress,
   stats24h,
 }: CandlestickChartProps) {
   const [timeframe, setTimeframe] = useState("1h");
-  const [priceType, setPriceType] = useState<"price" | "mcap">("mcap");
   const [currency, setCurrency] = useState<"USD" | "OKB">("USD");
   const [showTimeDropdown, setShowTimeDropdown] = useState(false);
   const [localStats24h, setLocalStats24h] = useState<any>(null); // 本地备用状态
   const [candlestickData, setCandlestickData] = useState<any[]>([]);
-  const [volumeData, setVolumeData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [okbPrice, setOkbPrice] = useState<number>(177.6); // 默认OKB价格
-  const [chartError, setChartError] = useState(false); // 图表加载错误状态
   const wsConnectionIdRef = useRef<string | null>(null);
+  const chartRef = useRef<any>(null);
 
   // 优先使用父组件传递的stats24h，否则使用本地状态
   const currentStats24h = stats24h || localStats24h;
@@ -212,11 +179,13 @@ export function CandlestickChart({
   // 移除模拟数据生成，现在使用真实的事件驱动K线数据
 
   // 加载蜡烛图数据的函数 - 使用新的事件驱动K线API
-  const loadCandlestickData = async () => {
+  const loadCandlestickData = async (skipCache: boolean = false) => {
     try {
-      // 清除相关缓存
-      const { cacheAPI } = await import("@/services/api");
-      cacheAPI.clear("token_price_history");
+      // 只在需要时清除缓存（例如用户手动刷新）
+      if (skipCache) {
+        const { cacheAPI } = await import("@/services/api");
+        cacheAPI.clear("token_price_history");
+      }
 
       const interval = getBackendInterval(timeframe);
       const response = await tokenAPI.getTokenPriceHistory(tokenAddress, {
@@ -259,7 +228,7 @@ export function CandlestickChart({
 
         const candles = sortedCandles
           .map((candle: any, index: number) => {
-            let open: number, high: number, low: number, close: number;
+            let open: number, high: number, low: number, close: number, volume: number;
 
             try {
               if (currency === "OKB" && okbPrice > 0) {
@@ -268,12 +237,14 @@ export function CandlestickChart({
                 high = candle.high / okbPrice;
                 low = candle.low / okbPrice;
                 close = candle.close / okbPrice;
+                volume = candle.volume / okbPrice;
               } else {
                 // USD价格
                 open = candle.open;
                 high = candle.high;
                 low = candle.low;
                 close = candle.close;
+                volume = candle.volume;
               }
 
               // Validate converted data
@@ -292,7 +263,11 @@ export function CandlestickChart({
 
               const candleData = {
                 x: index, // 使用索引而不是时间，确保K线连续
-                y: [open, high, low, close],
+                open: open,
+                high: high,
+                low: low,
+                close: close,
+                volume: candle.volume,
                 timestamp: candle.timestamp, // 保存时间戳用于tooltip显示
               };
 
@@ -335,46 +310,40 @@ export function CandlestickChart({
             ) {
               // 清理数据确保正确的索引格式
               const cleanedCandles = cleanChartData(candles);
-              const cleanedVolumes = cleanVolumeData(volumes);
 
               setCandlestickData(cleanedCandles);
-              setVolumeData(cleanedVolumes);
             } else {
               setCandlestickData([]);
-              setVolumeData([]);
             }
           } catch (error) {
             setCandlestickData([]);
-            setVolumeData([]);
           }
         } else {
           setCandlestickData([]);
-          setVolumeData([]);
         }
       } else {
         // API成功但没有数据，显示空图表
         setCandlestickData([]);
-        setVolumeData([]);
       }
     } catch (error) {
       // 静默处理API失败，显示空图表
       setCandlestickData([]);
-      setVolumeData([]);
     }
   };
 
-  // 加载蜡烛图数据（REST 作为初始快照兜底）
+  // 加载蜡烛图数据（REST 作为初始快照，仅在 tokenAddress 或 timeframe 变化时加载）
   useEffect(() => {
     if (tokenAddress) {
+      // 首次加载或切换 token/timeframe 时才重新请求
       loadCandlestickData();
     }
-  }, [tokenAddress, timeframe, currency, okbPrice]);
+  }, [tokenAddress, timeframe]); // 移除 currency 和 okbPrice 依赖，避免重复请求
 
   // 重置图表缩放的函数
   const resetChartZoom = () => {
-    // 通过重新加载数据来重置图表显示范围
+    // 通过重新加载数据来重置图表显示范围，并清除缓存
     if (tokenAddress) {
-      loadCandlestickData();
+      loadCandlestickData(true); // 传入 true 清除缓存
     }
   };
 
@@ -382,6 +351,8 @@ export function CandlestickChart({
   // 不需要手动重置缩放，ApexCharts会处理
 
   // 接入 WebSocket 实时 K 线
+  // 依赖 currency 和 okbPrice 是必要的，因为需要重新转换数据
+  // WebSocket 重连时会收到 candles_snapshot，不会造成额外的 REST API 请求
   useEffect(() => {
     if (!tokenAddress) return;
 
@@ -430,25 +401,17 @@ export function CandlestickChart({
               const factor = currency === "OKB" ? 1 / okbPrice : 1;
               return {
                 x: index, // 使用索引保持与API调用一致
-                y: [
-                  (candle.open || 0) * factor,
-                  (candle.high || 0) * factor,
-                  (candle.low || 0) * factor,
-                  (candle.close || 0) * factor,
-                ],
+                open: (candle.open || 0) * factor,
+                high: (candle.high || 0) * factor,
+                low: (candle.low || 0) * factor,
+                close: (candle.close || 0) * factor,
+                volume: (candle.volume || 0) * factor,
                 timestamp: candle.timestamp, // 保存时间戳用于tooltip
               };
             }
           );
-          const volumes = data.data.candles.map(
-            (candle: any, index: number) => ({
-              x: index, // 使用索引保持与K线数据一致
-              y: parseFloat(candle.volume) || 0,
-            })
-          );
           // 清理数据确保正确的索引格式
           setCandlestickData(cleanChartData(transformed));
-          setVolumeData(cleanVolumeData(volumes));
         } else if (data?.type === "candles_update" && data.data?.candles) {
           const updates = data.data.candles as any[];
           const factor = currency === "OKB" ? 1 / okbPrice : 1;
@@ -467,7 +430,7 @@ export function CandlestickChart({
               const high = parseFloat(c.high || c.high_price) || null;
               const low = parseFloat(c.low || c.low_price) || null;
               const close = parseFloat(c.close || c.close_price) || null;
-
+              const volume = parseFloat(c.volume || c.total_okb_volume) || null;
               // 验证价格数据的有效性
               if (
                 !open ||
@@ -488,7 +451,11 @@ export function CandlestickChart({
 
               const newItem = {
                 x: idx >= 0 ? idx : next.length, // 使用索引而不是时间戳
-                y: [open * factor, high * factor, low * factor, close * factor],
+                open: open * factor,
+                high: high * factor,
+                low: low * factor,
+                close: close * factor,
+                volume: volume * factor,
                 timestamp: c.timestamp, // 保存时间戳用于tooltip
               };
               if (idx >= 0) {
@@ -496,38 +463,6 @@ export function CandlestickChart({
               } else {
                 next.push(newItem);
               }
-            });
-            // 重新分配索引以确保连续性
-            next.forEach((item, index) => {
-              item.x = index;
-            });
-            return next;
-          });
-          setVolumeData((prev) => {
-            const next = [...prev];
-            updates.forEach((c) => {
-              const ts = new Date(c.timestamp).getTime();
-              const idx = next.findIndex(
-                (item) =>
-                  item.timestamp && new Date(item.timestamp).getTime() === ts
-              );
-
-              // 安全地提取交易量数据
-              const volume =
-                parseFloat(c.volume) || parseFloat(c.total_okb_volume) || 0;
-
-              // 验证交易量数据的有效性
-              if (!isFinite(volume) || volume < 0) {
-                return; // 跳过这个无效的更新
-              }
-
-              const newItem = {
-                x: idx >= 0 ? idx : next.length, // 使用索引而不是时间戳
-                y: volume,
-                timestamp: c.timestamp, // 保存时间戳用于匹配
-              };
-              if (idx >= 0) next[idx] = newItem;
-              else next.push(newItem);
             });
             // 重新分配索引以确保连续性
             next.forEach((item, index) => {
@@ -556,304 +491,6 @@ export function CandlestickChart({
     };
   }, [tokenAddress, timeframe, currency, okbPrice]);
 
-  // 使用真实数据，不再使用模拟数据
-  const displayCandlestickData = candlestickData;
-  const displayVolumeData = volumeData;
-
-  // 根据时间间隔计算合适的显示范围
-  const getDisplayRange = () => {
-    if (candlestickData.length === 0) return {};
-
-    const now = new Date().getTime();
-    let rangeMs: number;
-
-    // 根据时间间隔设置合适的显示范围
-    switch (timeframe) {
-      case "1m":
-        rangeMs = 2 * 60 * 60 * 1000; // 2小时
-        break;
-      case "15m":
-        rangeMs = 12 * 60 * 60 * 1000; // 12小时
-        break;
-      case "30m":
-        rangeMs = 24 * 60 * 60 * 1000; // 1天
-        break;
-      case "1h":
-        rangeMs = 3 * 24 * 60 * 60 * 1000; // 3天
-        break;
-      case "4h":
-        rangeMs = 7 * 24 * 60 * 60 * 1000; // 7天
-        break;
-      case "1d":
-        rangeMs = 30 * 24 * 60 * 60 * 1000; // 30天
-        break;
-      default:
-        rangeMs = 24 * 60 * 60 * 1000; // 默认1天
-    }
-
-    return {
-      min: now - rangeMs,
-      max: now,
-    };
-  };
-
-  // ApexCharts 配置
-  const chartOptions = {
-    chart: {
-      type: "candlestick" as const,
-      height: 400,
-      background: "#1a1a1a",
-      animations: {
-        enabled: true,
-        easing: "easeinout",
-        speed: 300,
-      },
-      toolbar: {
-        show: false,
-      },
-      zoom: {
-        enabled: true,
-        type: "x" as const,
-        autoScaleYaxis: true,
-      },
-      pan: {
-        enabled: true,
-        type: "x" as const,
-      },
-    },
-    title: {
-      text: "",
-      align: "left" as const,
-    },
-    xaxis: {
-      type: "category" as const, // 改为分类轴，确保K线连续显示
-      labels: {
-        style: {
-          colors: "#9CA3AF",
-        },
-        formatter: function (value: any, timestamp: any, opts: any) {
-          // 从candlestickData中获取对应的时间戳
-          const index = parseInt(value);
-          if (
-            candlestickData &&
-            candlestickData[index] &&
-            candlestickData[index].timestamp
-          ) {
-            const date = new Date(candlestickData[index].timestamp);
-            if (
-              timeframe === "1m" ||
-              timeframe === "15m" ||
-              timeframe === "30m"
-            ) {
-              return date.toLocaleTimeString("en-US", {
-                hour: "2-digit",
-                minute: "2-digit",
-              });
-            } else if (timeframe === "1h" || timeframe === "4h") {
-              return (
-                date.toLocaleDateString("en-US", {
-                  month: "2-digit",
-                  day: "2-digit",
-                }) +
-                " " +
-                date.toLocaleTimeString("en-US", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              );
-            } else {
-              return date.toLocaleDateString("en-US", {
-                month: "2-digit",
-                day: "2-digit",
-              });
-            }
-          }
-          return value;
-        },
-      },
-      axisBorder: {
-        color: "rgba(255, 255, 255, 0.1)",
-      },
-      axisTicks: {
-        color: "rgba(255, 255, 255, 0.1)",
-      },
-    },
-    yaxis: {
-      tooltip: {
-        enabled: true,
-      },
-      labels: {
-        style: {
-          colors: "#9CA3AF",
-        },
-        formatter: function (value: number) {
-          const symbol = currency === "OKB" ? "OKB" : "$";
-
-          // 使用传统小数格式显示
-          if (value === 0) {
-            return symbol + "0";
-          } else if (value >= 1) {
-            return symbol + value.toFixed(2);
-          } else if (value >= 0.01) {
-            return symbol + value.toFixed(4);
-          } else if (value >= 0.001) {
-            return symbol + value.toFixed(6);
-          } else if (value >= 0.0001) {
-            return symbol + value.toFixed(7);
-          } else {
-            // 对于极小的数值，使用更多小数位
-            return symbol + value.toFixed(9);
-          }
-        },
-      },
-      // 强制不使用nice scale，保持原始数据范围
-      forceNiceScale: false,
-      decimalsInFloat: 12,
-      // 增加Y轴刻度数量以更好显示价格范围
-      tickAmount: 8,
-    },
-    tooltip: {
-      enabled: true,
-      theme: "dark",
-      style: {
-        fontSize: "12px",
-      },
-      custom: function ({ series, seriesIndex, dataPointIndex, w }: any) {
-        const data = w.globals.initialSeries[seriesIndex].data[dataPointIndex];
-        const [open, high, low, close] = data.y;
-        const symbol = currency === "OKB" ? "OKB" : "$";
-
-        // 与Y轴标签保持一致的格式化函数
-        const formatPrice = (value: number) => {
-          if (value === 0) return "0";
-          if (value >= 1) return value.toFixed(2);
-          if (value >= 0.01) return value.toFixed(4);
-          if (value >= 0.001) return value.toFixed(6);
-          if (value >= 0.0001) return value.toFixed(7);
-          return value.toFixed(9);
-        };
-
-        return `
-          <div class="custom-tooltip" style="background: rgba(0,0,0,0.9); padding: 8px; border-radius: 4px; border: 1px solid #D7FE11;">
-            <div style="color: #9CA3AF; font-size: 11px; margin-bottom: 4px;">${
-              data.timestamp ? new Date(data.timestamp).toLocaleString() : "N/A"
-            }</div>
-            <div style="color: white; font-size: 12px; margin: 2px 0;">
-              <span style="color: #9CA3AF;">O:</span> ${symbol}${formatPrice(
-          open
-        )}
-            </div>
-            <div style="color: white; font-size: 12px; margin: 2px 0;">
-              <span style="color: #9CA3AF;">H:</span> ${symbol}${formatPrice(
-          high
-        )}
-            </div>
-            <div style="color: white; font-size: 12px; margin: 2px 0;">
-              <span style="color: #9CA3AF;">L:</span> ${symbol}${formatPrice(
-          low
-        )}
-            </div>
-            <div style="color: white; font-size: 12px; margin: 2px 0;">
-              <span style="color: #9CA3AF;">C:</span> ${symbol}${formatPrice(
-          close
-        )}
-            </div>
-          </div>
-        `;
-      },
-    },
-    plotOptions: {
-      candlestick: {
-        colors: {
-          upward: "#D7FE11",
-          downward: "#EF4444",
-        },
-        wick: {
-          useFillColor: true,
-        },
-      },
-    },
-    grid: {
-      borderColor: "rgba(255, 255, 255, 0.1)",
-      strokeDashArray: 3,
-    },
-    theme: {
-      mode: "dark" as const,
-    },
-  };
-
-  // 交易量图表配置
-  const volumeOptions = {
-    chart: {
-      type: "bar" as const,
-      height: 80, // 减少高度，让图表更紧凑
-      background: "#1a1a1a",
-      animations: {
-        enabled: false,
-      },
-      toolbar: {
-        show: false,
-      },
-      zoom: {
-        enabled: false,
-      },
-    },
-    xaxis: {
-      type: "category" as const, // 与主图表保持一致
-      labels: {
-        show: false,
-      },
-      axisBorder: {
-        show: false,
-      },
-      axisTicks: {
-        show: false,
-      },
-    },
-    yaxis: {
-      labels: {
-        style: {
-          colors: "#9CA3AF",
-          fontSize: "10px",
-        },
-        formatter: function (value: number) {
-          if (value >= 1000000) {
-            return (value / 1000000).toFixed(1) + "M";
-          } else if (value >= 1000) {
-            return (value / 1000).toFixed(1) + "K";
-          } else {
-            return value.toFixed(1);
-          }
-        },
-      },
-      tickAmount: 3, // 只显示3个刻度，减少密度
-      // 移除固定max值，让图表根据实际数据自动调整
-    },
-    plotOptions: {
-      bar: {
-        colors: {
-          ranges: [
-            {
-              from: -Infinity,
-              to: 0,
-              color: "#EF4444",
-            },
-          ],
-        },
-      },
-    },
-    dataLabels: {
-      enabled: false, // 禁用数据标签，避免数字堆叠
-    },
-    grid: {
-      borderColor: "rgba(255, 255, 255, 0.1)",
-      strokeDashArray: 3,
-    },
-    theme: {
-      mode: "dark" as const,
-    },
-  };
-
   // 点击外部关闭下拉菜单
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -869,8 +506,43 @@ export function CandlestickChart({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [showTimeDropdown]);
 
+  useEffect(() => {
+    const chart = init("chart");
+    chartRef.current = chart;
+    // 去掉虚线：将网格与十字线样式改为实线
+    chart.setStyles({
+      grid: {
+        show: false,
+        horizontal: {
+          show: true,
+          size: 1,
+          style: LineType.Solid,
+        },
+        vertical: {
+          show: true,
+          size: 1,
+          style: LineType.Solid,
+        },
+      },
+    });
+    // 初始不灌入示例数据，等待真实数据
 
+    // 新增成交量指标，独立面板
+    chart.createIndicator("VOL", false, { height: 100 });
 
+    return () => {
+      dispose("chart");
+      chartRef.current = null;
+    };
+  }, []);
+
+  // 同步真实数据到 klinecharts
+  useEffect(() => {
+    if (!chartRef.current) return;
+    try {
+      chartRef.current.applyNewData(candlestickData);
+    } catch {}
+  }, [candlestickData]);
 
   return (
     <div className="space-y-6">
@@ -879,8 +551,7 @@ export function CandlestickChart({
         <div className="flex items-center justify-between">
           {/* 左侧标题 */}
           <h3 className="text-lg font-bold text-white">
-            {tokenAddress.slice(0, 6)}...{tokenAddress.slice(-4)} • {timeframe}{" "}
-            • {priceType === "mcap" ? "MCap" : "Price"}
+            {tokenAddress.slice(0, 6)}...{tokenAddress.slice(-4)} • {timeframe}
           </h3>
 
           {/* 右侧控制按钮 */}
@@ -1019,100 +690,8 @@ export function CandlestickChart({
 
       {/* 主图表区域 */}
       <div className="bg-[#1a1a1a] rounded-lg p-6">
-        <div className="space-y-2">
-          {/* K线图 */}
-          {candlestickData.length > 0 ? (
-            <ChartErrorBoundary fallback={<ChartErrorFallback />}>
-              <div className="chart-container">
-                {(() => {
-                  try {
-                    // Final data validation
-                    if (!validateChartData(candlestickData)) {
-                      return <ChartErrorFallback />;
-                    }
-
-                    return (
-                      <Chart
-                        options={chartOptions}
-                        series={[
-                          {
-                            name: "Price",
-                            data: candlestickData,
-                          },
-                        ]}
-                        type="candlestick"
-                        height={380}
-                      />
-                    );
-                  } catch (error) {
-                    return <ChartErrorFallback />;
-                  }
-                })()}
-              </div>
-            </ChartErrorBoundary>
-          ) : (
-            <div className="flex items-center justify-center h-[380px] text-gray-400">
-              <div className="text-center">
-                <div className="text-lg mb-2">📊</div>
-                <div>No chart data available</div>
-                <div className="text-sm text-gray-500 mt-1">
-                  Chart data will appear here when trading begins
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 交易量图 */}
-          <div className="border-t border-gray-700 pt-2">
-            {volumeData.length > 0 ? (
-              <ChartErrorBoundary
-                fallback={
-                  <div className="flex items-center justify-center h-[80px] text-gray-500 text-sm">
-                    Volume chart unavailable
-                  </div>
-                }
-              >
-                <div className="volume-chart-container">
-                  {(() => {
-                    try {
-                      // Validate volume data
-                      if (!validateVolumeData(volumeData)) {
-                        return (
-                          <div className="flex items-center justify-center h-[80px] text-gray-500 text-sm">
-                            Volume data invalid
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <Chart
-                          options={volumeOptions}
-                          series={[
-                            {
-                              name: "Volume",
-                              data: volumeData,
-                            },
-                          ]}
-                          type="bar"
-                          height={80}
-                        />
-                      );
-                    } catch (error) {
-                      return (
-                        <div className="flex items-center justify-center h-[80px] text-gray-500 text-sm">
-                          Volume chart error
-                        </div>
-                      );
-                    }
-                  })()}
-                </div>
-              </ChartErrorBoundary>
-            ) : (
-              <div className="flex items-center justify-center h-[80px] text-gray-500 text-sm">
-                No volume data
-              </div>
-            )}
-          </div>
+        <div className="w-full aspect-[5/3]">
+          <div id="chart" className="w-full h-full"></div>
         </div>
       </div>
 

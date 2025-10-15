@@ -422,12 +422,13 @@ export default function RankingPage() {
                     token.address.length === 42
                 )
                 .map((token, index) => (
-                  <div
+                  <a
                     key={token.address}
-                    className="group relative bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer"
-                    onClick={() =>
-                      router.push(`/token?address=${token.address}`)
-                    }
+                    className="group flex relative bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer"
+                    // onClick={() =>
+                    //   router.push(`/token/?address=${token.address}`)
+                    // }
+                    href={`/token/?address=${token.address}`}
                   >
                     {/* 收藏按钮 */}
                     <button
@@ -532,7 +533,7 @@ export default function RankingPage() {
                             onClick={(e) => {
                               e.stopPropagation();
                               router.push(
-                                `/profile/other?address=${token.creator}`
+                                `/profile/other/?address=${token.creator}`
                               );
                             }}
                           >
@@ -666,7 +667,7 @@ export default function RankingPage() {
 
                     {/* 悬停效果 */}
                     <div className="absolute inset-0 bg-gradient-to-br from-[#D7FE11]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
-                  </div>
+                  </a>
                 ))
             )}
           </div>
@@ -708,12 +709,13 @@ export default function RankingPage() {
               </div>
             ) : (
               creators.map((creator, index) => (
-                <div
+                <a
                   key={creator.address}
-                  className="group relative bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer"
+                  className="group flex relative bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer"
                   onClick={() => {
-                    router.push(`/profile/other?address=${creator.address}`);
+                    router.push(`/profile/other/?address=${creator.address}`);
                   }}
+                  href={`/profile/other/?address=${creator.address}`}
                 >
                   <div className="flex items-center space-x-6">
                     {/* 排名 */}
@@ -795,7 +797,7 @@ export default function RankingPage() {
 
                   {/* 悬停效果 */}
                   <div className="absolute inset-0 bg-gradient-to-br from-[#D7FE11]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
-                </div>
+                </a>
               ))
             )}
           </div>
