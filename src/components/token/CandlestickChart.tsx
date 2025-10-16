@@ -155,7 +155,7 @@ export function CandlestickChart({
               close: item.close,
               volume: item.volume,
             };
-          }) || [];
+          })?.sort((a: any, b: any) => a.timestamp - b.timestamp) || [];
 
         setCandlestickData(sortedCandles);
       } else {

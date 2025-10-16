@@ -9,7 +9,6 @@ import {
   metaMaskWallet,
   walletConnectWallet,
   coinbaseWallet,
-  injectedWallet,
   trustWallet,
   okxWallet
 } from '@rainbow-me/rainbowkit/wallets';
@@ -34,7 +33,8 @@ const config = getDefaultConfig({
         coinbaseWallet,
         okxWallet,
         trustWallet,
-        injectedWallet,
+        // 移除 injectedWallet 以避免与具体钱包冲突
+        // injectedWallet,
       ],
     },
   ],
