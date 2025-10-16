@@ -251,7 +251,7 @@ export function TokenDetails({ token }: TokenDetailsProps) {
               <h1 className="text-2xl font-bold text-white overflow-hidden text-ellipsis whitespace-nowrap">
                 {token?.name || "Loading..."}
               </h1>
-              <p className="text-gray-400 text-base font-medium overflow-hidden text-ellipsis whitespace-nowrap">
+              <p className="text-gray-400 text-base font-medium">
                 {token?.symbol || "Loading..."}
               </p>
             </div>

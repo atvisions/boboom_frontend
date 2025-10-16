@@ -303,14 +303,14 @@ export default function RankingPage() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-all duration-200 ${
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
                   activeTab === tab.id
                     ? "bg-[#D7FE11] text-black shadow-lg"
                     : "text-gray-400 hover:text-white hover:bg-[#232323]"
                 }`}
               >
                 <tab.icon className="h-4 w-4" />
-                <span>{tab.label}</span>
+                <span className="text-sm md:text-base">{tab.label}</span>
               </button>
             ))}
           </div>
@@ -337,8 +337,8 @@ export default function RankingPage() {
                       }`}
                       onClick={() => setTokenSort(option.value)}
                     >
-                      <IconComponent className="h-4 w-4 mr-2" />
-                      {option.name}
+                      <IconComponent className="h-4 w-4 md:mr-2" />
+                      <span className="text-sm md:text-base">{option.name}</span>
                     </Button>
                   );
                 })}
@@ -367,8 +367,8 @@ export default function RankingPage() {
                       }`}
                       onClick={() => setCreatorSort(option.value)}
                     >
-                      <IconComponent className="h-4 w-4 mr-2" />
-                      {option.name}
+                      <IconComponent className="h-4 w-4 md:mr-2" />
+                       <span className="text-sm md:text-base">{option.name}</span>
                     </Button>
                   );
                 })}
@@ -458,14 +458,14 @@ export default function RankingPage() {
                       />
                     </button>
 
-                    <div className="flex items-center space-x-6">
+                    <div className="flex items-center space-x-6 flex-1">
                       {/* 排名 */}
                       <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-gradient-to-br from-[#1B1B1B] to-[#232323] flex items-center justify-center shadow-lg">
                         {getRankIcon(index + 1)}
                       </div>
 
                       {/* 代币信息 */}
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center space-x-2">
                             {/* Logo */}
@@ -717,14 +717,14 @@ export default function RankingPage() {
                   }}
                   href={`/profile/other/?address=${creator.address}`}
                 >
-                  <div className="flex items-center space-x-6">
+                  <div className="flex items-center space-x-6 flex-1">
                     {/* 排名 */}
                     <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-gradient-to-br from-[#1B1B1B] to-[#232323] flex items-center justify-center shadow-lg">
                       {getRankIcon(index + 1)}
                     </div>
 
                     {/* 创建者信息 */}
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center space-x-2">
                           {/* 头像 */}
@@ -768,7 +768,7 @@ export default function RankingPage() {
                       </div>
 
                       {/* 统计数据 */}
-                      <div className="grid grid-cols-3 gap-4">
+                      <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
                         <div>
                           <div className="text-[#D7FE11] font-bold text-lg">
                             {creator.tokens_created || 0}

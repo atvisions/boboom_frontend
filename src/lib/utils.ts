@@ -25,7 +25,7 @@ export function formatPrice(price: number | string): string {
     const match = normal.match(/^0\.0+(?=[1-9])/);
     if (match) {
       const zeroCount = match[0].length - 3; 
-      const rest = normal.slice(match[0].length - 1).slice(0, 3);
+      const rest = normal.slice(match[0].length).slice(0, 3);
       return `0.0{${zeroCount}}${rest}`;
     }
     return normal;

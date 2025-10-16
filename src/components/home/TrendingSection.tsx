@@ -534,7 +534,7 @@ export function TrendingSection() {
               className="relative rounded-2xl overflow-hidden w-full max-w-[380px] h-[420px] mx-auto 2xl:mx-0 bg-gradient-to-br from-gray-900/80 to-gray-800/60 backdrop-blur-sm border border-gray-700/50 animate-pulse"
             >
               {/* 顶部装饰条骨架 */}
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-gray-600 via-gray-500 to-gray-600"></div>
+              {/* <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-gray-600 via-gray-500 to-gray-600"></div> */}
 
               {/* 收藏按钮骨架 - 右上角 */}
               <div className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-gray-600/50"></div>
@@ -638,7 +638,7 @@ export function TrendingSection() {
               href={`/token/?address=${token.address}`}
             >
               {/* 顶部装饰条 */}
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#D7FE11] via-yellow-400 to-orange-500"></div>
+              {/* <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#D7FE11] via-yellow-400 to-orange-500"></div> */}
 
               {/* 收藏按钮 - 右上角 */}
               <button

@@ -332,8 +332,26 @@ export function CandlestickChart({
 
     // ✅ 设置价格与成交量精度
     chart.setPrecision({ price: 8, volume: 4 });
+    const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
+    const tooltipTextSize = isMobile ? 8 : 12;
+    const axisTextSize = isMobile ? 8 : 12;
 
     chart.setStyles({
+      crosshair: {
+        horizontal: { text: { size: tooltipTextSize } },
+        vertical: { text: { size: tooltipTextSize } },
+      },
+      // 蜡烛图左上角的 tooltip（Time/Open/High/Low/Close）
+      candle: {
+        tooltip: {
+          text: { size: tooltipTextSize, color: "rgba(255, 255, 255,0.4)" },
+        },
+      },
+      indicator: {
+        tooltip: {
+          text: { size: tooltipTextSize, color: "rgba(255,255,255,0.6)" },
+        },
+      },
       separator: {
         size: 1,
         color: "#444",
@@ -348,6 +366,7 @@ export function CandlestickChart({
         tickLine: {
           color: "#444",
         },
+        tickText: { size: axisTextSize, color: "#aaa" },
       },
       yAxis: {
         show: true,
@@ -357,6 +376,7 @@ export function CandlestickChart({
         tickLine: {
           color: "#444",
         },
+        tickText: { size: axisTextSize, color: "#aaa" },
       },
       grid: {
         show: false,
@@ -396,7 +416,7 @@ export function CandlestickChart({
   return (
     <div className="space-y-6">
       {/* 图表标题和控制按钮 */}
-      <div className="bg-[#1a1a1a] rounded-lg p-4">
+      <div className="">
         <div className="flex items-start md:items-center justify-between flex-col md:flex-row gap-3">
           {/* 左侧标题 */}
           <h3 className="text-lg font-bold text-white ">
@@ -462,7 +482,7 @@ export function CandlestickChart({
 
                       <div className="text-xs text-gray-500 font-medium px-2 py-1 mt-2">
                         HOURS
-                      </div>
+                      </div> 
                       {["1h", "4h"].map((tf) => (
                         <button
                           key={tf}
@@ -540,18 +560,18 @@ export function CandlestickChart({
       </div>
 
       {/* 主图表区域 */}
-      <div className="bg-[#1a1a1a] rounded-lg md:px-6 md:pt-6 ">
-        <div className="w-full aspect-[5/3]">
+      <div className="mt-4">
+        <div className="w-full aspect-square md:aspect-[5/3]">
           <div id="chart" className="w-full h-full"></div>
         </div>
       </div>
 
       {/* 24小时统计数据 */}
-      <div className="grid grid-cols-3 gap-3 md:gap-4  md:grid-cols-5">
+      <div className="grid grid-cols-3 gap-2 md:gap-4  md:grid-cols-5">
         {/* 当前价格卡片 */}
-        <div className="bg-[#0E0E0E] rounded-lg p-3 md:p-4">
-          <div className="text-gray-400 text-xs mb-1">Current Price</div>
-          <div className="text-white font-bold text-sm">
+        <div className="bg-[#0E0E0E] rounded-lg p-2 md:p-4">
+          <div className="text-gray-400 mb-1 text-[10px] md:text-xs">Current Price</div>
+          <div className="text-white font-bold text-[10px] md:text-sm">
             {loading ? (
               <div className="animate-pulse bg-gray-600 h-4 w-20 rounded"></div>
             ) : (
@@ -564,9 +584,9 @@ export function CandlestickChart({
           </div>
         </div>
 
-        <div className="bg-[#0E0E0E] rounded-lg p-3 md:p-4">
-          <div className="text-gray-400 text-xs mb-1">24h High</div>
-          <div className="text-white font-bold text-sm">
+        <div className="bg-[#0E0E0E] rounded-lg p-2 md:p-4">
+          <div className="text-gray-400 mb-1 text-[10px] md:text-xs">24h High</div>
+          <div className="text-white font-bold text-[10px] md:text-sm">
             {loading ? (
               <div className="animate-pulse bg-gray-600 h-4 w-20 rounded"></div>
             ) : (
@@ -575,9 +595,9 @@ export function CandlestickChart({
           </div>
         </div>
 
-        <div className="bg-[#0E0E0E] rounded-lg p-3 md:p-4">
-          <div className="text-gray-400 text-xs mb-1">24h Low</div>
-          <div className="text-white font-bold text-sm">
+        <div className="bg-[#0E0E0E] rounded-lg p-2 md:p-4">
+          <div className="text-gray-400 mb-1 text-[10px] md:text-xs">24h Low</div>
+          <div className="text-white font-bold text-[10px] md:text-sm">
             {loading ? (
               <div className="animate-pulse bg-gray-600 h-4 w-20 rounded"></div>
             ) : (
@@ -586,13 +606,13 @@ export function CandlestickChart({
           </div>
         </div>
 
-        <div className="bg-[#0E0E0E] rounded-lg p-3 md:p-4">
-          <div className="text-gray-400 text-xs mb-1">24h Change</div>
+        <div className="bg-[#0E0E0E] rounded-lg p-2 md:p-4">
+          <div className="text-gray-400 mb-1 text-[10px] md:text-xs">24h Change</div>
           {loading ? (
             <div className="animate-pulse bg-gray-600 h-4 w-16 rounded"></div>
           ) : (
             <div
-              className={`font-bold text-sm flex items-center ${
+              className={`font-bold text-[10px] md:text-sm flex items-center ${
                 parseFloat(currentStats24h?.priceChange24h || "0") >= 0
                   ? "text-green-500"
                   : "text-red-500"
@@ -611,9 +631,9 @@ export function CandlestickChart({
           )}
         </div>
 
-        <div className="bg-[#0E0E0E] rounded-lg p-3 md:p-4">
-          <div className="text-gray-400 text-xs mb-1">24h Volume</div>
-          <div className="text-white font-bold text-sm">
+        <div className="bg-[#0E0E0E] rounded-lg p-2 md:p-4">
+          <div className="text-gray-400 mb-1 text-[10px] md:text-xs">24h Volume</div>
+          <div className="text-white font-bold text-[10px] md:text-sm">
             {loading ? (
               <div className="animate-pulse bg-gray-600 h-4 w-16 rounded"></div>
             ) : (
