@@ -1167,7 +1167,7 @@ export function TokenGrid() {
         {/* 筛选和排序控件 */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 w-full md:w-auto">
           {/* 排序按钮 - 移动端单独一行 */}
-          <div className="flex bg-[#1a1a1a] rounded-xl md:p-1 w-full md:w-auto overflow-x-auto scrollbar-hide">
+          <div className="flex bg-[#1a1a1a] rounded-lg md:p-1 w-full md:w-auto overflow-x-auto scrollbar-hide">
             {sortOptions.map((option) => {
               const IconComponent = option.icon;
               return (
@@ -1176,15 +1176,15 @@ export function TokenGrid() {
                   variant={
                     selectedSort === option.value ? "default" : "outline"
                   }
-                  className={`px-1 md:px-4 py-2 rounded-lg transition-all duration-200 flex-shrink-0 whitespace-nowrap ${
+                  className={`!px-2 md:!px-4 py-2 !gap-1 md:!gap-2 r rounded-lg transition-all duration-200 flex-shrink-0 whitespace-nowrap ${
                     selectedSort === option.value
                       ? "bg-[#D7FE11] text-black hover:bg-[#D7FE11]/90 shadow-lg"
                       : "bg-transparent text-gray-400 hover:text-white hover:bg-[#232323] border-0"
                   }`}
                   onClick={() => handleSortChange(option.value)}
                 >
-                  <IconComponent className="h-4 w-4 mr-0 md:mr-2 inline" />
-                  <span className="text-sm md:text-base max-w-[50px] md:max-w-none overflow-hidden text-ellipsis whitespace-nowrap">
+                  <IconComponent className="h-4 w-4 !mr-0 md:mr-2 inline" />
+                  <span className="text-[11px] md:text-base max-w-[20vw] md:max-w-none overflow-hidden text-ellipsis whitespace-nowrap">
                     {option.name}
                   </span>
                 </Button>
@@ -1924,11 +1924,11 @@ export function TokenGrid() {
                 </div>
 
                 {/* 名称和创建者信息 - 右侧内容 */}
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 overflow-hidden">
                   {/* 名称和符号 */}
                   <div className="mb-3">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <h3 className="text-xl font-bold text-white">
+                    <div className="flex items-center space-x-2 mb-2 mr-[30px]">
+                      <h3 className="text-xl font-bold text-white flex-1 md:flex-none overflow-hidden text-ellipsis whitespace-nowrap">
                         {token.name}
                       </h3>
                       <span className="text-gray-400 text-sm font-medium">

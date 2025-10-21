@@ -727,7 +727,7 @@ export function LiveUpdatesCard() {
           ].map((cardType, i) => (
             <div
               key={i}
-              className={`relative w-full md:w-80 rounded-2xl p-6 backdrop-blur-sm border flex-shrink-0 animate-pulse ${
+              className={`relative w-full md:w-[21rem] rounded-2xl p-6 backdrop-blur-sm border flex-shrink-0 animate-pulse ${
                 cardType.color === "emerald"
                   ? "bg-gradient-to-br from-emerald-900/40 via-emerald-800/30 to-green-900/50 border-emerald-500/20"
                   : cardType.color === "red"
@@ -878,7 +878,7 @@ export function LiveUpdatesCard() {
         {/* 买入卡片 */}
         {buys.length > 0 && (
           <a
-            className={`relative w-full md:w-80  rounded-2xl p-6 bg-gradient-to-br from-emerald-900/40 via-emerald-800/30 to-green-900/50 backdrop-blur-sm border border-emerald-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${
+            className={`relative w-full md:w-[21rem]  rounded-2xl p-6 bg-gradient-to-br from-emerald-900/40 via-emerald-800/30 to-green-900/50 backdrop-blur-sm border border-emerald-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${
               pulse.buy ? "jitter-on" : ""
             } ${
               isAnimating && pulse.buy ? "animate-pulse" : ""
@@ -905,7 +905,7 @@ export function LiveUpdatesCard() {
               <TrendingUp className="w-5 h-5 text-emerald-400 animate-bounce" />
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4 overflow-hidden">
               {/* 左侧代币图标（主要显示） */}
               <div className="relative">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center ring-4 ring-emerald-400/30 shadow-lg overflow-hidden">
@@ -938,9 +938,9 @@ export function LiveUpdatesCard() {
               </div>
 
               {/* 右侧信息区域 */}
-              <div className="flex-1 space-y-2">
+              <div className="flex-1 space-y-2 overflow-hidden">
                 <div className="flex items-center justify-between">
-                  <span className="text-white font-semibold text-sm truncate">
+                  <span className="text-white font-semibold text-sm truncate flex-1 overflow-hidden whitespace-nowrap text-ellipsis">
                     {buys[0].wallet}
                   </span>
                   <div className="bg-emerald-500 text-black text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
@@ -959,7 +959,7 @@ export function LiveUpdatesCard() {
         {/* 卖出卡片 */}
         {sells.length > 0 && (
           <a
-            className={`relative w-full md:w-80  rounded-2xl p-6 bg-gradient-to-br from-red-900/40 via-red-800/30 to-rose-900/50 backdrop-blur-sm border border-red-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${
+            className={`relative w-full md:w-[21rem]  rounded-2xl p-6 bg-gradient-to-br from-red-900/40 via-red-800/30 to-rose-900/50 backdrop-blur-sm border border-red-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${
               pulse.sell ? "jitter-on" : ""
             } ${
               isAnimating && pulse.sell ? "animate-pulse" : ""
@@ -986,7 +986,7 @@ export function LiveUpdatesCard() {
               <TrendingDown className="w-5 h-5 text-red-400 animate-bounce" />
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4 overflow-hidden">
               {/* 左侧代币图标（主要显示） */}
               <div className="relative">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center ring-4 ring-red-400/30 shadow-lg overflow-hidden">
@@ -1019,9 +1019,9 @@ export function LiveUpdatesCard() {
               </div>
 
               {/* 右侧信息区域 */}
-              <div className="flex-1 space-y-2">
+              <div className="flex-1 space-y-2 overflow-hidden">
                 <div className="flex items-center justify-between">
-                  <span className="text-white font-semibold text-sm truncate">
+                  <span className="text-white font-semibold text-sm truncate flex-1 overflow-hidden whitespace-nowrap text-ellipsis">
                     {sells[0].wallet}
                   </span>
                   <div className="bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
@@ -1040,7 +1040,7 @@ export function LiveUpdatesCard() {
         {/* 新代币卡片 */}
         {news.length > 0 && (
           <a
-            className={`relative w-full md:w-80  rounded-2xl p-6 bg-gradient-to-br from-blue-900/40 via-indigo-800/30 to-purple-900/50 backdrop-blur-sm border border-blue-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${
+            className={`relative w-full md:w-[21rem]  rounded-2xl p-6 bg-gradient-to-br from-blue-900/40 via-indigo-800/30 to-purple-900/50 backdrop-blur-sm border border-blue-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${
               pulse.news ? "jitter-on" : ""
             } ${
               isAnimating && pulse.news ? "animate-pulse" : ""
@@ -1067,7 +1067,7 @@ export function LiveUpdatesCard() {
               <Zap className="w-5 h-5 text-blue-400 animate-bounce" />
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4 overflow-hidden">
               {/* 左侧代币图标（主要显示） */}
               <div className="relative">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center ring-4 ring-blue-400/30 shadow-lg overflow-hidden">
@@ -1104,9 +1104,9 @@ export function LiveUpdatesCard() {
               </div>
 
               {/* 右侧信息区域 */}
-              <div className="flex-1 space-y-2">
+              <div className="flex-1 space-y-2 overflow-hidden">
                 <div className="flex items-center justify-between">
-                  <span className="text-white font-semibold text-sm truncate">
+                  <span className="text-white font-semibold text-sm truncate flex-1 overflow-hidden whitespace-nowrap text-ellipsis">
                     {news[0].name}
                   </span>
                   <div className="bg-blue-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
@@ -1127,7 +1127,7 @@ export function LiveUpdatesCard() {
         {/* 巨鲸交易卡片 */}
         {whales.length > 0 && (
           <a
-            className={`relative w-full md:w-80  rounded-2xl p-6 bg-gradient-to-br from-purple-900/40 via-violet-800/30 to-fuchsia-900/50 backdrop-blur-sm border border-purple-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${
+            className={`relative w-full md:w-[21rem]  rounded-2xl p-6 bg-gradient-to-br from-purple-900/40 via-violet-800/30 to-fuchsia-900/50 backdrop-blur-sm border border-purple-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${
               pulse.whale ? "jitter-on" : ""
             } ${
               isAnimating && pulse.whale ? "animate-pulse" : ""
@@ -1153,7 +1153,7 @@ export function LiveUpdatesCard() {
               <Zap className="w-5 h-5 text-purple-400 animate-bounce" />
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4 overflow-hidden">
               {/* 左侧代币图标（主要显示） */}
               <div className="relative">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center ring-4 ring-purple-400/30 shadow-lg overflow-hidden">
@@ -1186,9 +1186,9 @@ export function LiveUpdatesCard() {
               </div>
 
               {/* 右侧信息区域 */}
-              <div className="flex-1 space-y-2">
+              <div className="flex-1 space-y-2 overflow-hidden">
                 <div className="flex items-center justify-between">
-                  <span className="text-white font-semibold text-sm truncate">
+                  <span className="text-white font-semibold text-sm truncate flex-1 overflow-hidden whitespace-nowrap text-ellipsis">
                     {whales[0].name}
                   </span>
                   <div className="bg-purple-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
