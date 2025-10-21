@@ -138,16 +138,6 @@ export function CandlestickChart({
           response.data.candles
             ?.map((item) => {
               return {
-                // close: 0.000004916585405247,
-                // high: 0.000004842417790972,
-                // is_complete: false,
-                // low: 0.000004842417790921,
-                // open: 0.000004842417790921,
-                // timestamp: "2025-10-14T02:52:00+00:00",
-                // total_okb_volume: 2.1,
-                // total_token_volume: 80124437.1618393,
-                // trade_count: 3,
-                // volume: 2.1,
                 timestamp: new Date(item.timestamp).valueOf(),
                 open: item.open,
                 high: item.high,
@@ -178,12 +168,7 @@ export function CandlestickChart({
     }
   };
 
-  // 时间间隔切换时，图表会自动根据新的options重新渲染
-  // 不需要手动重置缩放，ApexCharts会处理
 
-  // 接入 WebSocket 实时 K 线
-  // 依赖 currency 和 okbPrice 是必要的，因为需要重新转换数据
-  // WebSocket 重连时会收到 candles_snapshot，不会造成额外的 REST API 请求
   useEffect(() => {
     if (!tokenAddress) return;
 

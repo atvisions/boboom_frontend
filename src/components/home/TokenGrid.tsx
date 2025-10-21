@@ -29,7 +29,7 @@ import {
 import { formatPrice, formatNumber as utilsFormatNumber } from "@/lib/utils";
 import { NETWORK_CONFIG } from "@/contracts/config-simple";
 import { extractCreatorAddresses } from "@/utils/contractAddresses";
-import Link from "next/link";
+// import Link from "next/link";
 
 // 双向范围滑动条组件
 interface RangeSliderProps {
@@ -1854,10 +1854,9 @@ export function TokenGrid() {
         // 网格视图
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
           {tokens.map((token, index) => (
-            <Link
+            <a
               key={token.address}
-              className={`group relative bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer`}
-             
+              className={`group relative bg-gradient-to-br from-[#151515] to-[#1a1a1a] border border-[#232323] rounded-2xl p-6 hover:border-[#D7FE11]/50 hover:shadow-xl hover:shadow-[#D7FE11]/10 transition-all duration-300 cursor-pointer`} 
               href={`/token/?address=${token.address}`}
             >
               {/* 收藏按钮 - 右上角 */}
@@ -2103,7 +2102,7 @@ export function TokenGrid() {
 
               {/* 悬停效果 */}
               <div className="absolute inset-0 bg-gradient-to-br from-[#D7FE11]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none"></div>
-            </Link>
+            </a>
           ))}
         </div>
       )}

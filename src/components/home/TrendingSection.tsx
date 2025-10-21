@@ -10,7 +10,7 @@ import { useWalletAuth } from "@/hooks/useWalletAuth";
 import { useRouter } from "next/navigation";
 import websocketService from "@/services/websocket";
 import { extractCreatorAddresses } from "@/utils/contractAddresses";
-import Link from "next/link";
+// import Link from "next/link";
 
 // 时间格式化函数
 const getTimeAgo = (dateString: string) => {
@@ -632,7 +632,7 @@ export function TrendingSection() {
       ) : (
         <div className="grid grid-cols-1 justify-items-start lg:grid-cols-2 xl:grid-cols-3 2xl:flex 2xl:flex-wrap gap-6">
           {tokens.map((token) => (
-            <Link
+            <a
               key={`${token.address}`}
               className="relative rounded-2xl overflow-hidden group w-full max-w-[380px] h-[420px] mx-auto 2xl:mx-0 bg-gradient-to-br from-gray-900/80 to-gray-800/60 backdrop-blur-sm border border-gray-700/50 cursor-pointer hover:border-[#D7FE11]/30 hover:shadow-[0_0_30px_rgba(112,224,0,0.1)] transition-all duration-300"
               // onClick={() => router.push(`/token/?address=${token.address}`)}
@@ -945,7 +945,7 @@ export function TrendingSection() {
                   </div>
                 </div>
               </div>
-            </Link>
+            </a>
           ))}
         </div>
       )}

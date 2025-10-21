@@ -7,7 +7,7 @@ import Image from "next/image";
 import websocketService from "@/services/websocket";
 import { userAPI, tokenAPI } from "@/services/api";
 import { formatDistanceToNow } from "date-fns";
-import Link from "next/link";
+// import Link from "next/link";
 
 type BuySellItem = {
   avatar: string;
@@ -877,7 +877,7 @@ export function LiveUpdatesCard() {
       <div className="grid grid-cols-1 justify-items-center md:justify-items-start md:grid-cols-2 lg:flex gap-6 py-6 px-2 overflow-x-auto">
         {/* 买入卡片 */}
         {buys.length > 0 && (
-          <Link
+          <a
             className={`relative w-full md:w-80  rounded-2xl p-6 bg-gradient-to-br from-emerald-900/40 via-emerald-800/30 to-green-900/50 backdrop-blur-sm border border-emerald-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${
               pulse.buy ? "jitter-on" : ""
             } ${
@@ -953,12 +953,12 @@ export function LiveUpdatesCard() {
                 <div className="text-white/70 text-xs">{buys[0].coinName}</div>
               </div>
             </div>
-          </Link>
+          </a>
         )}
 
         {/* 卖出卡片 */}
         {sells.length > 0 && (
-          <Link
+          <a
             className={`relative w-full md:w-80  rounded-2xl p-6 bg-gradient-to-br from-red-900/40 via-red-800/30 to-rose-900/50 backdrop-blur-sm border border-red-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${
               pulse.sell ? "jitter-on" : ""
             } ${
@@ -1034,12 +1034,12 @@ export function LiveUpdatesCard() {
                 <div className="text-white/70 text-xs">{sells[0].coinName}</div>
               </div>
             </div>
-          </Link>
+          </a>
         )}
 
         {/* 新代币卡片 */}
         {news.length > 0 && (
-          <Link
+          <a
             className={`relative w-full md:w-80  rounded-2xl p-6 bg-gradient-to-br from-blue-900/40 via-indigo-800/30 to-purple-900/50 backdrop-blur-sm border border-blue-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${
               pulse.news ? "jitter-on" : ""
             } ${
@@ -1121,12 +1121,12 @@ export function LiveUpdatesCard() {
                 </div>
               </div>
             </div>
-          </Link>
+          </a>
         )}
 
         {/* 巨鲸交易卡片 */}
         {whales.length > 0 && (
-          <Link
+          <a
             className={`relative w-full md:w-80  rounded-2xl p-6 bg-gradient-to-br from-purple-900/40 via-violet-800/30 to-fuchsia-900/50 backdrop-blur-sm border border-purple-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${
               pulse.whale ? "jitter-on" : ""
             } ${
@@ -1201,7 +1201,7 @@ export function LiveUpdatesCard() {
                 <div className="text-white/70 text-xs">{whales[0].address}</div>
               </div>
             </div>
-          </Link>
+          </a>
         )}
       </div>
     </div>
