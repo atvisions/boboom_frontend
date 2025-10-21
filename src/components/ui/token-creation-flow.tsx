@@ -209,7 +209,7 @@ export function TokenCreationFlow(props: TokenCreationFlowProps) {
             // 使用 Next.js router 进行跳转，而不是 window.location.href
             setTimeout(() => {
               // 使用 window.location.href 确保完全刷新页面，避免缓存问题
-              window.location.href = `/token/?address=${addr}`;
+              window.location.replace(`/token/?address=${addr}`);
             }, 1000);
             return;
           }
