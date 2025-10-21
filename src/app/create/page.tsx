@@ -45,7 +45,7 @@ function CreateTokenForm() {
     // 数据
     okbBalance,
     okbAllowance,
-    refetchOkbAllowance
+    refetchOkbAllowance,
   } = useTokenFactory();
 
   const [formData, setFormData] = useState({
@@ -55,19 +55,22 @@ function CreateTokenForm() {
     imageUrl: "",
     website: "",
     twitter: "",
-    telegram: ""
+    telegram: "",
   });
 
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [initialPurchase, setInitialPurchase] = useState<number>(0.1);
   const [showStepsModal, setShowStepsModal] = useState(false);
-  const [pendingTokenData, setPendingTokenData] = useState<ModalTokenData | null>(null);
+  const [pendingTokenData, setPendingTokenData] =
+    useState<ModalTokenData | null>(null);
 
   // 表单验证逻辑
   const isFormValid = () => {
-    if (!formData.tokenName.trim() || !formData.tokenSymbol.trim()) return false;
+    if (!formData.tokenName.trim() || !formData.tokenSymbol.trim())
+      return false;
     if (!uploadedImage && !formData.imageUrl.trim()) return false;
     if (!isConnected || !address) return false;
     if (initialPurchase < 0.1) return false;
@@ -76,76 +79,102 @@ function CreateTokenForm() {
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) { toast.error('Please select a valid image file'); return; }
-    if (file.size > 5 * 1024 * 1024) { toast.error('Image size must be less than 5MB'); return; }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size must be less than 5MB");
+      return;
+    }
 
     setUploadedImage(file);
     const reader = new FileReader();
-    reader.onload = (e) => { setImagePreview(e.target?.result as string); };
+    reader.onload = (e) => {
+      setImagePreview(e.target?.result as string);
+    };
     reader.readAsDataURL(file);
   };
 
-  const removeImage = () => { setUploadedImage(null); setImagePreview(""); };
+  const removeImage = () => {
+    setUploadedImage(null);
+    setImagePreview("");
+  };
 
   const uploadImageToServer = async (file: File): Promise<string> => {
     setIsUploading(true);
     try {
       const formData = new FormData();
-      formData.append('image', file);
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/tokens/upload-image/`, { method: 'POST', body: formData });
-      if (!response.ok) throw new Error('Upload failed');
+      formData.append("image", file);
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/api/tokens/upload-image/`,
+        { method: "POST", body: formData }
+      );
+      if (!response.ok) throw new Error("Upload failed");
       const data = await response.json();
 
       if (data.success) {
-
         return data.data.url;
       } else {
-        throw new Error(data.error || 'Upload failed');
+        throw new Error(data.error || "Upload failed");
       }
     } catch (error) {
-
       throw error;
-    } finally { setIsUploading(false); }
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isFormValid()) { toast.error('Please fill in all required fields correctly'); return; }
-
+    if (!isFormValid()) {
+      toast.error("Please fill in all required fields correctly");
+      return;
+    }
+    if (isSubmitting) {
+      toast.error("Please wait for the previous submission to complete");
+      return;
+    }
+    setIsSubmitting(true);
     try {
       let finalImageUrl = formData.imageUrl;
       if (uploadedImage) {
         try {
           finalImageUrl = await uploadImageToServer(uploadedImage);
-
-        }
-        catch (uploadError) {
-
-          toast.error('Image upload failed, please try again');
+        } catch (uploadError) {
+          toast.error("Image upload failed, please try again");
+          setIsSubmitting(false);
           return; // 停止创建流程，要求用户重新上传
         }
       }
       if (!finalImageUrl) {
-        toast.error('Please upload an image or provide an image URL');
+        toast.error("Please upload an image or provide an image URL");
+        setIsSubmitting(false);
         return;
       }
 
       // 处理社交媒体链接，确保格式正确
-      const processUrl = (url: string, defaultValue: string = '') => {
-        if (!url || url.trim() === '') return defaultValue;
+      const processUrl = (url: string, defaultValue: string = "") => {
+        if (!url || url.trim() === "") return defaultValue;
         const trimmed = url.trim();
         // 如果没有协议，添加https://
-        if (trimmed && !trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+        if (
+          trimmed &&
+          !trimmed.startsWith("http://") &&
+          !trimmed.startsWith("https://")
+        ) {
           return `https://${trimmed}`;
         }
         return trimmed;
@@ -159,16 +188,16 @@ function CreateTokenForm() {
         website: processUrl(formData.website),
         twitter: processUrl(formData.twitter),
         telegram: processUrl(formData.telegram),
-        initialPurchase
+        initialPurchase,
       };
 
       // 记录开始创建新代币的时间戳，用于验证交易哈希的有效性
-
       setPendingTokenData(tokenData);
       setShowStepsModal(true);
+      setIsSubmitting(false);
     } catch (error) {
-
-      toast.error('Failed to prepare token creation. Please try again.');
+      setIsSubmitting(false);
+      toast.error("Failed to prepare token creation. Please try again.");
     }
   };
 
@@ -176,7 +205,9 @@ function CreateTokenForm() {
     return (
       <div className="flex-1 px-6 py-6">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Create New Token</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">
+            Create New Token
+          </h1>
           <p className="text-gray-400">Loading...</p>
         </div>
       </div>
@@ -187,12 +218,17 @@ function CreateTokenForm() {
   const handleApproveOKB = async (amount: number) => {
     await approveOKB(amount);
     // 轻量refetch，避免UI不同步
-    setTimeout(() => { refetchOkbAllowance(); }, 3000);
+    setTimeout(() => {
+      refetchOkbAllowance();
+    }, 3000);
   };
 
   // 处理创建代币
   const handleCreateToken = async (tokenData: ModalTokenData) => {
-    if (!pendingTokenData) { toast.error('No pending token data found'); return; }
+    if (!pendingTokenData) {
+      toast.error("No pending token data found");
+      return;
+    }
     const finalTokenData = pendingTokenData;
     try {
       if (finalTokenData.initialPurchase > 0) {
@@ -204,7 +240,7 @@ function CreateTokenForm() {
           website: finalTokenData.website,
           twitter: finalTokenData.twitter,
           telegram: finalTokenData.telegram,
-          initialPurchase: finalTokenData.initialPurchase
+          initialPurchase: finalTokenData.initialPurchase,
         });
       } else {
         await createToken({
@@ -217,25 +253,27 @@ function CreateTokenForm() {
           telegram: finalTokenData.telegram,
         });
       }
-    } catch (error) { throw error; }
+    } catch (error) {
+      throw error;
+    }
   };
 
   // 检查代币地址
-  const handleCheckTokenAddress = async (txHash: string): Promise<string | null> => {
+  const handleCheckTokenAddress = async (
+    txHash: string
+  ): Promise<string | null> => {
     try {
-
       if (!txHash || !address) {
-
         return null;
       }
-      
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
       const apiUrl = `${backendUrl}/api/tokens/creators/${address?.toLowerCase()}/latest-token/?network=sepolia&tx_hash=${txHash}`;
 
       const response = await fetch(apiUrl, {
-        method: 'GET',
+        method: "GET",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
 
@@ -246,31 +284,23 @@ function CreateTokenForm() {
           const data = JSON.parse(responseText);
 
           if (data.success && data.data && data.data.address) {
-
             return data.data.address;
           } else {
-
             return null;
           }
         } catch (parseError) {
-
           return null;
         }
       } else {
-
         // 尝试解析错误响应
         try {
           const errorData = JSON.parse(responseText);
+        } catch (e) {}
 
-        } catch (e) {
-
-        }
-        
         return null;
       }
-    } catch (error) { 
-
-      return null; 
+    } catch (error) {
+      return null;
     }
   };
 
@@ -280,7 +310,10 @@ function CreateTokenForm() {
       {pendingTokenData && (
         <TokenCreationFlow
           isOpen={showStepsModal}
-          onClose={() => { setShowStepsModal(false); setPendingTokenData(null); }}
+          onClose={() => {
+            setShowStepsModal(false);
+            setPendingTokenData(null);
+          }}
           tokenData={pendingTokenData}
           okbAllowance={okbAllowance}
           onApproveOKB={handleApproveOKB}
@@ -292,7 +325,7 @@ function CreateTokenForm() {
           txHash={actualCreateHash}
         />
       )}
-      
+
       {/* Page Title */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2">Create New Token</h1>
@@ -302,21 +335,27 @@ function CreateTokenForm() {
       {/* Configuration Loading Check */}
       {isConfigLoading && (
         <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mb-6">
-          <p className="text-blue-400 text-center">Loading contract configuration...</p>
+          <p className="text-blue-400 text-center">
+            Loading contract configuration...
+          </p>
         </div>
       )}
 
       {/* Configuration Error Check */}
       {configError && (
         <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-6">
-          <p className="text-red-400 text-center">Failed to load contract configuration: {configError}</p>
+          <p className="text-red-400 text-center">
+            Failed to load contract configuration: {configError}
+          </p>
         </div>
       )}
 
       {/* Wallet Connection Check */}
       {!isConnected && !isConfigLoading && (
         <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-6">
-          <p className="text-yellow-400 text-center">Please connect your wallet to create a token</p>
+          <p className="text-yellow-400 text-center">
+            Please connect your wallet to create a token
+          </p>
         </div>
       )}
 
@@ -327,19 +366,49 @@ function CreateTokenForm() {
             <Rocket className="mr-2 h-5 w-5 text-[#D7FE11]" />
             Basic Information
           </h2>
-          
+
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Token Name *</label>
-              <Input type="text" placeholder="e.g., ShibaBNB" value={formData.tokenName} onChange={(e) => handleInputChange("tokenName", e.target.value)} className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#D7FE11] focus:ring-[#D7FE11]" required />
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Token Name *
+              </label>
+              <Input
+                type="text"
+                placeholder="e.g., ShibaBNB"
+                value={formData.tokenName}
+                onChange={(e) => handleInputChange("tokenName", e.target.value)}
+                className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#D7FE11] focus:ring-[#D7FE11]"
+                required
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Token Symbol *</label>
-              <Input type="text" placeholder="e.g., SHIB" value={formData.tokenSymbol} onChange={(e) => handleInputChange("tokenSymbol", e.target.value)} className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#D7FE11] focus:ring-[#D7FE11]" required />
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Token Symbol *
+              </label>
+              <Input
+                type="text"
+                placeholder="e.g., SHIB"
+                value={formData.tokenSymbol}
+                onChange={(e) =>
+                  handleInputChange("tokenSymbol", e.target.value)
+                }
+                className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#D7FE11] focus:ring-[#D7FE11]"
+                required
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Description</label>
-              <Textarea placeholder="Describe your token project..." value={formData.description} onChange={(e) => handleInputChange("description", e.target.value)} className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#D7FE11] focus:ring-[#D7FE11] min-h-[100px]" rows={4} />
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Description
+              </label>
+              <Textarea
+                placeholder="Describe your token project..."
+                value={formData.description}
+                onChange={(e) =>
+                  handleInputChange("description", e.target.value)
+                }
+                className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#D7FE11] focus:ring-[#D7FE11] min-h-[100px]"
+                rows={4}
+              />
             </div>
           </div>
         </div>
@@ -355,24 +424,53 @@ function CreateTokenForm() {
               <label htmlFor="image-upload" className="block cursor-pointer">
                 <div className="border-2 border-dashed border-[#232323] rounded-lg p-8 text-center hover:border-[#D7FE11] transition-colors">
                   <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <div className="text-gray-400 mb-2"><span className="text-[#D7FE11] hover:text-[#5BC000]">Click to upload</span> or drag and drop</div>
-                  <p className="text-sm text-gray-500">PNG, JPG, GIF up to 5MB</p>
+                  <div className="text-gray-400 mb-2">
+                    <span className="text-[#D7FE11] hover:text-[#5BC000]">
+                      Click to upload
+                    </span>{" "}
+                    or drag and drop
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    PNG, JPG, GIF up to 5MB
+                  </p>
                 </div>
-                <input id="image-upload" type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                <input
+                  id="image-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
               </label>
             ) : (
               <div className="relative">
                 <div className="w-full h-48 rounded-lg overflow-hidden bg-[#0a0a0a] flex items-center justify-center">
-                  <img src={imagePreview} alt="Token preview" className="w-full h-full object-contain rounded-lg" />
+                  <img
+                    src={imagePreview}
+                    alt="Token preview"
+                    className="w-full h-full object-contain rounded-lg"
+                  />
                 </div>
-                <button type="button" onClick={removeImage} className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1">
+                <button
+                  type="button"
+                  onClick={removeImage}
+                  className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1"
+                >
                   <X className="h-4 w-4" />
                 </button>
               </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Or provide image URL</label>
-              <Input type="url" placeholder="https://example.com/token-image.png" value={formData.imageUrl} onChange={(e) => handleInputChange("imageUrl", e.target.value)} className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#D7FE11] focus:ring-[#D7FE11]" />
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Or provide image URL
+              </label>
+              <Input
+                type="url"
+                placeholder="https://example.com/token-image.png"
+                value={formData.imageUrl}
+                onChange={(e) => handleInputChange("imageUrl", e.target.value)}
+                className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#D7FE11] focus:ring-[#D7FE11]"
+              />
             </div>
           </div>
         </div>
@@ -385,16 +483,40 @@ function CreateTokenForm() {
           </h2>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Website</label>
-              <Input type="url" placeholder="https://yourwebsite.com" value={formData.website} onChange={(e) => handleInputChange("website", e.target.value)} className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#D7FE11] focus:ring-[#D7FE11]" />
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Website
+              </label>
+              <Input
+                type="url"
+                placeholder="https://yourwebsite.com"
+                value={formData.website}
+                onChange={(e) => handleInputChange("website", e.target.value)}
+                className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#D7FE11] focus:ring-[#D7FE11]"
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Twitter/X</label>
-              <Input type="url" placeholder="https://twitter.com/yourhandle" value={formData.twitter} onChange={(e) => handleInputChange("twitter", e.target.value)} className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#D7FE11] focus:ring-[#D7FE11]" />
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Twitter/X
+              </label>
+              <Input
+                type="url"
+                placeholder="https://twitter.com/yourhandle"
+                value={formData.twitter}
+                onChange={(e) => handleInputChange("twitter", e.target.value)}
+                className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#D7FE11] focus:ring-[#D7FE11]"
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Telegram</label>
-              <Input type="url" placeholder="https://t.me/yourgroup" value={formData.telegram} onChange={(e) => handleInputChange("telegram", e.target.value)} className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#D7FE11] focus:ring-[#D7FE11]" />
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Telegram
+              </label>
+              <Input
+                type="url"
+                placeholder="https://t.me/yourgroup"
+                value={formData.telegram}
+                onChange={(e) => handleInputChange("telegram", e.target.value)}
+                className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#D7FE11] focus:ring-[#D7FE11]"
+              />
             </div>
           </div>
         </div>
@@ -408,21 +530,87 @@ function CreateTokenForm() {
           <div className="space-y-4">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-300">Initial OKB Purchase</label>
+                <label className="block text-sm font-medium text-gray-300">
+                  Initial OKB Purchase
+                </label>
                 {isConnected && (
                   <div className="text-sm text-gray-400 space-y-1">
-                    <div>Balance: <span className={`font-medium ${(okbBalance || 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>{(okbBalance || 0).toFixed(4)} OKB</span></div>
-                    <div>Authorized: <span className={`font-medium ${(okbAllowance || 0) > 0 ? 'text-blue-400' : 'text-yellow-400'}`}>{(okbAllowance || 0).toFixed(4)} OKB</span></div>
+                    <div>
+                      Balance:{" "}
+                      <span
+                        className={`font-medium ${
+                          (okbBalance || 0) > 0
+                            ? "text-green-400"
+                            : "text-red-400"
+                        }`}
+                      >
+                        {(okbBalance || 0).toFixed(4)} OKB
+                      </span>
+                    </div>
+                    <div>
+                      Authorized:{" "}
+                      <span
+                        className={`font-medium ${
+                          (okbAllowance || 0) > 0
+                            ? "text-blue-400"
+                            : "text-yellow-400"
+                        }`}
+                      >
+                        {(okbAllowance || 0).toFixed(4)} OKB
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>
-              <Input type="number" placeholder="0.1" value={initialPurchase.toString()} onChange={(e) => setInitialPurchase(Number(e.target.value) || 0.1)} className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#D7FE11] focus:ring-[#D7FE11]" min="0.1" step="0.1" required />
+              <Input
+                type="number"
+                placeholder="0.1"
+                value={initialPurchase.toString()}
+                onChange={(e) =>
+                  setInitialPurchase(Number(e.target.value) || 0.1)
+                }
+                className="bg-[#0E0E0E] border-[#232323] text-white placeholder-gray-500 focus:border-[#D7FE11] focus:ring-[#D7FE11]"
+                min="0.1"
+                step="0.1"
+                required
+              />
               <div className="mt-2 space-y-1">
-                <p className="text-sm text-gray-400">Required. Minimum initial purchase: 0.1 OKB.</p>
-                {isConnected && (okbBalance || 0) === 0 && (<p className="text-sm text-red-400 flex items-center"><span className="mr-1">⚠️</span>You have no OKB tokens. You cannot create a token.</p>)}
-                {isConnected && initialPurchase > 0 && initialPurchase < 0.1 && (<p className="text-sm text-red-400 flex items-center"><span className="mr-1">⚠️</span>Minimum initial purchase amount is 0.1 OKB.</p>)}
-                {isConnected && initialPurchase > (okbBalance || 0) && (okbBalance || 0) > 0 && (<p className="text-sm text-red-400 flex items-center"><span className="mr-1">⚠️</span>Insufficient OKB balance. You need {initialPurchase.toFixed(4)} OKB but have {(okbBalance || 0).toFixed(4)} OKB.</p>)}
-                {isConnected && initialPurchase > 0 && initialPurchase <= (okbBalance || 0) && (okbAllowance || 0) < initialPurchase && (<p className="text-sm text-yellow-400 flex items-center"><span className="mr-1">⚠️</span>Authorization required. You need to authorize {initialPurchase.toFixed(4)} OKB but only {(okbAllowance || 0).toFixed(4)} OKB is authorized.</p>)}
+                <p className="text-sm text-gray-400">
+                  Required. Minimum initial purchase: 0.1 OKB.
+                </p>
+                {isConnected && (okbBalance || 0) === 0 && (
+                  <p className="text-sm text-red-400 flex items-center">
+                    <span className="mr-1">⚠️</span>You have no OKB tokens. You
+                    cannot create a token.
+                  </p>
+                )}
+                {isConnected &&
+                  initialPurchase > 0 &&
+                  initialPurchase < 0.1 && (
+                    <p className="text-sm text-red-400 flex items-center">
+                      <span className="mr-1">⚠️</span>Minimum initial purchase
+                      amount is 0.1 OKB.
+                    </p>
+                  )}
+                {isConnected &&
+                  initialPurchase > (okbBalance || 0) &&
+                  (okbBalance || 0) > 0 && (
+                    <p className="text-sm text-red-400 flex items-center">
+                      <span className="mr-1">⚠️</span>Insufficient OKB balance.
+                      You need {initialPurchase.toFixed(4)} OKB but have{" "}
+                      {(okbBalance || 0).toFixed(4)} OKB.
+                    </p>
+                  )}
+                {isConnected &&
+                  initialPurchase > 0 &&
+                  initialPurchase <= (okbBalance || 0) &&
+                  (okbAllowance || 0) < initialPurchase && (
+                    <p className="text-sm text-yellow-400 flex items-center">
+                      <span className="mr-1">⚠️</span>Authorization required.
+                      You need to authorize {initialPurchase.toFixed(4)} OKB but
+                      only {(okbAllowance || 0).toFixed(4)} OKB is authorized.
+                    </p>
+                  )}
               </div>
             </div>
           </div>
@@ -430,19 +618,37 @@ function CreateTokenForm() {
 
         {/* Submit Button */}
         <div className="flex justify-end">
-          <Button type="submit" disabled={!isFormValid() || isUploading || isCreatePending || isCreateConfirming || isApprovalPending || isApprovalConfirming} className="font-semibold px-8 py-3 rounded-lg flex items-center disabled:opacity-50 bg-[#D7FE11] hover:bg-[#5BC000] text-black disabled:bg-gray-600 disabled:text-gray-400">
-            {isUploading ? (<><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>Uploading...</>) : (<><Rocket className="mr-2 h-5 w-5" />Create Token</>)}
+          <Button
+            type="submit"
+            disabled={
+              !isFormValid() ||
+              isUploading ||
+              isCreatePending ||
+              isCreateConfirming ||
+              isApprovalPending ||
+              isApprovalConfirming
+            }
+            className="font-semibold px-8 py-3 rounded-lg flex items-center disabled:opacity-50 bg-[#D7FE11] hover:bg-[#5BC000] text-black disabled:bg-gray-600 disabled:text-gray-400"
+          >
+            {isUploading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Rocket className="mr-2 h-5 w-5" />
+                Create Token
+              </>
+            )}
           </Button>
         </div>
       </form>
-
     </div>
   );
 }
 
 // 主页面组件
 export default function CreateTokenPage() {
-  return (
-      <CreateTokenForm />
-  );
+  return <CreateTokenForm />;
 }
