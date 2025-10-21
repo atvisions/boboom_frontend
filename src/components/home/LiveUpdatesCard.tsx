@@ -7,6 +7,7 @@ import Image from "next/image";
 import websocketService from "@/services/websocket";
 import { userAPI, tokenAPI } from "@/services/api";
 import { formatDistanceToNow } from "date-fns";
+import Link from "next/link";
 
 type BuySellItem = {
   avatar: string;
@@ -20,6 +21,7 @@ type BuySellItem = {
   coinName: string;
   tokenAmount: string;
 };
+
 type NewTokenItem = {
   tokenLogo: string;
   name: string;
@@ -42,8 +44,6 @@ type WhaleItem = {
 export function LiveUpdatesCard() {
   const router = useRouter();
 
-  // 加载状态
-  const [isLoading, setIsLoading] = useState(true);
   const [hasRealData, setHasRealData] = useState(false);
 
   // WebSocket实时数据状态
@@ -337,11 +337,10 @@ export function LiveUpdatesCard() {
         }
       }
 
-      setIsLoading(false);
       setHasRealData(true);
     } catch (error) {
       // API loading failed
-      setIsLoading(false);
+     
     }
   }, []);
 
@@ -382,7 +381,7 @@ export function LiveUpdatesCard() {
         // 标记已收到真实数据
 
         setHasRealData(true);
-        setIsLoading(false);
+      
       } else if (data.type === "transaction_list") {
         // 初始交易列表数据
         const transactions = data.data || [];
@@ -445,7 +444,7 @@ export function LiveUpdatesCard() {
           // 标记已收到真实数据
 
           setHasRealData(true);
-          setIsLoading(false);
+      
         }
       }
     },
@@ -484,7 +483,7 @@ export function LiveUpdatesCard() {
 
         // 标记已收到真实数据
         setHasRealData(true);
-        setIsLoading(false);
+      
       } else if (data.type === "new_token_list") {
         // 初始新代币列表数据
         const tokens = data.data || [];
@@ -514,7 +513,6 @@ export function LiveUpdatesCard() {
 
           // 标记已收到真实数据
           setHasRealData(true);
-          setIsLoading(false);
         }
       }
     },
@@ -547,7 +545,6 @@ export function LiveUpdatesCard() {
         // 标记已收到真实数据
         if (!hasRealData) {
           setHasRealData(true);
-          setIsLoading(false);
         }
       } else if (data.type === "whale_transaction_list") {
         // 初始巨鲸交易列表数据
@@ -574,7 +571,6 @@ export function LiveUpdatesCard() {
 
           // 标记已收到真实数据
           setHasRealData(true);
-          setIsLoading(false);
         }
       } else {
         // Unhandled data type
@@ -881,7 +877,7 @@ export function LiveUpdatesCard() {
       <div className="grid grid-cols-1 justify-items-center md:justify-items-start md:grid-cols-2 lg:flex gap-6 py-6 px-2 overflow-x-auto">
         {/* 买入卡片 */}
         {buys.length > 0 && (
-          <a
+          <Link
             className={`relative w-full md:w-80  rounded-2xl p-6 bg-gradient-to-br from-emerald-900/40 via-emerald-800/30 to-green-900/50 backdrop-blur-sm border border-emerald-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${
               pulse.buy ? "jitter-on" : ""
             } ${
@@ -957,12 +953,12 @@ export function LiveUpdatesCard() {
                 <div className="text-white/70 text-xs">{buys[0].coinName}</div>
               </div>
             </div>
-          </a>
+          </Link>
         )}
 
         {/* 卖出卡片 */}
         {sells.length > 0 && (
-          <a
+          <Link
             className={`relative w-full md:w-80  rounded-2xl p-6 bg-gradient-to-br from-red-900/40 via-red-800/30 to-rose-900/50 backdrop-blur-sm border border-red-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${
               pulse.sell ? "jitter-on" : ""
             } ${
@@ -1038,12 +1034,12 @@ export function LiveUpdatesCard() {
                 <div className="text-white/70 text-xs">{sells[0].coinName}</div>
               </div>
             </div>
-          </a>
+          </Link>
         )}
 
         {/* 新代币卡片 */}
         {news.length > 0 && (
-          <a
+          <Link
             className={`relative w-full md:w-80  rounded-2xl p-6 bg-gradient-to-br from-blue-900/40 via-indigo-800/30 to-purple-900/50 backdrop-blur-sm border border-blue-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${
               pulse.news ? "jitter-on" : ""
             } ${
@@ -1125,18 +1121,17 @@ export function LiveUpdatesCard() {
                 </div>
               </div>
             </div>
-          </a>
+          </Link>
         )}
 
         {/* 巨鲸交易卡片 */}
         {whales.length > 0 && (
-          <a
+          <Link
             className={`relative w-full md:w-80  rounded-2xl p-6 bg-gradient-to-br from-purple-900/40 via-violet-800/30 to-fuchsia-900/50 backdrop-blur-sm border border-purple-500/20 cursor-pointer hover:scale-105 transition-all duration-300 ${
               pulse.whale ? "jitter-on" : ""
             } ${
               isAnimating && pulse.whale ? "animate-pulse" : ""
             } fade-in group flex-shrink-0`}
-            // onClick={() => handleCardClick(whales[0].fullAddress)}
             href={`/token/?address=${whales[0].fullAddress}`}
           >
             {/* 发光效果 */}
@@ -1206,7 +1201,7 @@ export function LiveUpdatesCard() {
                 <div className="text-white/70 text-xs">{whales[0].address}</div>
               </div>
             </div>
-          </a>
+          </Link>
         )}
       </div>
     </div>

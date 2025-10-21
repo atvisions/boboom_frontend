@@ -15,6 +15,7 @@ const nextConfig = {
     return 'build-' + Date.now()
   },
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',

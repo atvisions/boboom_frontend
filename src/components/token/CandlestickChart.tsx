@@ -22,7 +22,6 @@ export function CandlestickChart({
   const [currency, setCurrency] = useState<"USD" | "OKB">("USD");
   const [showTimeDropdown, setShowTimeDropdown] = useState(false);
   const [localStats24h, setLocalStats24h] = useState<any>(null); // 本地备用状态
-  const [candlestickData, setCandlestickData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [okbPrice, setOkbPrice] = useState<number>(177.6); // 默认OKB价格
   const wsConnectionIdRef = useRef<string | null>(null);
@@ -136,36 +135,31 @@ export function CandlestickChart({
         // 首先按时间排序，确保K线从旧到新的正确顺序
 
         const sortedCandles =
-          response.data.candles?.map((item) => {
-            return {
-              // close: 0.000004916585405247,
-              // high: 0.000004842417790972,
-              // is_complete: false,
-              // low: 0.000004842417790921,
-              // open: 0.000004842417790921,
-              // timestamp: "2025-10-14T02:52:00+00:00",
-              // total_okb_volume: 2.1,
-              // total_token_volume: 80124437.1618393,
-              // trade_count: 3,
-              // volume: 2.1,
-              timestamp: new Date(item.timestamp).valueOf(),
-              open: item.open,
-              high: item.high,
-              low: item.low,
-              close: item.close,
-              volume: item.volume,
-            };
-          })?.sort((a: any, b: any) => a.timestamp - b.timestamp) || [];
-
-        setCandlestickData(sortedCandles);
-      } else {
-        // API成功但没有数据，显示空图表
-        setCandlestickData([]);
+          response.data.candles
+            ?.map((item) => {
+              return {
+                // close: 0.000004916585405247,
+                // high: 0.000004842417790972,
+                // is_complete: false,
+                // low: 0.000004842417790921,
+                // open: 0.000004842417790921,
+                // timestamp: "2025-10-14T02:52:00+00:00",
+                // total_okb_volume: 2.1,
+                // total_token_volume: 80124437.1618393,
+                // trade_count: 3,
+                // volume: 2.1,
+                timestamp: new Date(item.timestamp).valueOf(),
+                open: item.open,
+                high: item.high,
+                low: item.low,
+                close: item.close,
+                volume: item.volume,
+              };
+            })
+            ?.sort((a: any, b: any) => a.timestamp - b.timestamp) || [];
+        chartRef.current.applyNewData(sortedCandles);
       }
-    } catch (error) {
-      // 静默处理API失败，显示空图表
-      setCandlestickData([]);
-    }
+    } catch (error) {}
   };
 
   // 加载蜡烛图数据（REST 作为初始快照，仅在 tokenAddress 或 timeframe 变化时加载）
@@ -232,10 +226,10 @@ export function CandlestickChart({
           }
         }
         // 处理K线数据
-        else if (data?.type === "candles_snapshot" && data.data?.candles) {
-          const transformed = data.data.candles.map((candle: any) => {
+        else if (data.data?.candles) {
+          data.data.candles.map((candle: any) => {
             const factor = currency === "OKB" ? 1 / okbPrice : 1;
-            return {
+            const Kdata = {
               open: (candle.open || 0) * factor,
               high: (candle.high || 0) * factor,
               low: (candle.low || 0) * factor,
@@ -243,51 +237,7 @@ export function CandlestickChart({
               volume: (candle.volume || 0) * factor,
               timestamp: new Date(candle.timestamp).valueOf(), // 保存时间戳用于tooltip
             };
-          });
-          // 清理数据确保正确的索引格式
-          setCandlestickData(transformed);
-        } else if (data?.type === "candles_update" && data.data?.candles) {
-          const updates = data.data.candles as any[];
-          const factor = currency === "OKB" ? 1 / okbPrice : 1;
-          // 合并更新：按 timestamp 覆盖或追加
-          setCandlestickData((prev) => {
-            const next = [...prev];
-            updates.forEach((c) => {
-              // 安全地提取价格数据，确保不会出现0值
-              const open = parseFloat(c.open || c.open_price) || null;
-              const high = parseFloat(c.high || c.high_price) || null;
-              const low = parseFloat(c.low || c.low_price) || null;
-              const close = parseFloat(c.close || c.close_price) || null;
-              const volume = parseFloat(c.volume || c.total_okb_volume) || null;
-              // 验证价格数据的有效性
-              if (
-                !open ||
-                !high ||
-                !low ||
-                !close ||
-                open <= 0 ||
-                high <= 0 ||
-                low <= 0 ||
-                close <= 0 ||
-                !isFinite(open) ||
-                !isFinite(high) ||
-                !isFinite(low) ||
-                !isFinite(close)
-              ) {
-                return; // 跳过这个无效的更新
-              }
-
-              const newItem = {
-                open: open * factor,
-                high: high * factor,
-                low: low * factor,
-                close: close * factor,
-                volume: volume * factor,
-                timestamp: new Date(c.timestamp).valueOf(), // 保存时间戳用于tooltip
-              };
-              next.push(newItem);
-            });
-            return next;
+            chartRef.current.updateData(Kdata);
           });
         }
       } catch (e) {}
@@ -405,14 +355,6 @@ export function CandlestickChart({
     };
   }, []);
 
-  // 同步真实数据到 klinecharts
-  useEffect(() => {
-    if (!chartRef.current) return;
-    try {
-      chartRef.current.applyNewData(candlestickData);
-    } catch {}
-  }, [candlestickData]);
-
   return (
     <div className="space-y-6">
       {/* 图表标题和控制按钮 */}
@@ -482,7 +424,7 @@ export function CandlestickChart({
 
                       <div className="text-xs text-gray-500 font-medium px-2 py-1 mt-2">
                         HOURS
-                      </div> 
+                      </div>
                       {["1h", "4h"].map((tf) => (
                         <button
                           key={tf}
@@ -570,7 +512,9 @@ export function CandlestickChart({
       <div className="grid grid-cols-3 gap-2 md:gap-4  md:grid-cols-5">
         {/* 当前价格卡片 */}
         <div className="bg-[#0E0E0E] rounded-lg p-2 md:p-4">
-          <div className="text-gray-400 mb-1 text-[10px] md:text-xs">Current Price</div>
+          <div className="text-gray-400 mb-1 text-[10px] md:text-xs">
+            Current Price
+          </div>
           <div className="text-white font-bold text-[10px] md:text-sm">
             {loading ? (
               <div className="animate-pulse bg-gray-600 h-4 w-20 rounded"></div>
@@ -585,7 +529,9 @@ export function CandlestickChart({
         </div>
 
         <div className="bg-[#0E0E0E] rounded-lg p-2 md:p-4">
-          <div className="text-gray-400 mb-1 text-[10px] md:text-xs">24h High</div>
+          <div className="text-gray-400 mb-1 text-[10px] md:text-xs">
+            24h High
+          </div>
           <div className="text-white font-bold text-[10px] md:text-sm">
             {loading ? (
               <div className="animate-pulse bg-gray-600 h-4 w-20 rounded"></div>
@@ -596,7 +542,9 @@ export function CandlestickChart({
         </div>
 
         <div className="bg-[#0E0E0E] rounded-lg p-2 md:p-4">
-          <div className="text-gray-400 mb-1 text-[10px] md:text-xs">24h Low</div>
+          <div className="text-gray-400 mb-1 text-[10px] md:text-xs">
+            24h Low
+          </div>
           <div className="text-white font-bold text-[10px] md:text-sm">
             {loading ? (
               <div className="animate-pulse bg-gray-600 h-4 w-20 rounded"></div>
@@ -607,7 +555,9 @@ export function CandlestickChart({
         </div>
 
         <div className="bg-[#0E0E0E] rounded-lg p-2 md:p-4">
-          <div className="text-gray-400 mb-1 text-[10px] md:text-xs">24h Change</div>
+          <div className="text-gray-400 mb-1 text-[10px] md:text-xs">
+            24h Change
+          </div>
           {loading ? (
             <div className="animate-pulse bg-gray-600 h-4 w-16 rounded"></div>
           ) : (
@@ -632,7 +582,9 @@ export function CandlestickChart({
         </div>
 
         <div className="bg-[#0E0E0E] rounded-lg p-2 md:p-4">
-          <div className="text-gray-400 mb-1 text-[10px] md:text-xs">24h Volume</div>
+          <div className="text-gray-400 mb-1 text-[10px] md:text-xs">
+            24h Volume
+          </div>
           <div className="text-white font-bold text-[10px] md:text-sm">
             {loading ? (
               <div className="animate-pulse bg-gray-600 h-4 w-16 rounded"></div>

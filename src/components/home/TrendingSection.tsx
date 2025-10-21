@@ -10,6 +10,7 @@ import { useWalletAuth } from "@/hooks/useWalletAuth";
 import { useRouter } from "next/navigation";
 import websocketService from "@/services/websocket";
 import { extractCreatorAddresses } from "@/utils/contractAddresses";
+import Link from "next/link";
 
 // 时间格式化函数
 const getTimeAgo = (dateString: string) => {
@@ -631,8 +632,8 @@ export function TrendingSection() {
       ) : (
         <div className="grid grid-cols-1 justify-items-start lg:grid-cols-2 xl:grid-cols-3 2xl:flex 2xl:flex-wrap gap-6">
           {tokens.map((token) => (
-            <a
-              key={`${token.address}-${token.name}-${Date.now()}`}
+            <Link
+              key={`${token.address}`}
               className="relative rounded-2xl overflow-hidden group w-full max-w-[380px] h-[420px] mx-auto 2xl:mx-0 bg-gradient-to-br from-gray-900/80 to-gray-800/60 backdrop-blur-sm border border-gray-700/50 cursor-pointer hover:border-[#D7FE11]/30 hover:shadow-[0_0_30px_rgba(112,224,0,0.1)] transition-all duration-300"
               // onClick={() => router.push(`/token/?address=${token.address}`)}
               href={`/token/?address=${token.address}`}
@@ -671,7 +672,7 @@ export function TrendingSection() {
                       <img
                         src={token.imageUrl}
                         alt={`${token.name} logo`}
-                        className="w-12 h-12 object-contain rounded-xl"
+                        className="w-13 h-13  object-cover  rounded-xl"
                         onError={(e) => {
                           // 图片加载失败时显示代币符号
                           const target = e.currentTarget as HTMLImageElement;
@@ -895,6 +896,7 @@ export function TrendingSection() {
                         <a
                           href={token.twitter}
                           rel="noopener noreferrer"
+                          target="_blank"
                           className="p-2 rounded-full bg-gray-800/50 hover:bg-[#D7FE11] hover:text-black transition-all duration-300 border border-gray-700/30"
                           onClick={(e) => {
                             e.preventDefault();
@@ -911,6 +913,7 @@ export function TrendingSection() {
                         <a
                           href={token.telegram}
                           rel="noopener noreferrer"
+                          target="_blank"
                           className="p-2 rounded-full bg-gray-800/50 hover:bg-[#D7FE11] hover:text-black transition-all duration-300 border border-gray-700/30"
                           onClick={(e) => {
                             e.preventDefault();
@@ -927,6 +930,7 @@ export function TrendingSection() {
                         <a
                           href={token.website}
                           rel="noopener noreferrer"
+                          target="_blank"
                           className="p-2 rounded-full bg-gray-800/50 hover:bg-[#D7FE11] hover:text-black transition-all duration-300 border border-gray-700/30"
                           onClick={(e) => {
                             e.preventDefault();
@@ -941,7 +945,7 @@ export function TrendingSection() {
                   </div>
                 </div>
               </div>
-            </a>
+            </Link>
           ))}
         </div>
       )}

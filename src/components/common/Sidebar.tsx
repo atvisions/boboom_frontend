@@ -16,10 +16,10 @@ const navigation = [
 ];
 
 const socialLinks = [
-  { name: "X", href: "#", icon: FaXTwitter },
+  { name: "X", href: "https://x.com/BoboomFun", icon: FaXTwitter },
   { name: "Telegram", href: "#", icon: FaTelegram },
   { name: "Discord", href: "#", icon: FaDiscord },
-  { name: "GitHub", href: "#", icon: FaGithub },
+  // { name: "GitHub", href: "#", icon: FaGithub },
 ];
 
 export function Sidebar() {
@@ -53,7 +53,7 @@ export function Sidebar() {
           onClick={() => handleLinkClick("/")}
         >
           <Image
-            src="/logo.svg"
+            src="/logo.png"
             alt="BOBOOM Logo"
             width={32}
             height={32}
@@ -152,6 +152,7 @@ export function Sidebar() {
             <Link
               key={social.name}
               href={social.href}
+              target="_blank"
               className="flex-1 flex justify-center text-gray-400 hover:text-[#D7FE11] transition-colors"
             >
               <social.icon className="h-6 w-6" />
