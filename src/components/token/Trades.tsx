@@ -16,6 +16,7 @@ import {
 import { tokenAPI } from "@/services/api";
 import websocketService from "@/services/websocket";
 import { TokenOverview } from "./TokenOverview";
+import { NETWORK_CONFIG } from "@/contracts/config-simple";
 
 interface TradesAndHoldersProps {
   tokenAddress: string;
@@ -97,7 +98,7 @@ export function TradesAndHolders({
 
       const response = await tokenAPI.getTokenTransactions(
         tokenAddress,
-        "sepolia",
+        NETWORK_CONFIG.NETWORK_NAME,
         page,
         10
       );
@@ -177,7 +178,7 @@ export function TradesAndHolders({
 
       const response = await tokenAPI.getTokenHolders(
         tokenAddress,
-        "sepolia",
+        NETWORK_CONFIG.NETWORK_NAME,
         page,
         10
       );

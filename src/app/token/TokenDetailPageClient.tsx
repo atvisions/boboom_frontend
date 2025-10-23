@@ -15,6 +15,7 @@ import { useWalletAuth } from "@/hooks/useWalletAuth";
 import { toast } from "@/components/ui/toast-notification";
 import websocketService from "@/services/websocket";
 import { useTokenFactoryWorking as useTokenFactory } from "@/hooks/useTokenFactoryWorking";
+import { NETWORK_CONFIG } from "@/contracts/config-simple";
 
 interface TokenDetailPageClientProps {
   address: string;
@@ -219,8 +220,8 @@ export default function TokenDetailPageClient({
 
         setLoading(true);
         const [detailResponse, statsResponse] = await Promise.all([
-          tokenAPI.getTokenDetails(tokenAddress, "sepolia"),
-          tokenAPI.getToken24hStats(tokenAddress, "sepolia"),
+          tokenAPI.getTokenDetails(tokenAddress, NETWORK_CONFIG.NETWORK_NAME),
+          tokenAPI.getToken24hStats(tokenAddress, NETWORK_CONFIG.NETWORK_NAME),
         ]);
 
         if (detailResponse.success) {

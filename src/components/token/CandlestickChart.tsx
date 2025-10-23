@@ -8,6 +8,7 @@ import { connectToTokenCandles } from "@/services/websocket";
 import { formatPrice } from "@/lib/utils";
 import websocketService from "@/services/websocket";
 import { init, dispose, LineType } from "klinecharts";
+import { NETWORK_CONFIG } from "@/contracts/config-simple";
 
 interface CandlestickChartProps {
   tokenAddress: string;
@@ -86,7 +87,7 @@ export function CandlestickChart({
         const timestamp = Date.now();
         const response = await tokenAPI.getToken24hStats(
           tokenAddress,
-          "sepolia"
+          NETWORK_CONFIG.NETWORK_NAME
         );
         if (response.success) {
           // 24h stats API response
@@ -122,7 +123,7 @@ export function CandlestickChart({
       const response = await tokenAPI.getTokenPriceHistory(tokenAddress, {
         interval: interval as any,
         limit: 200,
-        network: "sepolia",
+        network: NETWORK_CONFIG.NETWORK_NAME,
         continuous: false, // 关闭连续模式，只显示有交易的K线
       });
 

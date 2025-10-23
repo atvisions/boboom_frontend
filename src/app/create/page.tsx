@@ -267,8 +267,9 @@ function CreateTokenForm() {
         return null;
       }
 
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "";
-      const apiUrl = `${backendUrl}/api/tokens/creators/${address?.toLowerCase()}/latest-token/?network=sepolia&tx_hash=${txHash}`;
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+      const networkName = process.env.NEXT_PUBLIC_NETWORK_NAME || 'localhost';
+      const apiUrl = `${backendUrl}/api/tokens/creators/${address?.toLowerCase()}/latest-token/?network=${networkName}&tx_hash=${txHash}`;
 
       const response = await fetch(apiUrl, {
         method: "GET",

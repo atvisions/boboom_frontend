@@ -281,7 +281,7 @@ export function LiveUpdatesCard() {
 
       // 加载最新代币
       const tokensResponse = await fetch(
-        `${backendUrl}/api/tokens/newest/?limit=10&network=sepolia`
+        `${backendUrl}/api/tokens/newest/?limit=10&network=${NETWORK_CONFIG.NETWORK_NAME}`
       );
       if (tokensResponse.ok) {
         const tokensData = await tokensResponse.json();

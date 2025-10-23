@@ -2,7 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider, createConfig, http } from "wagmi";
-import { xLayer, sepolia } from "wagmi/chains";
+import { xLayer, sepolia, localhost } from "wagmi/chains";
 import { darkTheme, RainbowKitProvider, getDefaultConfig } from "@rainbow-me/rainbowkit";
 import { Toaster } from "sonner";
 import {
@@ -16,8 +16,9 @@ import {
 const config = getDefaultConfig({
   appName: 'BoBoom Launchpad',
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '5ae73c9aae56aec3fa7cad4817817d32',
-  chains: [xLayer, sepolia],
+  chains: [localhost, xLayer, sepolia],
   transports: {
+    [localhost.id]: http("http://127.0.0.1:8545"),
     [xLayer.id]: http("https://rpc.xlayer.tech"),
     [sepolia.id]: http(
       process.env.NEXT_PUBLIC_RPC_URL ||

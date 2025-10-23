@@ -21,6 +21,7 @@ import { userAPI, favoriteAPI, tokenAPI } from "@/services/api";
 import { useWalletAuth } from "@/hooks/useWalletAuth";
 import { toast } from "@/components/ui/toast-notification";
 import { SafeImage } from "@/components/ui/SafeImage";
+import { NETWORK_CONFIG } from "@/contracts/config-simple";
 
 interface TokenDetailsProps {
   token: any;
@@ -105,7 +106,7 @@ export function TokenDetails({ token }: TokenDetailsProps) {
         const response = await favoriteAPI.checkFavoriteStatus(
           address,
           token.address,
-          "sepolia"
+          NETWORK_CONFIG.NETWORK_NAME
         );
         setIsFavorited(response.data.is_favorited);
       } catch (error) {
@@ -197,7 +198,22 @@ export function TokenDetails({ token }: TokenDetailsProps) {
 
   // 跳转到区块浏览器
   const openBlockExplorer = () => {
-    const explorerUrl = `https://sepolia.etherscan.io/address/${token.address}`;
+    // 根据网络选择区块浏览器
+    let explorerUrl = '';
+    const network = NETWORK_CONFIG.NETWORK_NAME;
+
+    if (network === 'localhost') {
+      // 本地网络没有区块浏览器，显示提示
+      toast.info('Local network has no block explorer');
+      return;
+    } else if (network === 'sepolia') {
+      explorerUrl = `https://sepolia.etherscan.io/address/${token.address}`;
+    } else if (network === 'xlayer') {
+      explorerUrl = `https://www.okx.com/web3/explorer/xlayer/address/${token.address}`;
+    } else {
+      explorerUrl = `https://etherscan.io/address/${token.address}`;
+    }
+
     window.open(explorerUrl, "_blank");
   };
 
