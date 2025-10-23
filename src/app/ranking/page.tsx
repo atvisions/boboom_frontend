@@ -17,6 +17,7 @@ import { toast, toastMessages } from "@/components/ui/toast-notification";
 import { useRouter } from "next/navigation";
 import { tokenAPI, userAPI, favoriteAPI } from "@/services/api";
 import { useWalletAuth } from "@/hooks/useWalletAuth";
+import { NETWORK_CONFIG } from "@/contracts/config-simple";
 
 const rankingTabs = [
   { id: "tokens", label: "Token Rankings", icon: Trophy },
@@ -78,7 +79,7 @@ export default function RankingPage() {
           // 加载代币排行榜数据
           const response = await tokenAPI.getTokens({
             limit: 50,
-            network: "sepolia",
+            network: NETWORK_CONFIG.NETWORK_NAME,
           });
 
           if (response.success) {
@@ -148,7 +149,7 @@ export default function RankingPage() {
           const response = await userAPI.getCreatorsRanking({
             sort_by: creatorSort,
             limit: 50,
-            network: "sepolia",
+            network: NETWORK_CONFIG.NETWORK_NAME,
           });
 
           if (response.success) {
@@ -223,7 +224,7 @@ export default function RankingPage() {
     try {
       const response = await favoriteAPI.toggleFavorite(address, {
         token_address: tokenAddress,
-        network: "sepolia",
+        network: NETWORK_CONFIG.NETWORK_NAME,
       });
 
       if (response.success) {

@@ -1688,7 +1688,7 @@ export function TokenGrid() {
                   // 直接调用 API 检查数据
                   try {
                     const response = await tokenAPI.getGraduatedTokens({
-                      network: "sepolia",
+                      network: NETWORK_CONFIG.NETWORK_NAME,
                     });
                   } catch (error) {}
 

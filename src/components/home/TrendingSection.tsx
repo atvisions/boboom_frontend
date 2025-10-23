@@ -275,7 +275,7 @@ export function TrendingSection() {
         const response = await tokenAPI.getTokens({
           trending: true,
           limit: 4,
-          network: "sepolia",
+          network: NETWORK_CONFIG.NETWORK_NAME,
         });
 
         if (response.success && isComponentMounted) {
@@ -469,7 +469,7 @@ export function TrendingSection() {
       try {
         const response = await favoriteAPI.toggleFavorite(address, {
           token_address: tokenAddress,
-          network: "sepolia",
+          network: NETWORK_CONFIG.NETWORK_NAME,
         });
 
         if (response.success) {

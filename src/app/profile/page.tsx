@@ -31,6 +31,7 @@ import { AvatarSelectorInline } from "@/components/ui/avatar-selector-inline";
 import { userAPI, followAPI, favoriteAPI, tokenAPI } from "@/services/api";
 import { useWalletAuth } from "@/hooks/useWalletAuth";
 import { useRouter } from "next/navigation";
+import { NETWORK_CONFIG } from "@/contracts/config-simple";
 
 export default function ProfilePage({
   params,
@@ -147,7 +148,7 @@ export default function ProfilePage({
     try {
       const response = await favoriteAPI.toggleFavorite(address, {
         token_address: tokenAddress,
-        network: "sepolia",
+        network: NETWORK_CONFIG.NETWORK_NAME,
       });
 
       if (response.success) {

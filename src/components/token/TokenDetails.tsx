@@ -158,7 +158,7 @@ export function TokenDetails({ token }: TokenDetailsProps) {
     try {
       const response = await favoriteAPI.toggleFavorite(address, {
         token_address: token.address,
-        network: "sepolia",
+        network: NETWORK_CONFIG.NETWORK_NAME,
       });
 
       if (response.success) {

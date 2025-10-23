@@ -35,10 +35,11 @@ export function SearchHeader() {
         setIsSearching(true);
 
         // 直接调用API，不使用缓存
+        const networkName = process.env.NEXT_PUBLIC_NETWORK_NAME || 'localhost';
         const searchParams = new URLSearchParams({
           search: query.trim(),
           limit: '10',
-          network: 'sepolia'
+          network: networkName
         });
 
         const response = await fetch(`/api/tokens/?${searchParams.toString()}`, {
