@@ -10,6 +10,7 @@ import { useWalletAuth } from "@/hooks/useWalletAuth";
 import { useRouter } from "next/navigation";
 import websocketService from "@/services/websocket";
 import { extractCreatorAddresses } from "@/utils/contractAddresses";
+import { NETWORK_CONFIG } from "@/contracts/config-simple";
 // import Link from "next/link";
 
 // 时间格式化函数
