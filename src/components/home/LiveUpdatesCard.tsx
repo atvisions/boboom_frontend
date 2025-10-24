@@ -7,6 +7,7 @@ import Image from "next/image";
 import websocketService from "@/services/websocket";
 import { userAPI, tokenAPI } from "@/services/api";
 import { formatDistanceToNow } from "date-fns";
+import { NETWORK_CONFIG } from "@/contracts/config-simple";
 // import Link from "next/link";
 
 type BuySellItem = {
@@ -907,7 +908,7 @@ export function LiveUpdatesCard() {
 
             <div className="flex items-center space-x-4 overflow-hidden">
               {/* 左侧代币图标（主要显示） */}
-              <div className="relative">
+              <div className="relative ml-1">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center ring-4 ring-emerald-400/30 shadow-lg overflow-hidden">
                   {buys[0].tokenLogo ? (
                     <img
@@ -988,7 +989,7 @@ export function LiveUpdatesCard() {
 
             <div className="flex items-center space-x-4 overflow-hidden">
               {/* 左侧代币图标（主要显示） */}
-              <div className="relative">
+              <div className="relative ml-1">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center ring-4 ring-red-400/30 shadow-lg overflow-hidden">
                   {sells[0].tokenLogo ? (
                     <img
@@ -1069,7 +1070,7 @@ export function LiveUpdatesCard() {
 
             <div className="flex items-center space-x-4 overflow-hidden">
               {/* 左侧代币图标（主要显示） */}
-              <div className="relative">
+              <div className="relative ml-1">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center ring-4 ring-blue-400/30 shadow-lg overflow-hidden">
                   {news[0].tokenLogo ? (
                     <img
@@ -1155,7 +1156,7 @@ export function LiveUpdatesCard() {
 
             <div className="flex items-center space-x-4 overflow-hidden">
               {/* 左侧代币图标（主要显示） */}
-              <div className="relative">
+              <div className="relative ml-1">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-violet-600 flex items-center justify-center ring-4 ring-purple-400/30 shadow-lg overflow-hidden">
                   {whales[0].tokenLogo ? (
                     <img

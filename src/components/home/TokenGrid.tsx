@@ -2091,9 +2091,9 @@ export function TokenGrid() {
                       {token.graduationProgress.toFixed(1)}%
                     </span>
                   </div>
-                  <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                  <div className="w-full bg-gray-700 rounded-full h-2 overflow-hidden">
                     <div
-                      className="bg-gradient-to-r from-yellow-400 to-orange-500 h-3 rounded-full transition-all duration-500 shadow-sm"
+                      className="bg-gradient-to-r from-yellow-400 to-[#d7fe11] h-2 rounded-full transition-all duration-500 shadow-sm"
                       style={{ width: `${token.graduationProgress}%` }}
                     ></div>
                   </div>

@@ -736,9 +736,9 @@ export function TrendingSection() {
                   </div>
 
                   {/* 进度条 */}
-                  <div className="w-full h-4 bg-gray-700/50 rounded-full overflow-hidden border border-gray-600/30">
+                  <div className="w-full h-[10px] bg-gray-700/50 rounded-full overflow-hidden border border-gray-600/30">
                     <div
-                      className="bg-gradient-to-r from-[#D7FE11] via-yellow-400 to-orange-500 h-4 rounded-full transition-all duration-1000 shadow-lg"
+                      className="bg-gradient-to-r from-yellow-400 to-[#d7fe11] h-[8px] rounded-full transition-all duration-1000 shadow-lg"
                       style={{ width: `${token.graduationProgress}%` }}
                     ></div>
                   </div>
